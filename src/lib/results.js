@@ -24,9 +24,15 @@ const dev = (pct, key) => (pct?.[key] ?? 50) / 50 - 1;
 // 一 · 雷达图
 // ─────────────────────────────────────────────────────────────────────────
 
-const RADAR_KEYS = ['academic', 'social', 'sport', 'food', 'buddhist'];
+/**
+ * 雷达图五轴。
+ *
+ * 导出给真入口（cohort.js）共用 —— 一个班的分组依据也是这五维。
+ * 两处各写一份的话，改了一边另一边不会报错，只会安静地少一组或者多一组。
+ */
+export const RADAR_KEYS = ['academic', 'social', 'sport', 'food', 'buddhist'];
 
-const RADAR_AXIS_NAME = {
+export const RADAR_AXIS_NAME = {
   academic: '学术力',
   social: '社交力',
   sport: '运动力',

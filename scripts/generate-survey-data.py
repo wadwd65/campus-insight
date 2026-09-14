@@ -224,15 +224,15 @@ def verify(matrix: dict, rows: list[dict]) -> bool:
     return ok
 
 
-def write_csv(matrix: dict, rows: list[dict]) -> None:
+def write_csv(matrix: dict, rows: list[dict], out_path) -> None:
     fields = ["编号"] + [q["field"] for q in matrix["questions"]]
-    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     # utf-8-sig：带 BOM，模拟真实用户从 Excel 导出的文件；解析层必须能吃下它
     #
     # lineterminator 显式写成 \n 而不是 csv 模块默认的 \r\n：仓库统一 LF（见 .gitattributes），
     # 生成端跟随。否则每次重新生成，git 都会认为文件被改过 —— 那是假差异，
     # 会让人误以为「数据变了」，也会淹没真正的改动。
-    with OUT_PATH.open("w", encoding="utf-8-sig", newline="") as f:
+    with out_path.open("w", encoding="utf-8-sig", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore", lineterminator="\n")
         w.writeheader()
         w.writerows(rows)
@@ -242,12 +242,28 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="生成基准问卷数据（模拟）")
     ap.add_argument("-n", "--count", type=int, default=DEFAULT_N, help=f"行数，默认 {DEFAULT_N}")
     ap.add_argument("--seed", type=int, default=SEED, help=f"随机种子，默认 {SEED}")
-    ap.add_argument("--verify", action="store_true", help="生成前先跑自检")
+    ap.add_argument(
+        "--out",
+        default=None,
+        help="输出路径（默认 public/data/问卷基准数据.csv）。"
+        "用于生成真入口的示例班级问卷：同一个生成器 + 不同行数与种子",
+    )
+    ap.add_argument(
+        "--verify",
+        action="store_true",
+        help="生成前先跑自检。⚠️ 其中的亚型占比容差是按基准数据的行数（2000）设的，"
+        "给示例班级问卷（48 行）这类小样本用 --verify 会必然不通过 —— 那是尺度问题，不是数据问题。"
+        "小样本真正该守的是「选项零漂移」，那一条由 npm run selftest 的闸门一负责",
+    )
     args = ap.parse_args()
 
     if not MATRIX_PATH.exists():
         print(f"找不到 {MATRIX_PATH}", file=sys.stderr)
         return 2
+
+    out_path = Path(args.out) if args.out else OUT_PATH
+    if not out_path.is_absolute():
+        out_path = ROOT / out_path
 
     matrix = load_matrix()
     rows = sample_rows(matrix, args.count, args.seed)
@@ -257,9 +273,9 @@ def main() -> int:
         ok = verify(matrix, rows)
         print()
 
-    write_csv(matrix, rows)
-    size = OUT_PATH.stat().st_size
-    print(f"已写入 {OUT_PATH}")
+    write_csv(matrix, rows, out_path)
+    size = out_path.stat().st_size
+    print(f"已写入 {out_path}")
     print(f"  {len(rows)} 行 · {size / 1024:.1f} KB · 编码 utf-8-sig（带 BOM）")
 
     if args.verify and not ok:
