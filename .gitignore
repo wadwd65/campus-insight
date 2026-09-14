@@ -1,0 +1,40 @@
+# 依赖
+node_modules/
+
+# 构建产物
+dist/
+dist-ssr/
+*.local
+
+# 编辑器
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 环境变量（含密钥，绝不提交）
+.env
+.env.*
+!.env.example
+
+# ─────────────────────────────────────────────
+# 注意：以下目录必须随代码一起提交，
+#       不要加进本文件。赛事评审要看它们。
+#
+#   prompts/      与 AI 的对话记录（过程可复现性的核心证据）
+#   public/data/  示例数据（评委复现时直接使用）
+# ─────────────────────────────────────────────
