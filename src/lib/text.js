@@ -33,3 +33,20 @@ export function normalizeCell(value) {
     .replace(/\u3000/g, ' ')
     .trim();
 }
+
+/**
+ * 称呼清洗 —— 欢迎页那个选填输入框。
+ *
+ * 要做的其实是两件事：
+ *   1. 去换行。称呼会被拼进提示词，换行是它唯一能"越界"的手段。
+ *   2. **限长 8 个字**。不设上限的话，输入框里粘一整段话进去，
+ *      这段文字就会以「称呼」的名义进入提示词 —— 而用户是在跟页面互动，
+ *      不该出现「我填的某个框改变了模型的行为」这种事。
+ *      限长 8 之后，它最多只能算一个怪名字。
+ */
+export function cleanName(value, max = 8) {
+  return String(value ?? '')
+    .replace(/[\r\n\t\u3000]+/g, ' ')
+    .trim()
+    .slice(0, max);
+}

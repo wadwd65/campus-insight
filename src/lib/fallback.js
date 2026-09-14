@@ -11,25 +11,12 @@
  * 全部输入都来自 buildReport 的结果，不额外读数据、不额外计算。
  */
 
+import { pickKeyword, buildClosing } from './keyword.js';
+
 /**
- * 青春关键词：按属性组合挑，第一个命中的胜出，最后一条兜底。
- *
- * 顺序有意排过 —— 组合特征（比如「学术高 + 熬夜多」）放在单特征前面，
- * 否则「熬夜多」会先把所有夜猫子都吃掉，组合的那份辨识度就没了。
+ * 青春关键词已移到 keyword.js —— 大模型那条路径的收尾句也用同一个函数，
+ * 两条路走出来的结尾必须一模一样，否则「有没有密钥」会变成两种产品。
  */
-const KEYWORDS = [
-  { when: (p) => p.academic >= 65 && p.night >= 60, word: '灯火通明' },
-  { when: (p) => p.social >= 65 && p.food >= 65, word: '热气腾腾' },
-  { when: (p) => p.plan >= 65 && p.academic >= 60, word: '按表走' },
-  { when: (p) => p.novelty >= 65 && p.social >= 60, word: '什么都试一次' },
-  { when: (p) => p.resilience >= 70 && p.night >= 60, word: '扛得住' },
-  { when: (p) => p.sport >= 65, word: '风里来雨里去' },
-  { when: (p) => p.food >= 65, word: '深夜食堂' },
-  { when: (p) => p.buddhist >= 65, word: '随遇而安' },
-  { when: (p) => p.night >= 65, word: '不睡的那种人' },
-  { when: (p) => p.academic >= 65, word: '书桌有结界' },
-  { when: () => true, word: '不动声色' },
-];
 
 /**
  * @param {object} report buildReport 的返回值
@@ -68,8 +55,20 @@ export function buildFallbackSummary(report, { name = '' } = {}) {
     `${low.stage}那句是这么写的 ——「${low.note}」`;
 
   // ── 4. 关键词收尾 ──
-  const keyword = KEYWORDS.find((k) => k.when(p))?.word ?? '不动声色';
-  const closing = `如果只用一个词概括你的大学，是「${keyword}」。`;
+  const keyword = pickKeyword(p);
+  const closing = buildClosing(keyword);
 
   return { paragraphs: [p1, p2, p3], keyword, closing, degraded: true };
+}
+
+/**
+ * 降级正文拼成纯文本 —— 与大模型输出**同一种形状**（段落之间空行、不含结尾句）。
+ *
+ * 两个"统一"是刻意的：
+ *   · 形状统一 → 界面上两条路径走同一段渲染代码，不会出现「有没有密钥，版式都不一样」。
+ *   · 都不含结尾句 → 结尾那句由 keyword.js 确定性生成、由结果页单独排版，
+ *     于是不管走哪条路，报告最后那一句是同一个字、同一个样式。
+ */
+export function fallbackText(report, options) {
+  return buildFallbackSummary(report, options).paragraphs.join('\n\n');
 }
