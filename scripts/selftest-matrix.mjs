@@ -39,7 +39,8 @@ import {
   toPercents,
   percentileOf,
 } from '../src/lib/matrix.js';
-import { buildReport, FACT_COPY, TITLES } from '../src/lib/results.js';
+import { buildReport, FACT_COPY, TITLES, RADAR_KEYS } from '../src/lib/results.js';
+import { buildCohort, cohortHeadline, groupOf, GROUPS } from '../src/lib/cohort.js';
 import {
   buildFactsText,
   buildSystemPrompt,
@@ -52,6 +53,7 @@ import { streamSummary } from '../src/lib/llm.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CSV_PATH = path.join(ROOT, 'public', 'data', '问卷基准数据.csv');
+const COHORT_CSV_PATH = path.join(ROOT, 'public', 'data', '示例-班级问卷.csv');
 
 let pass = 0;
 const failures = [];
@@ -145,6 +147,17 @@ check('基准 CSV 剔除 0 条（说明每个值都在矩阵选项内）', clean
 if (cleaned.report.droppedCount) console.log(`      ${cleaned.report.summary}`);
 
 check('基准 CSV 2000 行', cleaned.records.length === 2000, `实际 ${cleaned.records.length}`);
+
+// 示例班级问卷（真入口用）也必须零漂移 —— 它往往是评委试用的**第一份**数据，
+// 它出错，等于真入口第一次被打开就是个错误
+const cohortCsvText = fs.readFileSync(COHORT_CSV_PATH, 'utf8');
+const cohortParsed = parseCsvText(cohortCsvText, REQUIRED_COLUMNS);
+check('示例班级问卷能解析', cohortParsed.ok, cohortParsed.errors?.[0]?.message ?? '');
+const cohortCleaned = cleanSurveyRows(cohortParsed.rows);
+check('示例班级问卷剔除 0 条（每个值都在矩阵选项内）', cohortCleaned.report.droppedCount === 0,
+  `剔除 ${cohortCleaned.report.droppedCount} 条`);
+check('示例班级问卷 48 行（一个班的规模）', cohortCleaned.records.length === 48,
+  `实际 ${cohortCleaned.records.length}`);
 
 const baselineAttrs = toAttributeMatrix(cleaned.records);
 const baseline = buildBaseline(baselineAttrs);
@@ -681,6 +694,87 @@ check('外部中断返回 aborted（调用方据此丢弃结果）', rAbort.abor
 
 server.closeAllConnections?.();
 await new Promise((resolve) => server.close(resolve));
+
+// ═══════════════════════════════════════════════ I · 真入口 · 群体画像
+
+group('I · 真入口 · 群体画像（cohort.js）');
+
+const cohort = buildCohort(cohortCleaned.records, baseline);
+
+check(
+  '分组人数之和 = 总人数',
+  cohort.groups.reduce((s, g) => s + g.count, 0) === cohort.size,
+  `${cohort.groups.map((g) => `${g.name}${g.count}`).join(' ')}`,
+);
+check('恰好 5 个组（与雷达五轴一一对应）', cohort.groups.length === 5 && GROUPS.length === RADAR_KEYS.length);
+check(
+  '各组占比之和 = 100（±0.5）',
+  Math.abs(cohort.groups.reduce((s, g) => s + g.pct, 0) - 100) < 0.5,
+  `${cohort.groups.reduce((s, g) => s + g.pct, 0).toFixed(1)}%`,
+);
+check(
+  '五维都有中位数且 q1 ≤ 中位数 ≤ q3',
+  cohort.axes.length === RADAR_KEYS.length &&
+    cohort.axes.every((a) => Number.isFinite(a.median) && a.q1 <= a.median && a.median <= a.q3),
+);
+check('中位数都落在 2~98', cohort.axes.every((a) => a.median >= 2 && a.median <= 98));
+check(
+  '人数最多的组被正确识别',
+  cohort.most.count === Math.max(...cohort.groups.map((g) => g.count)),
+  `${cohort.most.name} ${cohort.most.count} 人`,
+);
+check('结论句非空且写出了总人数', cohortHeadline(cohort).includes(String(cohort.size)) && cohortHeadline(cohort).length > 10);
+
+// 极简作答：全班答案完全一样 —— IQR 全为 0，不能除零，也不能报出「分歧最大」
+const sameAnswers = {};
+for (const q of QUESTIONS) sameAnswers[q.field] = q.options[0].text;
+const flat = buildCohort(
+  [
+    { ...sameAnswers, _id: 'A1' },
+    { ...sameAnswers, _id: 'A2' },
+    { ...sameAnswers, _id: 'A3' },
+  ],
+  baseline,
+);
+check('全班答案完全一样也不报错', flat.size === 3 && flat.axes.every((a) => a.iqr === 0) && flat.most.count === 3);
+check('样本太少时不说「分歧最大」（3 个人没有分歧可言）', flat.divergent === null);
+
+const one = buildCohort([{ ...sameAnswers, _id: '单人' }], baseline);
+check('只有一条记录也能出画像', one.size === 1 && one.axes.every((a) => Number.isFinite(a.median)));
+
+// 与快入口同标尺 —— 这是两个入口能不能互相印证的全部理由。
+// 「一个人的班级」的中位数，必须等于这个人在快入口报告里拿到的那个百分位
+const mine = {};
+for (const q of QUESTIONS) mine[q.field] = q.options[1].text;
+const solo = buildCohort([{ ...mine, _id: '单人' }], baseline);
+const soloPct = toPercents(toAttributes(mine), baseline);
+check(
+  '一个人的「班级」中位数 == 他的快入口百分位（两入口同标尺）',
+  RADAR_KEYS.every((k) => solo.axes.find((a) => a.key === k).median === soloPct[k]),
+  RADAR_KEYS.map((k) => `${k} ${solo.axes.find((a) => a.key === k).median}/${soloPct[k]}`).join(' '),
+);
+
+// 「与你最像的人」：造一份数据，里面有一个和「我」逐题相同的人，他必须是第一名
+const far = {};
+for (const q of QUESTIONS) far[q.field] = q.options[q.options.length - 1].text;
+const mixed = buildCohort(
+  [{ ...far, _id: '陌生人甲' }, { ...mine, _id: '双胞胎' }, { ...far, _id: '陌生人乙' }],
+  baseline,
+  mine,
+);
+check(
+  '「最像的人」排在第一位',
+  mixed.similar?.top?.[0]?.id === '双胞胎',
+  JSON.stringify(mixed.similar?.top?.map((s) => s.id)),
+);
+check('「最像的人」给出类型名与人话程度（非常像/挺像/有点像）', !!mixed.similar?.top?.[0]?.groupName && !!mixed.similar?.top?.[0]?.level);
+check('最多只给 3 个人', mixed.similar?.top?.length === 3);
+check('没有自己的作答时，不算「最像的人」（不编一个「你」出来）', buildCohort(cohortCleaned.records, baseline, null).similar === null);
+
+// 分组必须确定性：同一份百分位调两次，结果必须一样 ——
+// 组名会被印在页面和文档里，随机分组会让「我们班 12 个学术型」这句话每次都不一样
+const tiePct = Object.fromEntries(ALL_ATTR_KEYS.map((k) => [k, 50]));
+check('并列时分组结果稳定（确定性）', groupOf(tiePct) === groupOf({ ...tiePct }) && groupOf(tiePct) === RADAR_KEYS[0]);
 
 // ═══════════════════════════════════════════════ 汇总
 

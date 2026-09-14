@@ -1,0 +1,160 @@
+/**
+ * 渲染冒烟测试 —— `npm run smoke`
+ *
+ * 解决一个很具体的问题：**「构建成功」不等于「页面打不开」。**
+ * JSX 写错一个属性名、模板里取了一个不存在的字段、import 路径少一层，
+ * 这些都不会让 `vite build` 失败 —— 它只会让浏览器里出现一块白屏。
+ * 而白屏是评委能看到的最糟的一种失败：没有任何提示，也没有任何线索。
+ *
+ * 做法：把四个页面在 Node 里**服务端渲染一遍**（renderToString），
+ * 然后断言页面上真的出现了该有的字。渲染时 React 不执行 useEffect，
+ * 所以 ECharts 不会被真的初始化 —— 这恰好是我们想要的：
+ * 这一步只验「能不能画出结构」，图表本身由 selftest 验数据、由浏览器验观感。
+ *
+ * 关键的一条兜底断言：整页 HTML 里不许出现 `undefined` / `NaN` / `[object Object]`。
+ * 一个字段名写错，页面通常不会报错，只会把这三个字符串之一印在用户面前。
+ */
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { renderToString } from 'react-dom/server';
+import { createElement as h } from 'react';
+
+import SurveyForm from '../src/components/SurveyForm.jsx';
+import ReportView from '../src/components/ReportView.jsx';
+import CohortPage from '../src/components/CohortPage.jsx';
+import UploadPanel from '../src/components/UploadPanel.jsx';
+import { parseCsvText } from '../src/lib/parseCsv.js';
+import { cleanSurveyRows } from '../src/lib/surveyClean.js';
+import { toAttributeMatrix, buildBaseline } from '../src/lib/matrix.js';
+import { QUESTIONS, REQUIRED_COLUMNS } from '../src/lib/surveySchema.js';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const read = (f) => fs.readFileSync(path.join(ROOT, 'public', 'data', f), 'utf8');
+
+let pass = 0;
+const failures = [];
+
+function check(name, cond, detail = '') {
+  if (cond) {
+    pass += 1;
+    console.log(`  ✓ ${name}${detail ? `  ${detail}` : ''}`);
+  } else {
+    failures.push(name);
+    console.log(`  ✗ ${name}${detail ? `  ${detail}` : ''}`);
+  }
+}
+
+/**
+ * 把 React 输出的 HTML 归一成"人能读的文字"再做断言。
+ *
+ * React 在两个相邻的文本节点之间会插入 `<!-- -->` 作分隔符，
+ * 于是 `{n} 个人` 渲染出来是 `48<!-- --> 个人` —— 直接搜「48 个人」必然搜不到。
+ * 这不是 bug，是 React 的 hydration 标记；断言必须先把它们去掉，
+ * 否则测试会一直红，而人会开始怀疑被测代码 —— 事实是断言写错了。
+ */
+const plain = (html) => html.replace(/<!--.*?-->/g, '');
+
+/** 渲染一个组件，返回 HTML；渲染本身抛错也算失败（而不是让整个脚本崩掉）。 */
+function render(label, element) {
+  try {
+    return renderToString(element);
+  } catch (e) {
+    failures.push(`${label} 渲染抛错`);
+    console.log(`  ✗ ${label} 渲染抛错：${e.message}`);
+    return '';
+  }
+}
+
+// ── 准备真实数据（与浏览器里走的完全同一条路径） ──
+const baseParsed = parseCsvText(read('问卷基准数据.csv'), REQUIRED_COLUMNS);
+const baseCleaned = cleanSurveyRows(baseParsed.rows);
+const baseline = buildBaseline(toAttributeMatrix(baseCleaned.records));
+
+const cohortParsed = parseCsvText(read('示例-班级问卷.csv'), REQUIRED_COLUMNS);
+const cohortCleaned = cleanSurveyRows(cohortParsed.rows);
+
+const myAnswers = {};
+for (const q of QUESTIONS) myAnswers[q.field] = q.options[1].text;
+
+console.log(`\n使用 ${baseCleaned.records.length} 人基准 / ${cohortCleaned.records.length} 人班级\n`);
+
+// ── 1 · 答题页 ──
+console.log('1 · 答题页');
+const quizHtml = render('答题页', h(SurveyForm, { onComplete: () => {}, onCancel: () => {} }));
+const quizText = plain(quizHtml);
+check('渲染出第一题的题干', quizText.includes(QUESTIONS[0].text));
+check('渲染出第一题的全部选项', QUESTIONS[0].options.every((o) => quizText.includes(o.text)));
+check('显示题号进度 1 / 6', quizText.includes('1 / 6'), '（第 1 题 / 共 6 题）');
+
+// ── 2 · 结果页（快入口） ──
+console.log('\n2 · 结果页（快入口）');
+const reportHtml = render('结果页', h(ReportView, { answers: myAnswers, baseline, name: '陈', onRestart: () => {} }));
+const reportText = plain(reportHtml);
+check('渲染出称号', reportText.includes('你的称号'));
+check(
+  '结果页五个 section 标题都在',
+  ['大学生活者画像', '时间去哪了', '四年心情曲线', '人群冷知识', '给你的话'].every((t) => reportText.includes(t)),
+);
+check('大模型那块有加载态文案', reportText.includes('正在读你的六道题'));
+check('「复制文字版」按钮在', reportText.includes('复制文字版'));
+check('结尾句出现了（本地确定性生成，不依赖大模型）', reportText.includes('如果只用一个词概括你的大学，是「'));
+
+// ── 3 · 群体画像页（真入口） ──
+console.log('\n3 · 群体画像页（真入口）');
+const cohortHtml = render(
+  '群体画像页',
+  h(CohortPage, {
+    records: cohortCleaned.records,
+    baseline,
+    ownAnswers: myAnswers,
+    onGoQuiz: () => {},
+    onRestart: () => {},
+  }),
+);
+const cohortText = plain(cohortHtml);
+check('写出总人数', cohortText.includes(`${cohortCleaned.records.length} 个人的大学`));
+check('五个类型名都出现了', ['学术型', '社交型', '运动型', '生活型', '佛系型'].every((t) => cohortText.includes(t)));
+check('标题与三块内容都在', ['这个班的位置', '这个班分成几类', '班里和你最像的人'].every((t) => cohortText.includes(t)));
+check('给出了「最像的人」', /非常像|挺像|有点像/.test(cohortText));
+check('写明了示例数据是模拟的', cohortText.includes('模拟生成'));
+
+// 没答过快入口时，不该凭空造一个「你」
+const noMeHtml = plain(
+  render(
+    '群体画像页（无自己的作答）',
+    h(CohortPage, { records: cohortCleaned.records, baseline, ownAnswers: null, onGoQuiz: () => {}, onRestart: () => {} }),
+  ),
+);
+check('没有自己的作答时，给出「先答 6 题」的引导而不是假数据', noMeHtml.includes('先有一份「你的」作答'));
+
+// ── 4 · 上传页 ──
+console.log('\n4 · 上传页');
+const uploadHtml = render('上传页', h(UploadPanel, { onReady: () => {} }));
+const uploadText = plain(uploadHtml);
+check('列出了必需列名', REQUIRED_COLUMNS.every((c) => uploadText.includes(c)));
+check('说明了文件不会上传', uploadText.includes('不会上传到任何服务器'));
+check('提供了示例入口', uploadText.includes('示例班级问卷'));
+
+// ── 5 · 全局兜底：页面上不许出现这三种"坏味道" ──
+// 这一项扫的是**未归一化**的原始 HTML：字段名写错时，坏字符串也可能落在属性里，
+// 只扫可见文字会漏掉一半
+console.log('\n5 · 全局兜底');
+for (const [label, html] of [
+  ['答题页', quizHtml],
+  ['结果页', reportHtml],
+  ['群体画像页', cohortHtml],
+  ['上传页', uploadHtml],
+]) {
+  const bad = ['undefined', 'NaN', '[object Object]'].filter((s) => html.includes(s));
+  check(`${label}：HTML 里没有 undefined / NaN / [object Object]`, bad.length === 0, bad.join(' '));
+}
+
+console.log(`\n${'─'.repeat(64)}`);
+if (failures.length) {
+  console.log(`✗ ${pass} 项通过，${failures.length} 项失败：`);
+  for (const f of failures) console.log(`    · ${f}`);
+  process.exit(1);
+}
+console.log(`✓ 全部 ${pass} 项通过 —— 四个页面都能渲染出结构`);
