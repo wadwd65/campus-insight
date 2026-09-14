@@ -24,6 +24,8 @@ import {
   LOAD_STAGE,
 } from '../src/lib/loadData.js';
 import { weightedAccuracy, slotOf, accuracyOf } from '../src/lib/schema.js';
+import { subjectStats, dailyStats, overallStats, addDays, diffDays } from '../src/lib/aggregate.js';
+import { investmentOutcome, slotBreakdown, subjectTrends, detectChangePoint, movingAverage, syncPairs, strongestSync } from '../src/lib/diagnose.js';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const SAMPLE = path.join(root, 'public', 'data', '学习记录示例.csv');
@@ -241,6 +243,142 @@ check(
   describeLoadResult(lineNo).includes('先改好再导入'),
   describeLoadResult(lineNo),
 );
+
+
+// ─────────────────────────────────────────── 七、聚合层（T-08 / T-09）
+
+console.log('\n七、聚合层 —— 科目聚合与按日聚合');
+const R = loaded.records;
+const subjects = subjectStats(R);
+const overall = overallStats(R);
+
+const expectSubjects = [
+  ['数学', 8579, 0.466, 0.6324],
+  ['专业课', 4505, 0.244, 0.682],
+  ['英语', 3679, 0.2, 0.7402],
+  ['政治', 1663, 0.09, 0.7163],
+];
+check('科目数 = 4', subjects.length === 4, String(subjects.length));
+check(
+  '按科目聚合的时长/占比/正确率与生成端一致',
+  expectSubjects.every(([name, minutes, share, acc]) => {
+    const s = subjects.find((x) => x.subject === name);
+    return s && s.minutes === minutes && near(s.minutesShare, share, 1e-3) && near(s.accuracy, acc);
+  }),
+  JSON.stringify(subjects.map((s) => [s.subject, s.minutes, +s.minutesShare.toFixed(3), +s.accuracy.toFixed(4)])),
+);
+check('科目已按时长降序', subjects[0].subject === '数学' && subjects[3].subject === '政治');
+
+const days = dailyStats(R);
+check('按日聚合 = 79 天有记录', days.length === 79, String(days.length));
+check('按日聚合不补零（无记录的日子不出现）', days.every((d) => d.minutes > 0));
+check('按日聚合按日期升序', days.every((d, i) => i === 0 || days[i - 1].date < d.date));
+
+check('有记录天数 79 / 日历天数 80', overall.daysWithRecords === 79 && overall.calendarDays === 80,
+  `${overall.daysWithRecords} / ${overall.calendarDays}`);
+check('确认有 1 天完全没记录，且被单独标出', overall.missingDates.length === 1, JSON.stringify(overall.missingDates));
+check('日均时长按「有记录天数」算 = 233 分钟', near(overall.avgMinutesPerActiveDay, 18426 / 79, 0.5),
+  `${overall.avgMinutesPerActiveDay.toFixed(1)} 分钟`);
+
+
+// ─────────────────────────────────────────── 八、诊断层（T-10 / T-11）
+
+console.log('\n八、诊断层 —— 投入产出与时段');
+const io = investmentOutcome(R);
+check('最该关注的科目是数学', io.worst?.subject === '数学', io.worst?.subject);
+check('数学排名差 = +3（时长第 1、正确率第 4，完全倒挂）', io.worst?.divergence === 3, String(io.worst?.divergence));
+check('数学被判定为「高投入低产出」', io.worst?.verdict === '高投入低产出', io.worst?.verdict);
+check('数学正确率低于整体水平', io.worst?.accuracyGap < 0, `${(io.worst?.accuracyGap * 100).toFixed(2)} 个百分点`);
+check('确实存在背离', io.hasDivergence === true);
+check('英语被判定为「低投入高产出」（反例）', io.items.find((i) => i.subject === '英语')?.verdict === '低投入高产出',
+  io.items.find((i) => i.subject === '英语')?.verdict);
+
+const slots = slotBreakdown(R);
+check('高效时段是上午', slots.best?.slot === '上午', slots.best?.slot);
+check('低效时段是下午', slots.worst?.slot === '下午', slots.worst?.slot);
+check('上午比下午高出 13.5 个百分点', near(slots.spread, 0.135, 1e-3), `${(slots.spread * 100).toFixed(2)} 个百分点`);
+check('时段正确率与生成端一致（上午 76.81% / 下午 63.31%）',
+  near(slots.slots.find((s) => s.slot === '上午').accuracy, 0.7681) &&
+    near(slots.slots.find((s) => s.slot === '下午').accuracy, 0.6331));
+check('发现时段错配：最差的科目正好堆在最差的时段', slots.misallocation.worstSubjectSitsInWorstSlot === true,
+  JSON.stringify(slots.misallocation.worstSlotTopSubject));
+check('数学下午时长占比 64% 上下', near(slots.matrix['数学']['下午'], 0.64, 0.02),
+  `${(slots.matrix['数学']['下午'] * 100).toFixed(1)}%`);
+
+
+// ─────────────────────────────────────────── 九、趋势层（T-12）
+
+console.log('\n九、趋势层 —— 转折点检测');
+const trends = subjectTrends(R);
+const engTrend = trends.find((t) => t.subject === '英语');
+const engOffset = diffDays('2026-04-14', engTrend.accuracyChange.date);
+check('英语下滑点检测误差 ≤ 3 天', Math.abs(engOffset) <= 3,
+  `检测到 ${engTrend.accuracyChange.date}（设定 2026-04-14，偏 ${engOffset} 天）`);
+check('英语判定为下滑方向', engTrend.accuracyChange.direction === 'down');
+check('英语下滑幅度 ≈ 10.6 个百分点', near(Math.abs(engTrend.accuracyChange.delta), 0.1058, 5e-3),
+  `${(engTrend.accuracyChange.delta * 100).toFixed(2)} 个百分点`);
+check('数学时长判定为上升方向', trends.find((t) => t.subject === '数学').minutesChange.direction === 'up');
+
+// 跨科目同步：这才是产品真正要讲的那句话
+const pairs = syncPairs(trends);
+const mainPair = strongestSync(pairs);
+check('检出「英语正确率下滑」与「数学时长上升」的跨科目同步',
+  !!mainPair && mainPair.dropSubject === '英语' && mainPair.riseSubject === '数学' && !mainPair.sameSubject,
+  JSON.stringify(pairs.map((p) => `${p.dropSubject}↓/ ${p.riseSubject}↑ 滞后${p.lagDays}天`)));
+check('两个转折点相差 ≤ 5 天', mainPair && Math.abs(mainPair.lagDays) <= 5, `滞后 ${mainPair?.lagDays} 天`);
+check('同步对里同时带上跌幅与涨幅两个数字',
+  mainPair && mainPair.accuracyDropPoints > 0.05 && mainPair.minutesRiseRatio > 0.15,
+  `掉 ${(mainPair?.accuracyDropPoints * 100).toFixed(1)} 个百分点 / 涨 ${(mainPair?.minutesRiseRatio * 100).toFixed(0)}%`);
+check('显著性门槛生效：平稳科目不会凑出假同步',
+  pairs.every((p) => p.accuracyDropPoints >= 0.05 && p.minutesRiseRatio >= 0.15));
+
+// 回归测试：专门锁死「滑动平均滞后」这个坑。
+// 造一条理想的阶跃序列（第 20 天从 1 掉到 0），居中平均必须把转折点定在第 20 天附近；
+// 滞后平均必然偏后。两者一比，就把修复固化下来了 —— 以后谁改回滞后版，这里立刻红。
+const stepSeries = Array.from({ length: 40 }, (_, i) => ({
+  date: addDays('2026-01-01', i),
+  value: i < 20 ? 1 : 0,
+}));
+const stepCentered = detectChangePoint(stepSeries, { window: 7, minSeg: 10 });
+const laggedMa = movingAverage(stepSeries, 7, false);
+let laggedCross = null;
+for (let i = 0; i < laggedMa.length; i += 1) {
+  if (laggedMa[i].value < 0.5) { laggedCross = i; break; }
+}
+check('居中平均把阶跃点定在第 20 天（误差 ≤1 天）', Math.abs(stepCentered.index - 20) <= 1,
+  `定在第 ${stepCentered.index} 天`);
+check('滞后平均确实偏后（证明这个坑真实存在）', laggedCross !== null && laggedCross > stepCentered.index,
+  `滞后版落在第 ${laggedCross} 天，偏 ${laggedCross - 20} 天`);
+
+const rising = Array.from({ length: 40 }, (_, i) => ({ date: addDays('2026-01-01', i), value: i < 20 ? 10 : 30 }));
+check('上升阶跃被判定为 up', detectChangePoint(rising, { window: 7, minSeg: 10 }).direction === 'up');
+check('序列太短时返回 null 而不是瞎猜', detectChangePoint(stepSeries.slice(0, 8), { minSeg: 10 }) === null);
+check('正确率序列不补零（英语天数 = 有英语记录的天数）', engTrend.accuracySeries.length < 80 && engTrend.accuracySeries.length > 60,
+  `${engTrend.accuracySeries.length} 天`);
+check('时长序列补零（固定覆盖 80 天）', engTrend.minutesSeries.length === 80, String(engTrend.minutesSeries.length));
+
+
+// ─────────────────────────────────────────── 十、极端输入
+
+console.log('\n十、极端输入 —— 空数据不许抛异常');
+const empties = [
+  ['subjectStats', () => subjectStats([])],
+  ['dailyStats', () => dailyStats([])],
+  ['overallStats', () => overallStats([])],
+  ['investmentOutcome', () => investmentOutcome([])],
+  ['slotBreakdown', () => slotBreakdown([])],
+  ['subjectTrends', () => subjectTrends([])],
+  ['detectChangePoint', () => detectChangePoint([])],
+];
+for (const [name, fn] of empties) {
+  let ok = true;
+  let value;
+  try { value = fn(); } catch (e) { ok = false; value = e.message; }
+  check(`${name}(空数组) 不抛异常`, ok, String(value));
+}
+check('空数据的整体正确率是 null 而不是 NaN', overallStats([]).accuracy === null);
+check('空数据的日均是 null 而不是 Infinity', overallStats([]).avgMinutesPerActiveDay === null);
+check('单条记录也能算', investmentOutcome([{ subject: '数学', date: '2026-03-01', startTime: '08:00', minutes: 60, questions: 10, correct: 6 }]).items.length === 1);
 
 
 // ─────────────────────────────────────────── 汇总
