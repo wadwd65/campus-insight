@@ -1,0 +1,11 @@
+# 统一换行符，避免在不同系统上 clone 时出现全文改写
+* text=auto eol=lf
+
+# 二进制文件不做换行处理
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
