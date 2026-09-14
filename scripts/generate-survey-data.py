@@ -228,8 +228,12 @@ def write_csv(matrix: dict, rows: list[dict]) -> None:
     fields = ["编号"] + [q["field"] for q in matrix["questions"]]
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     # utf-8-sig：带 BOM，模拟真实用户从 Excel 导出的文件；解析层必须能吃下它
+    #
+    # lineterminator 显式写成 \n 而不是 csv 模块默认的 \r\n：仓库统一 LF（见 .gitattributes），
+    # 生成端跟随。否则每次重新生成，git 都会认为文件被改过 —— 那是假差异，
+    # 会让人误以为「数据变了」，也会淹没真正的改动。
     with OUT_PATH.open("w", encoding="utf-8-sig", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+        w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore", lineterminator="\n")
         w.writeheader()
         w.writerows(rows)
 
