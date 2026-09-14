@@ -6,6 +6,9 @@ dist/
 dist-ssr/
 *.local
 
+# 冒烟测试的临时 SSR 产物（npm run smoke 每次重新生成）
+.smoke-out/
+
 # 编辑器
 .vscode/*
 !.vscode/extensions.json

@@ -1,26 +1,33 @@
 /**
- * 应用外壳：欢迎 → 答题 → 结果。
+ * 应用外壳：欢迎 → 答题 → 结果 ／ 欢迎 → 上传 → 群体画像。
  *
- * 两处刻意的安排：
- *   1. **结果页单独分包**。它带着 ECharts（约 600 KB），而欢迎页与答题页一行图表都用不到。
+ * 三条刻意的安排：
+ *   1. **带 ECharts 的两页单独分包**（结果页、群体画像页）。欢迎页与答题页一行图表都用不到，
  *      首屏因此只剩 React + 表单 —— 评委点开链接的第一眼不该在等图表库下载。
  *   2. **基准数据进页面就开始加载**（不等用户点「开始」）。答完 6 题时它早就准备好了，
- *      出结果不该让人等。
+ *      出结果不该让人等。真入口也用它，所以基准只下载一次。
+ *   3. **两个入口共用 `answers`**。在真入口里点「先答 6 题」，答完会**回到群体画像**而不是
+ *      跳去个人报告 —— 用户的目标是"看谁和我最像"，不该被带走。
+ *      这也顺手让两个入口有了一处真正的交点，而不只是并列的两条路。
  */
 
 import { lazy, Suspense, useEffect, useState } from 'react';
 import SurveyForm from './components/SurveyForm.jsx';
+import UploadPanel from './components/UploadPanel.jsx';
 import { loadBaseline } from './data/loadSample.js';
 import { QUESTIONS } from './lib/surveySchema.js';
 import { cleanName } from './lib/text.js';
 import { BRAND } from './lib/theme.js';
 
 const ReportView = lazy(() => import('./components/ReportView.jsx'));
+const CohortPage = lazy(() => import('./components/CohortPage.jsx'));
 
 export default function App() {
-  const [stage, setStage] = useState('welcome'); // welcome | quiz | report
+  const [stage, setStage] = useState('welcome'); // welcome | quiz | report | upload | cohort
   const [baseline, setBaseline] = useState(null);
   const [answers, setAnswers] = useState(null);
+  const [cohort, setCohort] = useState(null); // 真入口最近一次上传的可用记录
+  const [fromCohort, setFromCohort] = useState(false); // 答题是为了回到群体画像
   const [name, setName] = useState('');
   const [error, setError] = useState(null);
 
@@ -40,7 +47,18 @@ export default function App() {
 
   function restart() {
     setAnswers(null);
+    setFromCohort(false);
     setStage('welcome');
+  }
+
+  function finishQuiz(a) {
+    setAnswers(a);
+    if (fromCohort) {
+      setFromCohort(false);
+      setStage('cohort');
+    } else {
+      setStage('report');
+    }
   }
 
   return (
@@ -59,44 +77,55 @@ export default function App() {
       <main className="flex-1 w-full max-w-5xl mx-auto px-6 py-12">
         {error ? (
           <ErrorBlock message={error} />
+        ) : !baseline ? (
+          <Hint text="正在加载基准人群数据…" />
         ) : stage === 'quiz' ? (
-          <SurveyForm
-            onComplete={(a) => {
-              setAnswers(a);
-              setStage('report');
-            }}
-            onCancel={restart}
-          />
-        ) : stage === 'report' && answers && baseline ? (
+          <SurveyForm onComplete={finishQuiz} onCancel={restart} />
+        ) : stage === 'report' && answers ? (
           <Suspense fallback={<Hint text="正在生成你的报告…" />}>
-            <ReportView
-              answers={answers}
+            <ReportView answers={answers} baseline={baseline} name={name} onRestart={restart} />
+          </Suspense>
+        ) : stage === 'upload' ? (
+          <UploadPanel
+            onReady={(r) => {
+              setCohort(r.records);
+              setStage('cohort');
+            }}
+          />
+        ) : stage === 'cohort' && cohort ? (
+          <Suspense fallback={<Hint text="正在算这个班的画像…" />}>
+            <CohortPage
+              records={cohort}
               baseline={baseline}
-              name={name}
+              ownAnswers={answers}
+              onGoQuiz={() => {
+                setFromCohort(true);
+                setStage('quiz');
+              }}
               onRestart={restart}
             />
           </Suspense>
         ) : (
           <Welcome
-            ready={!!baseline}
             name={name}
             onNameChange={(v) => setName(cleanName(v))}
             onStart={() => setStage('quiz')}
+            onUpload={() => setStage('upload')}
           />
         )}
       </main>
 
       <footer className="border-t border-[var(--line)] bg-[var(--surface)]">
         <div className="max-w-5xl mx-auto px-6 py-3 text-xs text-[var(--ink-soft)] leading-5">
-          你的六道选择只在浏览器里计算；开启大模型解读时，只把算好的百分比与称号发给模型服务来写那段话，
-          其余什么都不发 · 基准人群数据为模拟生成，非真实调查结果
+          你的选择与上传的文件只在浏览器里计算；开启大模型解读时，只把算好的百分比与称号发给模型服务来写那段话，
+          其余什么都不发 · 基准人群与示例班级数据为模拟生成，非真实调查结果
         </div>
       </footer>
     </div>
   );
 }
 
-function Welcome({ ready, name, onNameChange, onStart }) {
+function Welcome({ name, onNameChange, onStart, onUpload }) {
   return (
     <div className="max-w-2xl mx-auto py-8 text-center">
       <h2 className="text-3xl font-semibold tracking-tight leading-snug mb-5">
@@ -127,20 +156,32 @@ function Welcome({ ready, name, onNameChange, onStart }) {
 
       <button
         type="button"
-        disabled={!ready}
         onClick={onStart}
-        className="rounded-xl px-7 py-3.5 text-base text-white transition disabled:cursor-wait disabled:opacity-50"
+        className="rounded-xl px-7 py-3.5 text-base text-white transition hover:opacity-90"
         style={{ background: BRAND }}
       >
-        {ready ? `开始（${QUESTIONS.length} 题，约 30 秒）` : '正在加载基准人群数据…'}
+        开始（{QUESTIONS.length} 题，约 30 秒）
       </button>
 
-      <p className="mt-10 text-sm text-[var(--ink-soft)] leading-7 text-left">
+      <div className="mt-6 pt-6 border-t border-[var(--line)]">
+        <button
+          type="button"
+          onClick={onUpload}
+          className="text-sm text-[var(--ink-soft)] underline decoration-dotted hover:text-[var(--ink)] transition"
+        >
+          或者：上传一份班级问卷 CSV，看一个群体的画像 →
+        </button>
+      </div>
+
+      <p className="mt-8 text-sm text-[var(--ink-soft)] leading-7 text-left">
         答完你会拿到一份只属于你的报告：一张人物雷达图、一份「时间去哪了」、
         一条四年的心情曲线，以及一段只有你会拿到的话 —— 最后那句话由大模型照着你的数据写。
         <br />
         你的每一题都会同时影响 8 个属性，再与 2000 人基准人群比对 ——
         所以不同的人答完，结果是真的不一样。
+        <br />
+        如果你手上有一批已经收集好的问卷，走真入口可以看这个群体的分布，
+        以及班里跟谁和你最像。
       </p>
     </div>
   );
