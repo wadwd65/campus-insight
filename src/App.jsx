@@ -12,6 +12,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import SurveyForm from './components/SurveyForm.jsx';
 import { loadBaseline } from './data/loadSample.js';
 import { QUESTIONS } from './lib/surveySchema.js';
+import { cleanName } from './lib/text.js';
 import { BRAND } from './lib/theme.js';
 
 const ReportView = lazy(() => import('./components/ReportView.jsx'));
@@ -20,6 +21,7 @@ export default function App() {
   const [stage, setStage] = useState('welcome'); // welcome | quiz | report
   const [baseline, setBaseline] = useState(null);
   const [answers, setAnswers] = useState(null);
+  const [name, setName] = useState('');
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -67,23 +69,34 @@ export default function App() {
           />
         ) : stage === 'report' && answers && baseline ? (
           <Suspense fallback={<Hint text="正在生成你的报告…" />}>
-            <ReportView answers={answers} baseline={baseline} onRestart={restart} />
+            <ReportView
+              answers={answers}
+              baseline={baseline}
+              name={name}
+              onRestart={restart}
+            />
           </Suspense>
         ) : (
-          <Welcome ready={!!baseline} onStart={() => setStage('quiz')} />
+          <Welcome
+            ready={!!baseline}
+            name={name}
+            onNameChange={(v) => setName(cleanName(v))}
+            onStart={() => setStage('quiz')}
+          />
         )}
       </main>
 
       <footer className="border-t border-[var(--line)] bg-[var(--surface)]">
-        <div className="max-w-5xl mx-auto px-6 py-3 text-xs text-[var(--ink-soft)]">
-          数据只在你的浏览器里处理，不会上传到任何服务器 · 基准人群数据为模拟生成，非真实调查结果
+        <div className="max-w-5xl mx-auto px-6 py-3 text-xs text-[var(--ink-soft)] leading-5">
+          你的六道选择只在浏览器里计算；开启大模型解读时，只把算好的百分比与称号发给模型服务来写那段话，
+          其余什么都不发 · 基准人群数据为模拟生成，非真实调查结果
         </div>
       </footer>
     </div>
   );
 }
 
-function Welcome({ ready, onStart }) {
+function Welcome({ ready, name, onNameChange, onStart }) {
   return (
     <div className="max-w-2xl mx-auto py-8 text-center">
       <h2 className="text-3xl font-semibold tracking-tight leading-snug mb-5">
@@ -92,11 +105,25 @@ function Welcome({ ready, onStart }) {
         看看你的大学落在哪一个宇宙
       </h2>
 
-      <p className="text-base text-[var(--ink-soft)] leading-7 mb-10">
+      <p className="text-base text-[var(--ink-soft)] leading-7 mb-8">
         不需要账号，不需要上传任何数据。
         <br />
         六道有画面感的选择题，大约 30 秒。
       </p>
+
+      {/* 称呼是选填的。但它值一个输入框：报告里带上名字，
+          那份「这是在说我」的感觉是"你"这个代词给不了的 */}
+      <label className="block mb-6">
+        <span className="sr-only">怎么称呼你</span>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => onNameChange(e.target.value)}
+          maxLength={8}
+          placeholder="怎么称呼你？（选填，比如一个姓）"
+          className="w-56 mx-auto block rounded-lg border border-[var(--line)] bg-[var(--surface)] px-4 py-2.5 text-sm text-center text-[var(--ink)] outline-none transition focus:border-[var(--brand)]"
+        />
+      </label>
 
       <button
         type="button"
@@ -110,7 +137,7 @@ function Welcome({ ready, onStart }) {
 
       <p className="mt-10 text-sm text-[var(--ink-soft)] leading-7 text-left">
         答完你会拿到一份只属于你的报告：一张人物雷达图、一份「时间去哪了」、
-        一条四年的心情曲线，以及一句只有你能拿到的评语。
+        一条四年的心情曲线，以及一段只有你会拿到的话 —— 最后那句话由大模型照着你的数据写。
         <br />
         你的每一题都会同时影响 8 个属性，再与 2000 人基准人群比对 ——
         所以不同的人答完，结果是真的不一样。
