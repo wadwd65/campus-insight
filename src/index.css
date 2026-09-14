@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+/* 全站基调：浅色、克制，配色统一在这里改 */
+:root {
+  --ink: #1f2937;
+  --ink-soft: #6b7280;
+  --line: #e5e7eb;
+  --surface: #ffffff;
+  --canvas: #f8fafc;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
