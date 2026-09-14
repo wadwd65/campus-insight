@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "note": "选项 → 属性增量矩阵。Python 生成端与 JS 计算端共用这一份，避免两处定义漂移。设计依据见 docs/设计-01-问题与映射矩阵.md 第二节、第四节。",
+  "attributes": [
+    { "key": "academic", "label": "学术投入", "axis": "学术力" },
+    { "key": "social", "label": "社交活跃", "axis": "社交力" },
+    { "key": "sport", "label": "运动活力", "axis": "运动力" },
+    { "key": "food", "label": "美食热情", "axis": "美食力" },
+    { "key": "night", "label": "夜猫程度", "axis": null },
+    { "key": "plan", "label": "计划性", "axis": null },
+    { "key": "novelty", "label": "尝鲜度", "axis": null },
+    { "key": "resilience", "label": "抗压韧性", "axis": null }
+  ],
+  "derived": [
+    {
+      "key": "buddhist",
+      "label": "佛系指数",
+      "axis": "佛系指数",
+      "formula": { "plan": -1, "resilience": 1 },
+      "why": "计划性低 + 抗压高才是真佛系；计划性低但抗压也低那是焦虑，不是佛系"
+    }
+  ],
+  "questions": [
+    {
+      "id": "Q1",
+      "field": "深夜出没地",
+      "text": "大学时，深夜最常出没在哪个角落？",
+      "hint": "画面感最强的时段，最容易问出真话",
+      "options": [
+        { "text": "宿舍床上", "vec": { "academic": -1, "social": -1, "sport": -1, "night": 1, "plan": -1, "novelty": -1 } },
+        { "text": "图书馆自习室", "vec": { "academic": 3, "social": -1, "sport": -1, "night": 2, "plan": 2, "resilience": 1 } },
+        { "text": "操场跑道", "vec": { "academic": -1, "social": 1, "sport": 3, "night": 1, "resilience": 1 } },
+        { "text": "食堂窗口", "vec": { "academic": -1, "social": 2, "food": 3, "night": 1, "novelty": 1 } },
+        { "text": "网吧", "vec": { "academic": -2, "social": 2, "sport": -1, "food": 1, "night": 3, "plan": -2, "novelty": 2 } }
+      ]
+    },
+    {
+      "id": "Q2",
+      "field": "期末生存方式",
+      "text": "期末复习周，你的生存方式是？",
+      "hint": "压力下的选择最能区分人",
+      "options": [
+        { "text": "提前两周就复习完了", "vec": { "academic": 3, "social": -1, "night": -1, "plan": 3, "novelty": -1, "resilience": 1 } },
+        { "text": "死磕课本", "vec": { "academic": 3, "social": -1, "night": 1, "plan": 2, "novelty": -1, "resilience": 1 } },
+        { "text": "刷往年题", "vec": { "academic": 2, "plan": 2, "novelty": -1, "resilience": 1 } },
+        { "text": "组团开黑边复习", "vec": { "academic": -1, "social": 3, "night": 2, "plan": -1, "novelty": 1, "resilience": 1 } },
+        { "text": "临时抱佛脚", "vec": { "academic": -2, "social": 1, "night": 3, "plan": -3, "novelty": 1, "resilience": 2 } }
+      ]
+    },
+    {
+      "id": "Q3",
+      "field": "宵夜频率",
+      "text": "大学吃宵夜的频率是？",
+      "hint": "小事，但和作息高度相关",
+      "options": [
+        { "text": "天天吃", "vec": { "food": 3, "night": 3, "plan": -2, "social": 1 } },
+        { "text": "一周三五次", "vec": { "food": 2, "night": 1, "social": 1 } },
+        { "text": "偶尔", "vec": { "plan": 1 } },
+        { "text": "从不", "vec": { "food": -2, "night": -2, "plan": 2, "academic": 1 } }
+      ]
+    },
+    {
+      "id": "Q4",
+      "field": "想加入的社团",
+      "text": "如果大学能重选一次，你会加入什么社团？",
+      "hint": "问向往，不问事实 —— 多数人没参加过理想的社团",
+      "options": [
+        { "text": "乐队", "vec": { "novelty": 3, "social": 2, "night": 1, "academic": -1 } },
+        { "text": "辩论队", "vec": { "novelty": 1, "social": 2, "academic": 2, "plan": 1, "resilience": 1 } },
+        { "text": "电竞社", "vec": { "novelty": 1, "social": 2, "night": 3, "academic": -1, "sport": -2, "plan": -1 } },
+        { "text": "志愿者协会", "vec": { "novelty": 1, "social": 2, "plan": 1, "resilience": 3 } },
+        { "text": "摄影社", "vec": { "novelty": 3, "night": 1, "sport": 1 } }
+      ]
+    },
+    {
+      "id": "Q5",
+      "field": "经济状态",
+      "text": "大学四年，你的经济状态最接近？",
+      "hint": "钱怎么来，决定了日子怎么过",
+      "options": [
+        { "text": "月初土豪，月底吃土", "vec": { "plan": -3, "novelty": 2, "food": 2, "social": 2 } },
+        { "text": "靠奖学金过日子", "vec": { "plan": 3, "resilience": 1, "social": -1, "academic": 3 } },
+        { "text": "家里定时打钱", "vec": { "plan": 1, "social": 1 } },
+        { "text": "兼职自力更生", "vec": { "plan": 2, "resilience": 3, "social": 2, "academic": -1 } }
+      ]
+    },
+    {
+      "id": "Q6",
+      "field": "毕业最想带走",
+      "text": "毕业那天，你最想带走什么？",
+      "hint": "唯一的情绪题 —— 它决定整份报告的基调",
+      "options": [
+        { "text": "图书馆那张常坐的座位", "vec": { "academic": 3, "social": -1, "resilience": 1, "plan": 1 } },
+        { "text": "宿舍的那群人", "vec": { "social": 3, "food": 1 } },
+        { "text": "操场的那圈跑道", "vec": { "sport": 3, "resilience": 2, "plan": 1 } },
+        { "text": "食堂的那个窗口", "vec": { "social": 1, "food": 3, "novelty": 1 } },
+        { "text": "什么也没带走，但也没白来", "vec": { "resilience": 3, "novelty": 1, "plan": -1 } }
+      ]
+    }
+  ]
+}

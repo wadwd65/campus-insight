@@ -8,8 +8,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "selftest": "node scripts/selftest-lib.mjs",
-    "gen:data": "python scripts/generate-sample-data.py"
+    "selftest": "node scripts/selftest-matrix.mjs",
+    "gen:data": "python scripts/generate-survey-data.py"
   },
   "dependencies": {
     "echarts": "^6.1.0",
