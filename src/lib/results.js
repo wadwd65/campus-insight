@@ -217,11 +217,20 @@ function describe(item) {
   if (!item) return null;
   const { key, pct, dev: d } = item;
   const high = d >= 0;
+  const label = labelOf(key);
   const copy = FACT_COPY[key]?.[high ? 0 : 1] ?? '';
   // 低值不写「只有 X% 的人比你更低」—— 那句话读者要绕一圈才明白，
-  // 直接说「有 X% 的人比你高」，一眼就懂，也避免 2% 这种小数字看着像笔误
-  const compare = high ? `超过了 ${pct}% 的大学生` : `有 ${100 - pct}% 的大学生比你高`;
-  return { key, label: labelOf(key), pct, high, text: `在「${labelOf(key)}」上，你${compare} —— ${copy}` };
+  // 直接说「低于 X% 的大学生」，一眼就懂，也避免 2% 这种小数字看着像笔误
+  return {
+    key,
+    label,
+    pct,
+    high,
+    copy,
+    // text 是整句，供纯文本场景用（自检输出、导出报告、喂给大模型的摘要）。
+    // 界面**不要**去解析这句话，它只是这句话的一种渲染结果。
+    text: `在「${label}」上，你${high ? '超过' : '低于'} ${high ? pct : 100 - pct}% 的大学生 —— ${copy}`,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────

@@ -1,12 +1,16 @@
 @import "tailwindcss";
 
-/* 全站基调：浅色、克制，配色统一在这里改 */
+/* 全站基调：浅色、克制。配色统一在这里改。 */
 :root {
   --ink: #1f2937;
   --ink-soft: #6b7280;
   --line: #e5e7eb;
   --surface: #ffffff;
   --canvas: #f8fafc;
+
+  /* 品牌主色 —— 与 src/lib/theme.js 里的 BRAND 是同一个值。
+     ECharts 读不到 CSS 变量，所以那边只能重复一次；改色时两处一起改。 */
+  --brand: #4f46e5;
 }
 
 html,
@@ -21,4 +25,16 @@ body {
   color: var(--ink);
   font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
