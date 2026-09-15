@@ -15,10 +15,15 @@
     "gen:cohort": "python scripts/generate-survey-data.py -n 48 --seed 20261001 --out public/data/示例-班级问卷.csv"
   },
   "dependencies": {
+    "@tsparticles/engine": "^4.4.0",
+    "@tsparticles/react": "^4.4.0",
+    "@tsparticles/slim": "^4.4.0",
     "echarts": "^6.1.0",
+    "framer-motion": "^13.3.0",
     "papaparse": "^5.7.0",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
