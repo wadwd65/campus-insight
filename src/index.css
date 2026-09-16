@@ -38,3 +38,150 @@ button {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ── V3 场景层：战术终端 ────────────────────────────────────────────
+  深色只用在**场景层**（入场 / 主站外壳），内容区仍是浅色。
+   两条不混在同一屏里，是为了不推翻已经跑通的四页浅色版式 ——
+   深色是"外壳与仪表盘"，浅色是"报告正文"，各司其职。
+
+   动效一律只用 transform / opacity：这两个属性不触发布局重排，
+   在低端机上也不会掉帧；降级统一交给上面的 prefers-reduced-motion。 */
+
+.term-canvas {
+  --term-bg: #0b0f14;
+  --term-panel: #141c25;
+  --term-line: #243040;
+  --term-ink: #e8edf2;
+  --term-ink-soft: #8a98a8;
+  --term-amber: #f5a623;
+  --term-cyan: #4fa8d8;
+  background: var(--term-bg);
+  color: var(--term-ink);
+}
+
+/* 网格底：用两组 1px 的重复渐变画，比背景图便宜，也不会随分辨率发虚。
+   边缘用 radial 遮罩收掉，免得整屏都是格子显得吵。 */
+.term-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(79, 168, 216, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(79, 168, 216, 0.07) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 45%, #000 35%, transparent 78%);
+  mask-image: radial-gradient(ellipse at 50% 45%, #000 35%, transparent 78%);
+  pointer-events: none;
+}
+
+/* 扫描亮带：一条自上而下循环的带子，是"终端在工作"的最省力表达 */
+.term-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 140px;
+  background: linear-gradient(to bottom, transparent, rgba(79, 168, 216, 0.12), transparent);
+  animation: term-scan 7s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes term-scan {
+  0% { transform: translateY(-160px); }
+  100% { transform: translateY(105vh); }
+}
+
+/* CRT 细纹：只做氛围，透明度压到几乎看不见，避免影响读字 */
+.term-crt {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px);
+  pointer-events: none;
+}
+
+/* 上行光点：每个点自带不同的延时与时长，看不出同一节拍 */
+.term-dot {
+  position: absolute;
+  border-radius: 999px;
+  background: var(--term-cyan);
+  opacity: 0;
+  animation: term-drift linear infinite;
+  pointer-events: none;
+}
+
+@keyframes term-drift {
+  0% { opacity: 0; transform: translateY(0); }
+  12% { opacity: 0.75; }
+  88% { opacity: 0.75; }
+  100% { opacity: 0; transform: translateY(-72vh); }
+}
+
+/* 切角面板。注意：clip-path 会把 border-radius 裁掉，
+   所以这里只保留切角、不叠圆角 —— 两样都要的结果是圆角消失、只留下怪缝。 */
+.term-panel {
+  position: relative;
+  background: var(--term-panel);
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+
+.term-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--term-amber);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.term-mono {
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0.08em;
+}
+
+.term-pulse {
+  animation: term-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes term-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+/* 入场逐条淡入。用 animation + animation-delay 实现，
+   而不是引入动画库：首屏多带一个库，评委点开链接就要多等一次下载，
+   而这里要的只是"位移 + 淡入"两件事，CSS 完全够。
+   forwards 是关键 —— 没有它，元素会闪回初始的 opacity:0。 */
+.term-rise {
+  opacity: 0;
+  animation: term-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes term-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 纹章外环的呼吸。很慢很淡，作用是让静态画面里始终有一点"在运行"的意思。 */
+.term-breathe {
+  animation: term-breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes term-breathe {
+  0%, 100% { opacity: 0.12; }
+  50% { opacity: 0.5; }
+}
+
+/* 减少动效：把入场元素直接置为终态，并把延迟清零。
+   只把 animation-duration 压到 0.01ms 是不够的 —— animation-delay 还在，
+   元素会先空白等着（最长 1.78 秒），比不动更难受。
+   .term-breathe 同理：给一个固定的中间透明度即可。 */
+@media (prefers-reduced-motion: reduce) {
+  .term-rise {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .term-breathe {
+    animation: none;
+    opacity: 0.3;
+  }
+}

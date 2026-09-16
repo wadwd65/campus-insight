@@ -14,7 +14,9 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import SurveyForm from './components/SurveyForm.jsx';
 import UploadPanel from './components/UploadPanel.jsx';
+import IntroScene from './scenes/IntroScene.jsx';
 import { loadBaseline } from './data/loadSample.js';
+import { useGameStore } from './store/useGameStore.js';
 import { QUESTIONS } from './lib/surveySchema.js';
 import { cleanName } from './lib/text.js';
 import { BRAND } from './lib/theme.js';
@@ -23,6 +25,7 @@ const ReportView = lazy(() => import('./components/ReportView.jsx'));
 const CohortPage = lazy(() => import('./components/CohortPage.jsx'));
 
 export default function App() {
+  const scene = useGameStore((s) => s.scene);
   const [stage, setStage] = useState('welcome'); // welcome | quiz | report | upload | cohort
   const [baseline, setBaseline] = useState(null);
   const [answers, setAnswers] = useState(null);
@@ -31,6 +34,8 @@ export default function App() {
   const [name, setName] = useState('');
   const [error, setError] = useState(null);
 
+  // 基准数据在**入场动画播放时就已经开始下载**：等用户点「进入终端」时它多半已就绪，
+  // 所以这里的位置不能挪到 hub 分支里去 —— 那样就会白白等一次网络往返。
   useEffect(() => {
     let alive = true;
     loadBaseline()
@@ -60,6 +65,9 @@ export default function App() {
       setStage('report');
     }
   }
+
+  // 入场场景独立成屏：它是深色的、不依赖基准数据，不该被上面的加载态卡住。
+  if (scene === 'intro') return <IntroScene />;
 
   return (
     <div className="min-h-full flex flex-col">
