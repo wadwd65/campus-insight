@@ -83,14 +83,18 @@ export default function HubHud({ onRestart }) {
               className="flex flex-col items-center"
               title={`${r.label} ${signed(r.value)}`}
             >
-              {/* 上半区：正条从零线往上长 */}
+              {/* 上半区：正条从零线往上长。
+                  还没数据时给一个矮占位块 —— 空着的话，八个槽位看起来像"没渲染出来"，
+                  而这块矮条能表达"这里将来会长出高度"。 */}
               <div style={{ height: HUD_HALF, display: 'flex', alignItems: 'flex-end' }}>
-                {model.started && r.positive && (
-                  <div style={{ width: 10, height: r.height, background: TERMINAL.cyan }} />
+                {model.started ? (
+                  r.positive && <div style={{ width: 10, height: r.height, background: TERMINAL.cyan }} />
+                ) : (
+                  <div style={{ width: 10, height: 5, background: TERMINAL.line }} />
                 )}
               </div>
 
-              {/* 零线。不画出来就分不清上下哪边是正 */}
+              {/* 零线。不画出来就分不清上下哪边是正。 */}
               <div
                 style={{
                   height: 1,
