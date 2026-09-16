@@ -40,7 +40,7 @@ export function buildFactsText(report) {
   const { answers, percents, timeSplit, moodCurve, facts } = report;
   const L = [];
 
-  L.push('【这个人的六道选择题 —— 他的原话】');
+  L.push('【这个人的选择题 —— 他的原话】');
   QUESTIONS.forEach((q, i) => {
     L.push(`${i + 1}. ${q.text} → ${answers?.[q.field] ?? '未作答'}`);
   });
@@ -81,7 +81,7 @@ export function buildFactsText(report) {
  */
 export function buildSystemPrompt() {
   return [
-    '你是一个很会写人的观察者。刚有一个大学生做完了六道选择题，你要给他写一段属于他自己的话，',
+    '你是一个很会写人的观察者。刚有一个大学生做完了这组选择题，你要给他写一段属于他自己的话，',
     '放在他的「个人青春行为图谱」报告最后。',
     '',
     '写法要求（每一条都请照做）：',

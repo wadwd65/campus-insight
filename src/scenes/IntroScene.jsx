@@ -18,6 +18,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { useGameStore } from '../store/useGameStore.js';
+import { QUESTIONS } from '../lib/surveySchema.js';
 import { TERMINAL, INTRO_TIMING, pickDotCount, preferCalm } from '../lib/terminalTheme.js';
 
 /**
@@ -116,7 +117,7 @@ export default function IntroScene() {
           className="term-rise mt-5 text-sm sm:text-base leading-7 max-w-md"
           style={{ color: TERMINAL.inkSoft, ...at(INTRO_TIMING.subtitle) }}
         >
-          六道题，决定了你在哪一层宇宙
+          {QUESTIONS.length} 道题，决定了你在哪一层宇宙
           <br />
           两千个人的数据在这里等着和你的答案对上
         </p>
@@ -125,7 +126,7 @@ export default function IntroScene() {
           className="term-rise term-mono mt-8 text-[11px] leading-6"
           style={{ color: TERMINAL.inkDim, ...at(INTRO_TIMING.meta) }}
         >
-          零准备 · 不上传任何数据 · 约 30 秒
+          零准备 · 不上传任何数据 · 约 1 分钟
         </p>
       </div>
 

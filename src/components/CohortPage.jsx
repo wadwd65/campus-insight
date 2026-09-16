@@ -108,7 +108,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
                 className="rounded-lg px-4 py-2 text-sm text-white transition hover:opacity-90"
                 style={{ background: BRAND }}
               >
-                先答 6 题，再回来看
+                先答完一轮，再回来看
               </button>
             </div>
           )}
@@ -118,7 +118,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
           <summary className="cursor-pointer">这张图是怎么算出来的</summary>
           <div className="mt-3 space-y-2">
             <p>
-              上传的每一行都走与基准人群**完全相同**的路径：六道题 → 八个属性 → 与 2000 人基准比对 → 百分位。
+              上传的每一行都走与基准人群**完全相同**的路径：每道题 → 八个属性 → 与 2000 人基准比对 → 百分位。
               所以「班里学术力中位数 62」和某位同学自己报告里的「学术力 82」是同一个标尺，可以直接比。
             </p>
             <p>

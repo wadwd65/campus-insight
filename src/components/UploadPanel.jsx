@@ -100,7 +100,7 @@ export default function UploadPanel({ onReady }) {
     <div className="max-w-2xl mx-auto">
       <h2 className="text-2xl font-semibold tracking-tight mb-2">看一个班的分布</h2>
       <p className="text-sm text-[var(--ink-soft)] leading-6 mb-6">
-        上传一份问卷结果 CSV（每人一行、六道题的作答），就能看到这个群体的画像：
+        上传一份问卷结果 CSV（每人一行、每道题的作答），就能看到这个群体的画像：
         五维位置、类型分布、以及班里和你最像的人。
         <br />
         列名需要是：{REQUIRED_COLUMNS.join(' / ')}（顺序可以不同，多出的列会被忽略）。

@@ -127,7 +127,7 @@ export default function HubHud({ onRestart }) {
                 </div>
               </>
             ) : (
-              <div style={{ color: TERMINAL.inkDim }}>答完 6 题或走过地图，这里开始长数据</div>
+              <div style={{ color: TERMINAL.inkDim }}>答完一轮题或走过地图，这里开始长数据</div>
             )}
           </div>
         </div>

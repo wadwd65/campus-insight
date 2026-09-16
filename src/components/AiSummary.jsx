@@ -101,7 +101,7 @@ export default function AiSummary({ report, name = '', onText }) {
       {paragraphs.length === 0 ? (
         <p className="text-sm text-[var(--ink-soft)] flex items-center gap-2">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-          正在读你的六道题…
+          正在读你的答案…
         </p>
       ) : (
         <div className="space-y-3">

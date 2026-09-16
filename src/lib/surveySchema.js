@@ -21,10 +21,10 @@ export const ATTRIBUTES = matrixJson.attributes;
 /** 派生属性（由基础属性组合而来）：{key, label, axis, formula, why} */
 export const DERIVED = matrixJson.derived;
 
-/** 6 个问题：{id, field, text, hint, options:[{text, vec}]} */
+/** 全部问题：{id, field, text, hint, options:[{text, vec}]} */
 export const QUESTIONS = matrixJson.questions;
 
-/** 6 个问题字段名 —— 也就是上传 CSV 的必需列（顺序可变）。 */
+/** 全部问题的字段名 —— 也就是上传 CSV 的必需列（顺序可变）。 */
 export const REQUIRED_COLUMNS = QUESTIONS.map((q) => q.field);
 
 /** 可选列：真入口上传的批量数据未必带编号。 */

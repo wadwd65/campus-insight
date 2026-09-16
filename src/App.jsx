@@ -7,10 +7,10 @@
  *      （入场动画同样遵守这条：它用 CSS 排版，不引动画库，理由见 IntroScene.jsx 顶部。）
  *   2. **基准数据进页面就开始加载**（不等用户点「进入」）。看入场动画的这几秒里它早就准备好了，
  *      出结果不该让人等。真入口也用它，所以基准只下载一次。
- *   3. **两个入口共用 `answers`**。在真入口里点「先答 6 题」，答完会**回到群体画像**而不是
+ *   3. **两个入口共用 `answers`**。在真入口里点「先答一轮」，答完会**回到群体画像**而不是
  *      跳去个人报告 —— 用户的目标是"看谁和我最像"，不该被带走。
  *      这也顺手让两个入口有了一处真正的交点，而不只是并列的两条路。
- *   4. **答题结果同时写进终端账本**（useGameStore）。V1 的六道题本来就带 8 维增量向量，
+ *   4. **答题结果同时写进终端账本**（useGameStore）。问卷的每道题本来就带 8 维增量向量，
  *      是现成的真实数据源；写进去之后，顶部 HUD 立刻有数据可看，
  *      而且"问卷"和"地图"从此进的是同一本账 —— 档案页不必关心数据从哪来。
  */
@@ -145,7 +145,7 @@ function Welcome({ name, onNameChange, onStart, onUpload }) {
   return (
     <div className="max-w-2xl mx-auto py-8 text-center">
       <h2 className="text-3xl font-semibold tracking-tight leading-snug mb-5">
-        回答 6 个问题，
+        回答 {QUESTIONS.length} 个问题，
         <br />
         看看你的大学落在哪一个宇宙
       </h2>
@@ -153,7 +153,7 @@ function Welcome({ name, onNameChange, onStart, onUpload }) {
       <p className="text-base text-[var(--ink-soft)] leading-7 mb-8">
         不需要账号，不需要上传任何数据。
         <br />
-        六道有画面感的选择题，大约 30 秒。
+        {QUESTIONS.length} 道有画面感的选择题，大约 1 分钟。
       </p>
 
       {/* 称呼是选填的。但它值一个输入框：报告里带上名字，
@@ -176,7 +176,7 @@ function Welcome({ name, onNameChange, onStart, onUpload }) {
         className="rounded-xl px-7 py-3.5 text-base text-white transition hover:opacity-90"
         style={{ background: BRAND }}
       >
-        开始（{QUESTIONS.length} 题，约 30 秒）
+        开始（{QUESTIONS.length} 题，约 1 分钟）
       </button>
 
       <div className="mt-6 pt-6 border-t border-[var(--line)]">
