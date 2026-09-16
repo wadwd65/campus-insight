@@ -46,21 +46,32 @@ export const useGameStore = create((set) => ({
    * 地图上的每个选择、以及 V1 问卷的每一题，都走这一个入口 ——
    * 两条路进同一本账，档案页才不需要关心"这次的数据是从哪来的"。
    *
-   * 属性下限夹在 0：负分在语义上没有意义（"学术力 -3"读不通），
-   * 而矩阵的增量向量是有负数的，所以这里必须收口。
+   * ⚠️ 这里**不夹紧到 0**。映射矩阵的增量本身带负数：
+   * 「宿舍床上」给的是 academic −1 / social −1 / sport −1 / night +1 …
+   * 一旦夹到 0，八个维度就退化成"只增不减的计数器" ——
+   * 答「宿舍床上」和答「图书馆自习室」在账上几乎没差别，整条映射链的语义就废了。
+   * 负值在**累加阶段**是有意义的；要换算成 0~100 的刻度，是展示阶段的事。
    */
   applyChoice: ({ id, label, delta, at }) =>
     set((s) => {
       const attributes = { ...s.player.attributes };
       for (const [k, v] of Object.entries(delta || {})) {
-        if (k in attributes) attributes[k] = Math.max(0, attributes[k] + v);
+        if (k in attributes) attributes[k] += v;
       }
+
+      // 轨迹按"有标签就算一次行动"来记，不强依赖时间戳：
+      // 问卷那条路没有"第几秒点了哪个地点"的概念，但它同样是一次行动 ——
+      // 之前写成"没有 at 就不记"，结果是答完 6 题轨迹为 0（由 selftest:store 抓到）。
+      const trail = label
+        ? [...s.player.trail, { id: id ?? null, label, at: at ?? null }]
+        : s.player.trail;
+
       return {
         player: {
           ...s.player,
           attributes,
           flags: id ? [...s.player.flags, id] : s.player.flags,
-          trail: at ? [...s.player.trail, { id, label, at }] : s.player.trail,
+          trail,
         },
       };
     }),

@@ -25,6 +25,8 @@ import SurveyForm from '../src/components/SurveyForm.jsx';
 import ReportView from '../src/components/ReportView.jsx';
 import CohortPage from '../src/components/CohortPage.jsx';
 import UploadPanel from '../src/components/UploadPanel.jsx';
+import HubHud from '../src/components/HubHud.jsx';
+import { useGameStore } from '../src/store/useGameStore.js';
 import { parseCsvText } from '../src/lib/parseCsv.js';
 import { cleanSurveyRows } from '../src/lib/surveyClean.js';
 import { toAttributeMatrix, buildBaseline } from '../src/lib/matrix.js';
@@ -136,6 +138,24 @@ const uploadText = plain(uploadHtml);
 check('列出了必需列名', REQUIRED_COLUMNS.every((c) => uploadText.includes(c)));
 check('说明了文件不会上传', uploadText.includes('不会上传到任何服务器'));
 check('提供了示例入口', uploadText.includes('示例班级问卷'));
+
+// ── 4.5 · 主站 HUD ──
+// 这里只验**空态**。有数据时的显示规则（正负、分母、最强最弱）不在这一步验，
+// 原因是 zustand 在 SSR 下会刻意返回**初始状态**（避免 hydration 前后不一致），
+// 服务端渲染根本读不到预置数据 —— 硬要在这里断言"有数据的 HUD"，
+// 得到的是一个永远失败的假失败。那些规则改由 scripts/selftest-store.mjs 直接断言纯函数。
+console.log('\n4.5 · 主站 HUD（空态）');
+{
+  useGameStore.getState().resetPlayer(); // 清空账本，确保渲染的确是空态
+  const hudHtml = render('主站 HUD（空态）', h(HubHud, { onRestart: () => {} }));
+  const hudText = plain(hudHtml);
+  check('空态下显示「待采集」', hudText.includes('待采集'));
+  check('空态下给出「怎么开始长数据」的提示', hudText.includes('这里开始长数据'));
+  check('空态下没有「已采集」字样', !hudText.includes('已采集'));
+
+  const bad = ['undefined', 'NaN', '[object Object]'].filter((s) => hudHtml.includes(s));
+  check('HUD：HTML 里没有 undefined / NaN / [object Object]', bad.length === 0, bad.join(' '));
+}
 
 // ── 5 · 全局兜底：页面上不许出现这三种"坏味道" ──
 // 这一项扫的是**未归一化**的原始 HTML：字段名写错时，坏字符串也可能落在属性里，

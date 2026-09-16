@@ -1,23 +1,28 @@
 /**
- * 应用外壳：欢迎 → 答题 → 结果 ／ 欢迎 → 上传 → 群体画像。
+ * 应用外壳：入场 → （主站）欢迎 → 答题 → 结果 ／ 欢迎 → 上传 → 群体画像。
  *
- * 三条刻意的安排：
+ * 四条刻意的安排：
  *   1. **带 ECharts 的两页单独分包**（结果页、群体画像页）。欢迎页与答题页一行图表都用不到，
  *      首屏因此只剩 React + 表单 —— 评委点开链接的第一眼不该在等图表库下载。
- *   2. **基准数据进页面就开始加载**（不等用户点「开始」）。答完 6 题时它早就准备好了，
+ *      （入场动画同样遵守这条：它用 CSS 排版，不引动画库，理由见 IntroScene.jsx 顶部。）
+ *   2. **基准数据进页面就开始加载**（不等用户点「进入」）。看入场动画的这几秒里它早就准备好了，
  *      出结果不该让人等。真入口也用它，所以基准只下载一次。
  *   3. **两个入口共用 `answers`**。在真入口里点「先答 6 题」，答完会**回到群体画像**而不是
  *      跳去个人报告 —— 用户的目标是"看谁和我最像"，不该被带走。
  *      这也顺手让两个入口有了一处真正的交点，而不只是并列的两条路。
+ *   4. **答题结果同时写进终端账本**（useGameStore）。V1 的六道题本来就带 8 维增量向量，
+ *      是现成的真实数据源；写进去之后，顶部 HUD 立刻有数据可看，
+ *      而且"问卷"和"地图"从此进的是同一本账 —— 档案页不必关心数据从哪来。
  */
 
 import { lazy, Suspense, useEffect, useState } from 'react';
 import SurveyForm from './components/SurveyForm.jsx';
 import UploadPanel from './components/UploadPanel.jsx';
+import HubHud from './components/HubHud.jsx';
 import IntroScene from './scenes/IntroScene.jsx';
 import { loadBaseline } from './data/loadSample.js';
 import { useGameStore } from './store/useGameStore.js';
-import { QUESTIONS } from './lib/surveySchema.js';
+import { QUESTIONS, vectorOf } from './lib/surveySchema.js';
 import { cleanName } from './lib/text.js';
 import { BRAND } from './lib/theme.js';
 
@@ -26,6 +31,9 @@ const CohortPage = lazy(() => import('./components/CohortPage.jsx'));
 
 export default function App() {
   const scene = useGameStore((s) => s.scene);
+  const applyChoice = useGameStore((s) => s.applyChoice);
+  const resetPlayer = useGameStore((s) => s.resetPlayer);
+
   const [stage, setStage] = useState('welcome'); // welcome | quiz | report | upload | cohort
   const [baseline, setBaseline] = useState(null);
   const [answers, setAnswers] = useState(null);
@@ -35,7 +43,7 @@ export default function App() {
   const [error, setError] = useState(null);
 
   // 基准数据在**入场动画播放时就已经开始下载**：等用户点「进入终端」时它多半已就绪，
-  // 所以这里的位置不能挪到 hub 分支里去 —— 那样就会白白等一次网络往返。
+  // 所以这个 effect 不能挪到 hub 分支里去 —— 那样就会白白等一次网络往返。
   useEffect(() => {
     let alive = true;
     loadBaseline()
@@ -58,6 +66,15 @@ export default function App() {
 
   function finishQuiz(a) {
     setAnswers(a);
+
+    // 把这一轮作答的增量写进终端账本。
+    // 先清空再写：重答一次应该得到一份新账，而不是在上一次的基础上继续累加。
+    resetPlayer();
+    for (const q of QUESTIONS) {
+      const vec = vectorOf(q.field, a[q.field]);
+      if (vec) applyChoice({ id: `${q.field}=${a[q.field]}`, label: q.text, delta: vec });
+    }
+
     if (fromCohort) {
       setFromCohort(false);
       setStage('cohort');
@@ -70,17 +87,8 @@ export default function App() {
   if (scene === 'intro') return <IntroScene />;
 
   return (
-    <div className="min-h-full flex flex-col">
-      <header className="border-b border-[var(--line)] bg-[var(--surface)]">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-baseline gap-3">
-          <button type="button" onClick={restart} className="text-lg font-semibold tracking-tight">
-            你的大学平行宇宙
-          </button>
-          <span className="text-sm text-[var(--ink-soft)] hidden sm:inline">
-            个人青春行为图谱生成器
-          </span>
-        </div>
-      </header>
+    <div className="min-h-full flex flex-col term-enter">
+      <HubHud onRestart={restart} />
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-6 py-12">
         {error ? (

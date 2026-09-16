@@ -170,6 +170,19 @@ button {
   50% { opacity: 0.5; }
 }
 
+/* 场景转场：从入场切到主站时，主站整体淡入并轻微上浮。
+   只做单向（进），不做退 —— 退场要让两个场景同时存在才能交叉淡化，
+   那意味着入场组件不能卸载，代价与收益不成比例。
+   420ms 是试出来的：再短会显得跳，再长会挡住"点进去就能用"。 */
+.term-enter {
+  animation: term-enter 420ms ease-out both;
+}
+
+@keyframes term-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
 /* 减少动效：把入场元素直接置为终态，并把延迟清零。
    只把 animation-duration 压到 0.01ms 是不够的 —— animation-delay 还在，
    元素会先空白等着（最长 1.78 秒），比不动更难受。
@@ -183,5 +196,10 @@ button {
   .term-breathe {
     animation: none;
     opacity: 0.3;
+  }
+  .term-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
