@@ -95,18 +95,18 @@ function mulberry32(seed) {
 
 group('A · 矩阵结构');
 
-check('6 个问题', QUESTIONS.length === 6, `实际 ${QUESTIONS.length}`);
+check('10 个问题', QUESTIONS.length === 10, `实际 ${QUESTIONS.length}`);
 
 const OPTION_COUNT = QUESTIONS.reduce((s, q) => s + q.options.length, 0);
-check('28 个选项', OPTION_COUNT === 28, `实际 ${OPTION_COUNT}`);
+check('48 个选项', OPTION_COUNT === 48, `实际 ${OPTION_COUNT}`);
 
-const EXPECTED_PER_Q = { Q1: 5, Q2: 5, Q3: 4, Q4: 5, Q5: 4, Q6: 5 };
+const EXPECTED_PER_Q = { Q1: 5, Q2: 5, Q3: 4, Q4: 5, Q5: 4, Q6: 5, Q7: 5, Q8: 5, Q9: 5, Q10: 5 };
 for (const q of QUESTIONS) {
   check(`${q.id} 有 ${EXPECTED_PER_Q[q.id]} 个选项`, q.options.length === EXPECTED_PER_Q[q.id], `实际 ${q.options.length}`);
 }
 
 // 增量必须在 −3 ~ +3 之间：超出这个范围某一个选项就能单独把维度顶到极值，
-// 那么「六题共同决定」的设计就失效了
+// 那么「多题共同决定」的设计就失效了
 const outOfRange = QUESTIONS.flatMap((q) =>
   q.options.flatMap((o) =>
     Object.entries(o.vec).filter(([, v]) => Math.abs(v) > 3).map(([k, v]) => `${q.id}/${o.text}/${k}=${v}`),
@@ -165,10 +165,17 @@ check('基线含 9 个维度（8 基础 + 1 派生）', Object.keys(baseline.sor
   Object.keys(baseline.sorted).join(', '));
 
 // 与 Python 生成端对账：min/max 不受分位数插值方式影响，是可以直接比的两个数
-const PY_MIN_MAX = {
-  academic: [-6, 15], social: [-4, 13], sport: [-3, 7], food: [-2, 11],
-  night: [-2, 12], plan: [-12, 12], novelty: [-1, 9], resilience: [1, 12], buddhist: [-7, 17],
-};
+// 与 Python 生成端对账：min/max 不受分位数插值方式影响，是可以直接比的两个数。
+//
+// 基准值由生成端在写出 CSV 时一并写出（public/data/基准属性范围.json），
+// 这里读它 —— 不用手抄的常量。手抄过一次，题库一扩就九条断言全红，
+// 因为没人会记得同步一个藏在测试里的数字。
+const RANGE_PATH = path.join(path.dirname(CSV_PATH), '基准属性范围.json');
+const PY_MIN_MAX = fs.existsSync(RANGE_PATH)
+  ? JSON.parse(fs.readFileSync(RANGE_PATH, 'utf8'))
+  : {};
+check('找到生成端输出的属性范围基准', Object.keys(PY_MIN_MAX).length === 9,
+  `实际 ${Object.keys(PY_MIN_MAX).length} 个维度`);
 for (const [key, [lo, hi]] of Object.entries(PY_MIN_MAX)) {
   const s = baseline.sorted[key];
   check(`跨语言对账 ${key} min/max`, s[0] === lo && s[s.length - 1] === hi,
@@ -294,6 +301,10 @@ const demo = buildReport(
     想加入的社团: '辩论队',
     经济状态: '靠奖学金过日子',
     毕业最想带走: '图书馆那张常坐的座位',
+    早八到教室: '提前十分钟到，坐前排',
+    操场上的位置: '器械区随便练练，练完就走',
+    搞砸了的那晚: '睡一觉，第二天照常',
+    相册里的多数: '课件、板书、PPT 截图',
   },
   baseline,
 );
@@ -313,6 +324,10 @@ const demo2 = buildReport(
     想加入的社团: '电竞社',
     经济状态: '月初土豪，月底吃土',
     毕业最想带走: '宿舍的那群人',
+    早八到教室: '早上根本没课，我的课都在下午',
+    操场上的位置: '看台或树下，看别人动',
+    搞砸了的那晚: '开黑到凌晨，把气打出去',
+    相册里的多数: '吃的：外卖、食堂、探店',
   },
   baseline,
 );
@@ -333,7 +348,7 @@ group('E · 闸门三 · 摘要 / 关键词 / 降级文案');
 const factsText = buildFactsText(demo);
 
 check(
-  '摘要含 6 道题的原话与选择',
+  '摘要含全部 10 道题的原话与选择',
   QUESTIONS.every((q) => factsText.includes(q.text) && factsText.includes(demo.answers[q.field])),
 );
 check(
@@ -634,7 +649,11 @@ check(
     captured.body.messages?.[0]?.role === 'system' &&
     captured.body.messages?.[1]?.role === 'user',
 );
-check('system 消息是提示词，user 消息带了数据与称呼', captured.body.messages[1].content.includes('陈') && captured.body.messages[1].content.includes('六道选择题'));
+// 断言只认「选择题」这个词，不认「六道」这种会随题库变动的修饰 —— 之前写死了题数，扩题时红过一次
+check(
+  'system 消息是提示词，user 消息带了数据与称呼',
+  captured.body.messages[1].content.includes('陈') && captured.body.messages[1].content.includes('选择题'),
+);
 
 // ── 各条失败路径都必须变成"正常返回的降级"，而不是异常 ──
 const fb = fallbackText(demo);

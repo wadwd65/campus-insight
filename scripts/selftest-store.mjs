@@ -74,8 +74,10 @@ for (const q of QUESTIONS) {
     mismatch.length ? mismatch.map((k) => `${k}: 账本${p.attributes[k]} ≠ 期望${expected[k]}`).join('；') : '',
   );
 
-  check('记录了 6 条选择标记', p.flags.length === 6, `实际 ${p.flags.length}`);
-  check('记录了 6 条轨迹', p.trail.length === 6, `实际 ${p.trail.length}`);
+  // 题数从契约取，不写死 —— 题库从 6 题扩到 10 题时，这两条断言曾各红一次
+  const n = QUESTIONS.length;
+  check(`记录了 ${n} 条选择标记`, p.flags.length === n, `实际 ${p.flags.length}`);
+  check(`记录了 ${n} 条轨迹`, p.trail.length === n, `实际 ${p.trail.length}`);
 
   const hasNegative = BASE_ATTR_KEYS.some((k) => p.attributes[k] < 0);
   check('账本保留了负值（负增量没被夹成 0）', hasNegative);

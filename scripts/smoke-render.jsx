@@ -88,7 +88,11 @@ const quizHtml = render('答题页', h(SurveyForm, { onComplete: () => {}, onCan
 const quizText = plain(quizHtml);
 check('渲染出第一题的题干', quizText.includes(QUESTIONS[0].text));
 check('渲染出第一题的全部选项', QUESTIONS[0].options.every((o) => quizText.includes(o.text)));
-check('显示题号进度 1 / 6', quizText.includes('1 / 6'), '（第 1 题 / 共 6 题）');
+check(
+  `显示题号进度 1 / ${QUESTIONS.length}`,
+  quizText.includes(`1 / ${QUESTIONS.length}`),
+  `（第 1 题 / 共 ${QUESTIONS.length} 题）`,
+);
 
 // ── 2 · 结果页（快入口） ──
 console.log('\n2 · 结果页（快入口）');
@@ -99,7 +103,7 @@ check(
   '结果页五个 section 标题都在',
   ['大学生活者画像', '时间去哪了', '四年心情曲线', '人群冷知识', '给你的话'].every((t) => reportText.includes(t)),
 );
-check('大模型那块有加载态文案', reportText.includes('正在读你的六道题'));
+check('大模型那块有加载态文案', reportText.includes('正在读你的答案'));
 check('「复制文字版」按钮在', reportText.includes('复制文字版'));
 check('结尾句出现了（本地确定性生成，不依赖大模型）', reportText.includes('如果只用一个词概括你的大学，是「'));
 

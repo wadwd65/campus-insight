@@ -96,6 +96,58 @@
         { "text": "食堂的那个窗口", "vec": { "social": 1, "food": 3, "novelty": 1 } },
         { "text": "什么也没带走，但也没白来", "vec": { "resilience": 3, "novelty": 1, "plan": -1 } }
       ]
+    },
+    {
+      "id": "Q7",
+      "field": "早八到教室",
+      "text": "早八这门课，你通常是怎么到教室的？",
+      "hint": "早八是校园里最公平的折磨 —— 所有人的作息都会在这里露出来",
+      "options": [
+        { "text": "提前十分钟到，坐前排", "vec": { "academic": 2, "plan": 3, "night": -2, "resilience": 1 } },
+        { "text": "卡着铃声冲进去，坐最后一排", "vec": { "plan": -1, "academic": 1, "sport": 1, "night": 1 } },
+        { "text": "让室友帮忙占座，自己慢慢来", "vec": { "social": 2, "academic": 1, "plan": -1 } },
+        { "text": "选了，但没去过几次", "vec": { "academic": -2, "plan": -2, "night": 2, "novelty": 1 } },
+        { "text": "早上根本没课，我的课都在下午", "vec": { "night": 3, "plan": -2, "novelty": 1 } }
+      ]
+    },
+    {
+      "id": "Q8",
+      "field": "操场上的位置",
+      "text": "傍晚的操场，你更可能出现在哪里？",
+      "hint": "运动这件事问不出来，但它一定会在操场上留下一个位置",
+      "options": [
+        { "text": "跑道上，一个人戴着耳机跑", "vec": { "sport": 3, "resilience": 2, "social": -1 } },
+        { "text": "球场，组队打一场", "vec": { "sport": 3, "social": 3, "novelty": 1 } },
+        { "text": "羽毛球乒乓球，约人打", "vec": { "sport": 2, "social": 2, "plan": 1 } },
+        { "text": "器械区随便练练，练完就走", "vec": { "sport": 2, "plan": 1, "social": -1 } },
+        { "text": "看台或树下，看别人动", "vec": { "sport": -3, "social": 1, "novelty": 1 } }
+      ]
+    },
+    {
+      "id": "Q9",
+      "field": "搞砸了的那晚",
+      "text": "把事情搞砸的那个晚上，你一般怎么过？",
+      "hint": "抗压问不出来，只能问「那一晚你做了什么」",
+      "options": [
+        { "text": "给家里打个电话", "vec": { "resilience": 2, "social": 2, "night": 1 } },
+        { "text": "拉朋友出去吃一顿", "vec": { "resilience": 2, "social": 3, "food": 2 } },
+        { "text": "去操场跑到没力气", "vec": { "resilience": 3, "sport": 3, "social": -2 } },
+        { "text": "开黑到凌晨，把气打出去", "vec": { "night": 3, "social": 1, "resilience": -1 } },
+        { "text": "睡一觉，第二天照常", "vec": { "resilience": 3, "plan": 2, "night": -1 } }
+      ]
+    },
+    {
+      "id": "Q10",
+      "field": "相册里的多数",
+      "text": "手机相册里，数量最多的是哪一类？",
+      "hint": "相册是最诚实的一份数据 —— 不问你觉得自己是什么人，问你下意识按了多少次快门",
+      "options": [
+        { "text": "吃的：外卖、食堂、探店", "vec": { "food": 3, "social": 1, "novelty": 1 } },
+        { "text": "和朋友：合影、表情包、抓拍", "vec": { "social": 3, "novelty": 1 } },
+        { "text": "风景和现场：演出、展览、天空", "vec": { "novelty": 3, "academic": 1 } },
+        { "text": "课件、板书、PPT 截图", "vec": { "academic": 3, "plan": 2 } },
+        { "text": "运动记录、跑步路线、装备", "vec": { "sport": 3, "plan": 1, "resilience": 1 } }
+      ]
     }
   ]
 }
