@@ -149,14 +149,19 @@ button {
 /* 入场逐条淡入。用 animation + animation-delay 实现，
    而不是引入动画库：首屏多带一个库，评委点开链接就要多等一次下载，
    而这里要的只是"位移 + 淡入"两件事，CSS 完全够。
-   forwards 是关键 —— 没有它，元素会闪回初始的 opacity:0。 */
+
+   节奏参数（2026-09-16 调过一轮）：0.55s/缓入缓出 → 0.3s/强 ease-out。
+   "干脆"的关键不是时长本身，而是缓动曲线：起始快、收尾定得住，
+   读起来像"啪"地就位；缓入缓出让每一段都像在慢慢飘过去。
+   位移也从 10px 收到 8px —— 幅度小了，同样的时间里观感更利落。
+   forwards/both 是关键：没有它，元素会闪回初始的 opacity:0。 */
 .term-rise {
   opacity: 0;
-  animation: term-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: term-rise 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes term-rise {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -173,13 +178,13 @@ button {
 /* 场景转场：从入场切到主站时，主站整体淡入并轻微上浮。
    只做单向（进），不做退 —— 退场要让两个场景同时存在才能交叉淡化，
    那意味着入场组件不能卸载，代价与收益不成比例。
-   420ms 是试出来的：再短会显得跳，再长会挡住"点进去就能用"。 */
+   280ms + 强 ease-out：切场景不该有等待感（上一版 420ms 偏慢）。 */
 .term-enter {
-  animation: term-enter 420ms ease-out both;
+  animation: term-enter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes term-enter {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
 }
 
