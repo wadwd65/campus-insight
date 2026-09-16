@@ -93,6 +93,29 @@ export default function IntroScene() {
         <span style={{ color: TERMINAL.ok }}>●&nbsp;ONLINE</span>
       </div>
 
+      {/* ── 两侧立绘 ──
+          两个角色是同一个人的两种可能：左边偏学术（青），右边偏运动（琥珀），
+          正好用掉终端的两个强调色 —— 「平行宇宙」这件事因此不用写一个字就能看出来。
+
+          只在 md 以上出现：窄屏放不下，硬挤会把标题压成两行。
+          alt 留空 + aria-hidden：它们是装饰，读屏软件不该念出"图片"。
+
+          素材是 AI 生成的，来源与授权状态见 docs/素材说明.md。 */}
+      <img
+        src="/art/student-academic.webp"
+        alt=""
+        aria-hidden="true"
+        className="term-rise hidden md:block absolute bottom-0 left-[2%] lg:left-[6%] h-[60vh] max-h-[540px] w-auto select-none pointer-events-none"
+        style={{ animationDelay: '260ms' }}
+      />
+      <img
+        src="/art/student-sporty.webp"
+        alt=""
+        aria-hidden="true"
+        className="term-rise hidden md:block absolute bottom-0 right-[2%] lg:right-[6%] h-[60vh] max-h-[540px] w-auto select-none pointer-events-none"
+        style={{ animationDelay: '380ms' }}
+      />
+
       {/* ── 中央 ── */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center">
         <div className="term-rise" style={at(INTRO_TIMING.crest)}>
