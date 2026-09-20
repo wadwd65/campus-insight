@@ -1,19 +1,22 @@
 /**
  * 入场动画的分层数据 —— 纯函数，没有 React、没有 DOM。
  *
- * 为什么要**单独抽出来**，而不是写在 IntroScene.jsx 里：
- * 入场动画是"一堆随机位置的装饰元素"，看起来没什么可测的。但只要它是随机就有两条
- * 必须守住的底线，而这两条恰恰是最容易在改版时被破坏、又最难靠肉眼发现的：
+ * ── 2026-09-20 重写：从"平铺四层"改成"推镜穿过场景" ──────────────
  *
- *   1. **确定性**。用 Math.random() 的话，同一屏重渲染一次光点就"跳位"——
- *      首屏尤其致命，因为浏览器在任何一次 re-render（比如字体加载完、窗口 resize）
- *      就会让整片星点瞬移。这里用基于下标的确定性伪随机，位置永远一样。
- *   2. **分层边界**。参考站的做法是"四层各走各的速度"，层与层之间**必须**有可辨的
- *      速度差，否则视差读不出来（四层一样快 = 一层）。而且层内元素要**散开**，
- *      不能全挤在一处 —— 这两件事都是纯数值判断，正好适合断言。
+ * 上一版做的是四层**平铺**淡入（底/中景/粒子/前景各自淡入，各走各的漂移）。
+ * 看完参考视频（B站 BV16N41117xb）之后发现那理解错了：
+ * 参考的核心机制不是"多层淡入"，是**一个镜头持续往里推**，
+ * 穿过一层一层的景深。区别在于：
  *
- * 抽成纯函数之后，这两条就能被 scripts/selftest-intro.mjs 直接钉住；
- * 留在组件里的话，SSR 只渲染出空态，什么也验不了（zustand 的前车之鉴）。
+ *   平铺：所有层都在同一个平面上漂，深度感靠"速度差"假装出来
+ *   推镜：各层按真实景深缩放，近处涨得快、远处涨得慢 —— 空间是真的
+ *
+ * 数学上就是：**各层共享一个推进量 t，但各自的缩放系数不同**。
+ * 近处 scale 变化大（压过来），远处变化小（几乎不动）。
+ * 这条在下面 `layerTransform()` 里，也是本文件唯一需要断言的核心逻辑。
+ *
+ * 另外补了一层参考里很显眼、上一版完全没有的东西：**飘浮物**
+ * （蝴蝶/花瓣）—— 它们是横向飘过画面的小元素，给"一直在动"提供细节。
  */
 
 /**
@@ -21,6 +24,9 @@
  *
  * 用 sin 的大数取小数部分是图形学里的老把戏 —— 便宜、无依赖、
  * 且相邻种子之间足够"散"。它不是密码学随机，这里也完全不需要。
+ *
+ * 为什么不能用 Math.random()：浏览器任何一次 re-render（字体加载完、
+ * 窗口 resize、HMR）都会让整片元素瞬移。第一屏尤其致命。
  */
 export function prand(i, k) {
   const v = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453;
@@ -28,145 +34,163 @@ export function prand(i, k) {
 }
 
 /**
- * 视差层。数值都是"相对速度"，不是绝对时长 ——
- * 具体放慢到几秒由各层自己决定，这里只定义层序与相对关系。
+ * 景深层定义。
  *
- * depth 的含义：0 = 最远（动得最慢、最暗、最小），越大 = 越近。
- * scale / drift 都从 depth 推出来，保证"近的动得快"这条视觉规律不被写反。
+ * `depth` 语义（与上一版刻意反过来，这版更直观）：
+ *   0 = 最远（几乎不随推镜放大，像背景画），
+ *   1 = 中景，
+ *   2 = 最近（推镜时涨得最快，从画面边缘压过去）。
+ *
+ * `zoom` = 推镜到这个时间点时，该层相对初始的额外放大倍率。
+ * 近处 zoom 大 = 压过来；远处 zoom 小 = 稳如背景。
+ *
+ * `drift` = 层自身的缓慢横移（px/整段）。用来制造"云在飘"的错觉 ——
+ * 纯缩放会显得很机械，加一点横移就活了。
  */
-export const PARALLAX_LAYERS = [
-  { id: 'far', depth: 0, label: '远景雾团', scale: 1.18, drift: 26, opacity: 0.5 },
-  { id: 'mid', depth: 1, label: '中景剪影', scale: 1.1, drift: 46, opacity: 0.34 },
-  { id: 'near', depth: 2, label: '近景光带', scale: 1.04, drift: 74, opacity: 0.22 },
+export const SCENE_LAYERS = [
+  { id: 'sky', depth: 0, label: '天空雾层', zoom: 1.06, drift: 14, asset: 'scene-sky.webp' },
+  { id: 'arch', depth: 1, label: '建筑中景', zoom: 1.22, drift: 28, asset: 'scene-arch.webp' },
+  { id: 'front', depth: 2, label: '前景藤蔓', zoom: 1.52, drift: 52, asset: 'scene-front.webp' },
 ];
 
-/** 推镜参数：开场到结束的缓慢放大 + 轻微上移（参考站整段都在推，没有一刻是静的）。 */
+/**
+ * 推镜全程参数。
+ *
+ * 参考的推镜是**匀速慢推**，不是"先快后慢"（那种读起来像镜头在抖）。
+ * 但完全匀速也假 —— 真实镜头有极轻微的加速度。所以用接近线性的
+ * cubic-bezier 而不是 ease-in-out。
+ *
+ * 时长 34s 是刻意的：它**比入场动画本身（4.6s）长得多**。
+ * 也就是说用户看完文字、点进终端时，镜头还在推。这不是浪费 ——
+ * 只要这一屏还在，它就不该停；停下来才显得是"动画播完了"。
+ */
 export const PUSH = {
-  fromScale: 1.0,
-  toScale: 1.08,
-  fromY: 0,
-  toY: -2.2, // 百分比
-  durationMs: 26000,
+  durationMs: 34000,
 };
 
 /**
- * 垂直光带（参考站前景里最显眼的特征：一排竖直细线）。
+ * 计算某层在推进量 t（0~1）时的 transform。
  *
- * 不画成"雨"：雨是斜的、有落差感的；这里要的是**静止的光柱在缓慢明灭**，
- * 与整体"慢 → 静 → 出现按钮"的节奏一致。所以只有位置的散开 + 极慢的亮度呼吸。
+ * 这是本文件的核心规则，也是最该被断言的一条：
+ * **depth 越大（越近），同一 t 下的放大倍率必须越大。**
+ * 写反了不会报错，只会让画面"看起来有点怪"，肉眼极难定位 ——
+ * 上一版就是这么错的（把"近处更快"写成了"近处更慢"）。
  *
- * 2026-09-16 调过一轮：第一版太粗太亮，读起来像一排栅栏，还压住了标题。
- * 位置元素**数量不能减**（数量决定"满屏氛围"的感觉），要减的是**每一条的权重**：
- * 宽度 0.5~1.4px（原来是 0.6~2.2），亮度 0.03~0.11（原来是 0.04~0.16）。
- * 并且让一部分光带只占屏幕的一小段高度 —— 长度一致会强化"栅栏感"。
+ * @param {{zoom:number}} layer 层定义
+ * @param {number} t 推进量 0~1
+ * @returns {{scale:number, drift:number}} 该层的缩放与横移（drift 单位 %）
  */
-export function buildLightShafts(n) {
-  return Array.from({ length: n }, (_, i) => {
-    const width = 0.5 + prand(i, 11) * 0.9; // 0.5 ~ 1.4 px
-    // 短的多、长的少：长光带只留少数几条，视野才不会被切成竖条
-    const long = prand(i, 13) > 0.68;
-    return {
-      key: i,
-      left: `${(prand(i, 12) * 100).toFixed(2)}%`,
-      width: `${width.toFixed(2)}px`,
-      height: `${(long ? 40 + prand(i, 18) * 40 : 12 + prand(i, 13) * 26).toFixed(1)}%`,
-      top: `${(prand(i, 14) * 52).toFixed(2)}%`,
-      // 亮度压低到 0.03~0.11：它铺满全屏，稍亮一点就会糊住标题
-      opacity: Number((0.03 + prand(i, 15) * 0.08).toFixed(3)),
-      duration: `${(9 + prand(i, 16) * 13).toFixed(1)}s`,
-      delay: `${(prand(i, 17) * 13).toFixed(1)}s`,
-    };
-  });
+export function layerTransform(layer, t) {
+  const clamped = t < 0 ? 0 : t > 1 ? 1 : t;
+  // 从 1 线性推到该层的 zoom
+  const scale = 1 + (layer.zoom - 1) * clamped;
+  // 横移同步推进，方向由层决定（远处向右、近处向左 = 视差交错）
+  const dir = layer.depth % 2 === 0 ? 1 : -1;
+  const drift = layer.drift * clamped * dir;
+  return { scale, drift };
 }
 
 /**
- * 远景剪影。参考站中景是破碎拱门/建筑，我们没有那种素材，
- * 也不该去扒（版权），所以用**几何剪影**：几块不同高低的深色多边形，
- * 铺在最底层做"地平线之外还有东西"的暗示。自创图形，零素材依赖。
+ * 检验一组层是否构成合法的视差：近处的 zoom 必须严格大于远处。
+ * 抽出来是为了让自检直接调它，而不是在测试里重抄一遍判据。
  */
-export function buildRidges(n) {
-  return Array.from({ length: n }, (_, i) => ({
-    key: i,
-    // 沿水平方向均匀铺开，再各自偏移一点，避免看出等距
-    left: `${(i * (100 / n) - 6 + prand(i, 21) * 12).toFixed(2)}%`,
-    width: `${(14 + prand(i, 22) * 22).toFixed(2)}%`,
-    height: `${(10 + prand(i, 23) * 26).toFixed(2)}%`,
-    skew: `${(prand(i, 24) * 16 - 8).toFixed(1)}deg`,
-    opacity: Number((0.16 + prand(i, 25) * 0.26).toFixed(3)),
-  }));
+export function isParallaxOrdered(layers = SCENE_LAYERS) {
+  for (let i = 1; i < layers.length; i += 1) {
+    if (layers[i].zoom <= layers[i - 1].zoom) return false;
+  }
+  return true;
 }
 
 /**
- * 光点（沿用原来的 buildDots，但那套只做"上升"）。
+ * 飘浮物（蝴蝶 / 花瓣）。
  *
- * 这里给它加两个维度，是为了让粒子真正成"层"而不是"一片"：
- *   - depth 决定大小与快慢：远处小而慢、近处大而快
- *   - 每个点带一点水平漂移，纯垂直运动看起来像雨，加点横向才像悬浮
+ * 参考里这一类东西是画面"活着"的关键 —— 它们很小、很多、各自飘。
+ * 上一版只有"一起往上飘的光点"，方向单一，看起来像雪花而不是空间。
+ *
+ * 这一版每个飘浮物有：
+ *   - 独立的横向路径（从左到右或反过来，不由 depth 决定，这样会交错）
+ *   - 独立的纵向波动相位与幅度（正弦，所以是飘不是直线飞）
+ *   - 独立的旋转速度（蝴蝶会翻翅膀，花瓣会转）
  */
-export function buildDots(n) {
+export function buildFloaters(n) {
   return Array.from({ length: n }, (_, i) => {
-    const depth = Math.floor(prand(i, 31) * 3); // 0 / 1 / 2
-    const base = 0.8 + depth * 0.7;
-    // 深度的步进必须**压过**层内的随机抖动，否则"近处更快"只是平均意义上的巧合，
-    // 单独看十个点就有一半是反的，视差读不出来。
-    // 所以：层内抖动 1.4s（±0.7），深度步进 3.2s（超过抖动的两倍）。
+    const depth = Math.floor(prand(i, 41) * 3); // 0/1/2 → 大小与速度分档
+    const size = 10 + depth * 9 + prand(i, 42) * 10; // 10~47px
+    const toRight = prand(i, 43) > 0.5;
     return {
       key: i,
       depth,
-      left: `${(prand(i, 1) * 100).toFixed(2)}%`,
-      bottom: `${(prand(i, 2) * 58).toFixed(2)}%`,
-      size: Number((base + prand(i, 3) * 1.4).toFixed(2)),
-    // 近处的点飘得更快 —— 与 PARALLAX_LAYERS 的规律保持一致。
-    // 注意方向：**duration 更小 = 更快**，所以近处（depth 大）要减、不是加。
-    // 第一版这里写成了 `+ depth * 3.2`，把"近处更快"写反成了"近处更慢"，
-    // 肉眼看画面只是"有点不对"，是自检把它抓出来的。
-    duration: `${(10.6 - depth * 3.2 + prand(i, 4) * 1.4).toFixed(1)}s`,
-      delay: `${(prand(i, 5) * 9).toFixed(1)}s`,
-      sway: `${(prand(i, 6) * 46 - 23).toFixed(1)}px`,
-      opacity: Number((0.28 + depth * 0.16 + prand(i, 7) * 0.22).toFixed(3)),
+      // 起点沿横向铺开；反向的那批从右侧开始
+      left: toRight
+        ? `${(prand(i, 44) * 100).toFixed(2)}%`
+        : `${(60 + prand(i, 45) * 45).toFixed(2)}%`,
+      top: `${(prand(i, 46) * 88).toFixed(2)}%`,
+      size: Number(size.toFixed(1)),
+      toRight,
+      // 近处飘得快：时长更短
+      duration: `${(16 - depth * 4.5 + prand(i, 47) * 5).toFixed(1)}s`,
+      delay: `${(prand(i, 48) * 12).toFixed(1)}s`,
+      // 纵向波动（正弦摆幅，px）与相位
+      bob: Number((8 + depth * 7 + prand(i, 49) * 10).toFixed(1)),
+      phase: `${(prand(i, 50) * 6.28).toFixed(2)}rad`,
+      // 旋转：花瓣转得快、蝴蝶是翻动，这里统一用 spin 表达
+      spin: Number(((prand(i, 51) - 0.5) * (depth + 1) * 44).toFixed(1)),
+      // 亮度分级：0.2 / 0.34 / 0.48 起步，抖动最多 +0.16。
+      // 飘浮物比光雨亮（它们是"看得见的实物"），但同样要封顶 ——
+      // 超过 0.8 就从"飘在空气里"变成"贴在屏幕上"了。
+      opacity: Number((0.2 + depth * 0.14 + prand(i, 52) * 0.16).toFixed(3)),
+      kind: prand(i, 53) > 0.55 ? 'petal' : 'butterfly',
     };
   });
 }
 
-/** 由设备能力决定"每个装饰层放多少元素"。SSR 下给保守值。 */
-export function pickLayerBudget() {
-  if (typeof navigator === 'undefined') return { dots: 24, shafts: 10, ridges: 6 };
+/**
+ * 光雨（参考里全程在下、贯穿整幅的那层细亮线）。
+ *
+ * 与上一版"竖直光柱"的区别：上一版是**原地明灭的竖条**（像光带），
+ * 参考里是**持续下落的雨丝**（有速度、有方向）。这一版按后者做：
+ * 每条有下落时长与倾角，落到画面外会回到顶部重来。
+ */
+export function buildLightRain(n) {
+  return Array.from({ length: n }, (_, i) => {
+    const depth = Math.floor(prand(i, 61) * 3);
+    return {
+      key: i,
+      depth,
+      left: `${(prand(i, 62) * 100).toFixed(2)}%`,
+      // 近处的雨丝更长更亮
+      length: Number((9 + depth * 11 + prand(i, 63) * 14).toFixed(1)),
+      thickness: Number((0.5 + prand(i, 64) * 0.7).toFixed(2)),
+      // 近处落得更快（时长更短）
+      duration: `${(5.5 - depth * 1.2 + prand(i, 65) * 2.4).toFixed(1)}s`,
+      delay: `${(prand(i, 66) * 7).toFixed(1)}s`,
+      // 轻微倾斜：全部同向，读起来才是"雨"不是"一堆线"
+      tilt: Number((-6 - prand(i, 67) * 8).toFixed(1)),
+      // 亮度分级：0.08 / 0.17 / 0.26 起步，抖动最多 +0.14。
+      // **上限必须压住** —— 光雨是"空气里的光"，不是主体。
+      // 单条超过 0.45 就会在浅色天空上糊成一道白杠，把标题压花
+      // （上一版没设上限，最亮的一条到了 0.52，所以有了这条断言）。
+      opacity: Number((0.08 + depth * 0.09 + prand(i, 68) * 0.14).toFixed(3)),
+    };
+  });
+}
+
+/** 由设备能力决定各层元素数量。SSR 下给保守值。 */
+export function pickSceneBudget() {
+  if (typeof navigator === 'undefined') return { floaters: 14, rain: 34 };
   const cores = navigator.hardwareConcurrency || 4;
   const mem = navigator.deviceMemory || 4;
   const small = typeof window !== 'undefined' && window.innerWidth < 768;
 
-  let dots = 46;
-  let shafts = 22;
-  let ridges = 8;
+  let floaters = 26;
+  let rain = 80;
   if (cores <= 4 || mem <= 4) {
-    dots = 24;
-    shafts = 12;
-    ridges = 6;
+    floaters = 14;
+    rain = 34;
   }
   if (small) {
-    dots = Math.min(dots, 18);
-    shafts = Math.min(shafts, 9);
-    ridges = Math.min(ridges, 5);
+    floaters = Math.min(floaters, 10);
+    rain = Math.min(rain, 26);
   }
-  return { dots, shafts, ridges };
+  return { floaters, rain };
 }
-
-/**
- * 各层元素的"入场时刻"：参考站的顺序是**由远及近**——
- * 先看见远处的雾，再看见建筑，最后光带亮起，粒子一直在。
- * 这个顺序不是随意定的：先给环境、后给主体，视线才会自然落到中心。
- *
- * 返回毫秒延迟，供 CSS animation-delay 使用。
- */
-export const LAYER_REVEAL = {
-  sky: 0,
-  ridge: 220,
-  dots: 380,
-  shaft: 620,
-  crest: 900,
-  rule: 1180,
-  title: 1360,
-  subtitle: 1560,
-  meta: 1760,
-  cta: 2100,
-};
