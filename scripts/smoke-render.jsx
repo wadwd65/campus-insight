@@ -136,7 +136,7 @@ const noMeHtml = plain(
     h(CohortPage, { records: cohortCleaned.records, baseline, ownAnswers: null, onGoQuiz: () => {}, onRestart: () => {} }),
   ),
 );
-check('没有自己的作答时，给出「先答 6 题」的引导而不是假数据', noMeHtml.includes('先有一份「你的」作答'));
+check('没有自己的作答时，给出「先答 10 题」的引导而不是假数据', noMeHtml.includes('先有一份「你的」作答'));
 
 // ── 4 · 上传页 ──
 console.log('\n4 · 上传页');
