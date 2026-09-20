@@ -35,8 +35,9 @@ import { toAttributeMatrix, buildBaseline } from '../src/lib/matrix.js';
 import { QUESTIONS, REQUIRED_COLUMNS } from '../src/lib/surveySchema.js';
 import { PLACES, SLOTS_PER_DAY } from '../src/data/mapPlaces.js';
 import { nextDelta } from '../src/lib/mapEngine.js';
-import { PARALLAX_LAYERS, LAYER_REVEAL } from '../src/lib/introLayers.js';
+import { SCENE_LAYERS, pickSceneBudget } from '../src/lib/introLayers.js';
 import { INTRO_TIMING } from '../src/lib/terminalTheme.js';
+import { INTRO_FORBIDDEN_ASSETS } from '../src/scenes/IntroScene.jsx';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (f) => fs.readFileSync(path.join(ROOT, 'public', 'data', f), 'utf8');
@@ -178,12 +179,18 @@ console.log('\n4.5 · 主站 HUD（空态）');
 }
 
 // ── 4.7 · 行动地图（空态） ──
-// 与 HUD 同一个理由：地图的**规则**（衰减、时段、可用性）由 selftest-map.mjs 断言，
-// 这里只验"结构能不能画出来" —— 地点名、氛围句、时段数是渲染层的事。
-console.log('\n4.7 · 行动地图（空态）');
+// 2026-09-20 改版：地图从"欢迎页旁边的一条次按钮"升为**默认主界面**，
+// 所以这一节的分量也跟着变重 —— 它是所有人进入终端后看到的第一屏。
+//
+// 断言分三组：
+//   a. 地图本体画得出来（地点、区域、时段）
+//   b. **入口坞在**（答题/上传/生成档案 三个门都在这一屏上）
+//   c. 空态下的禁用与原因提示（不能让 01 静默无反应）
+// 规则（衰减、时段、账本对接）由 selftest-map.mjs 断言，这里只验结构。
+console.log('\n4.7 · 行动地图（默认主界面 · 空态）');
 {
   useGameStore.getState().resetPlayer();
-  const mapHtml = render('行动地图（空态）', h(MapScene, { onGoReport: () => {}, onGoQuiz: () => {} }));
+  const mapHtml = render('行动地图（空态）', h(MapScene, { onGoReport: () => {}, onGoQuiz: () => {}, onUpload: () => {} }));
   const mapText = plain(mapHtml);
 
   check('渲染出标题问句', mapText.includes('今天的四个时段'));
@@ -195,9 +202,27 @@ console.log('\n4.7 · 行动地图（空态）');
   check('渲染出地点氛围句', mapText.includes(PLACES[0].line));
   check('显示时段计数', mapText.includes(`${SLOTS_PER_DAY} / ${SLOTS_PER_DAY}`), `空态应为 ${SLOTS_PER_DAY}/${SLOTS_PER_DAY}`);
   check('四个区域名都在', ['北区 · 教学', '东区 · 运动', '南区 · 生活', '西区 · 自由'].every((z) => mapText.includes(z)));
-  check('空态下主按钮不可用但仍渲染出来', mapText.includes('用这段经历生成档案'));
-  check('空态下给出「先答题」的备选路径', mapText.includes(`先答 ${QUESTIONS.length} 题`));
   check('写明了衰减规则', mapText.includes('最多计 3 次增量'));
+
+  // ★ b 组：入口坞。这是本次改版的核心 —— 三个功能入口都挂在地图上，
+  // 而不是在地图之外另开一个首页。漏掉任何一个，对应的功能就进不去了。
+  check('入口坞的标题在', mapText.includes('ACTIONS'));
+  check('01 · 生成档案的入口在', mapText.includes('生成我的档案'));
+  check(
+    `02 · 答题入口在（题数跟着题库走：${QUESTIONS.length} 题）`,
+    mapText.includes(`答 ${QUESTIONS.length} 道题`),
+  );
+  check('03 · 上传入口在', mapText.includes('上传班级问卷'));
+
+  // ★ c 组：空态下 01 必须禁用，且**给出原因**。
+  // 只禁用不给原因，用户会以为是坏的 —— 这是最容易漏的一条。
+  check('空态下「生成我的档案」给出禁用原因而不是静默无反应', mapText.includes('至少要有一段轨迹'));
+  check('禁用态下按钮仍在 DOM 里（结构不塌）', mapHtml.includes('disabled'));
+  // 有轨迹时禁用理由要换成可生成的说明 —— 这一条用 SSR 测不了（zustand SSR 返回初始态），
+  // 所以只钉住"原因文案存在"，规则本身由 selftest-map.mjs 覆盖。
+  check('入口坞宣告了三个入口同属一本账', mapText.includes('三个入口'));
+  // 地图上要有一句"答题会覆盖轨迹"的警示 —— 否则已经走过路的玩家会意外丢数据
+  check('答题入口写明了"会覆盖当前轨迹"', mapText.includes('覆盖当前轨迹'));
 
   const mapBad = ['undefined', 'NaN', '[object Object]'].filter((s) => mapHtml.includes(s));
   check('地图：HTML 里没有 undefined / NaN / [object Object]', mapBad.length === 0, mapBad.join(' '));
@@ -248,8 +273,14 @@ console.log('\n4.8 · 从地图生成报告（走账本，不走问卷）');
 // ── 4.9 · 入场页（打开网站的第一屏） ──
 // 这是最该被冒烟测覆盖、却一直漏掉的一屏：**它是所有人看到的第一眼**，
 // 一旦渲染抛错或模板里取错字段，后果是"链接打不开"。
-// 而且它以前没有任何自动化覆盖 —— 改一次就得手动开浏览器确认一次。
-// 分层数据（四层视差）的数值规则由 selftest-intro.mjs 断言，这里只验"结构画得出来"。
+//
+// 2026-09-20 第三版重写：入场从"四层平铺视差"改成"推镜穿过分层场景"，
+// 断言跟着换。新增一条**反向断言**：真人立绘不许再出现 ——
+// 上一版把两个半身像贴在左右两边，用户明确说"两个角色也不应该放在那里"，
+// 而"忘了删"这件事没有任何正向断言能抓到。
+//
+// 分层数据的数值规则（近处涨得快、确定性随机、分档）由 selftest-intro.mjs 断言，
+// 这里只验"结构画得出来"。
 console.log('\n4.9 · 入场页（第一屏）');
 {
   const introHtml = render('入场页', h(IntroScene));
@@ -262,37 +293,92 @@ console.log('\n4.9 · 入场页（第一屏）');
   check('渲染出纹章的 aria-label', introHtml.includes('终端纹章'));
   check('渲染出标语', introText.includes('个人青春行为图谱'));
 
-  // 四层视差的外壳必须在。类名丢了不会报错，只会让整屏退化成"纯黑 + 文字"——
+  // 推镜舞台与场景层必须在。类名丢了不会报错，只会让整屏退化成"纯色 + 文字"——
   // 而那是**看起来正常**的一种坏法，最难发现。
-  check('推镜容器在', introHtml.includes('intro-push'));
-  check('雾团层在', introHtml.includes('intro-sky'));
+  check('推镜舞台在', introHtml.includes('intro-stage'));
+  // 用 `class="intro-layer` 前缀匹配，不要写死完整类名 ——
+  // 前景层会额外带上 `intro-layer-front`（透明度压低），
+  // 写死 `class="intro-layer intro-layer-enter"` 会因为多一个类而失败，
+  // 而失败信息看起来像"层数不对"，其实层数是对的。
+  const layerCount = (introHtml.match(/class="intro-layer/g) || []).length;
   check(
-    `剪影层渲染出 ${PARALLAX_LAYERS.length + 3} 块（几何自创，零素材）`,
-    (introHtml.match(/intro-ridge/g) || []).length > 0,
+    `三层景深都渲染出来了（${SCENE_LAYERS.length} 层）`,
+    layerCount === SCENE_LAYERS.length,
+    `实际 ${layerCount} 层`,
   );
-  check('光带层在', introHtml.includes('intro-shaft'));
-  check('光点层在', introHtml.includes('term-dot'));
+  check('前景层带上了压低透明度的类', introHtml.includes('intro-layer-front'));
+  check(
+    '三张场景图都被引用（sky / arch / front）',
+    SCENE_LAYERS.every((l) => introHtml.includes(l.asset)),
+    SCENE_LAYERS.map((l) => l.asset).join(' / '),
+  );
+  check('光雨层在', introHtml.includes('intro-rain'));
+  check('飘浮物层在', introHtml.includes('intro-floater'));
+  check('浅色调的入场底（intro-stage 自带雾色）', introHtml.includes('intro-stage'));
 
   // SSR 下 navigator 不存在，预算走保守值 —— 所以这里能预期到确切的元素数
+  const ssrBudget = pickSceneBudget();
   check(
-    'SSR 下光点数量等于保守预算（不依赖设备探测）',
-    (introHtml.match(/class="term-dot"/g) || []).length === 24,
-    `实际 ${(introHtml.match(/class="term-dot"/g) || []).length} 个`,
+    `SSR 下光雨数量等于保守预算（${ssrBudget.rain} 条，不依赖设备探测）`,
+    (introHtml.match(/class="intro-rain"/g) || []).length === ssrBudget.rain,
+    `实际 ${(introHtml.match(/class="intro-rain"/g) || []).length} 条`,
+  );
+  check(
+    `SSR 下飘浮物数量等于保守预算（${ssrBudget.floaters} 个）`,
+    (introHtml.match(/intro-floater/g) || []).length >= ssrBudget.floaters,
+    `实际约 ${(introHtml.match(/intro-floater/g) || []).length} 个（含反向变体类名）`,
   );
 
-  // 立绘：窄屏隐藏但仍在 DOM 里（靠 CSS 的 hidden md:block）
-  check('两张立绘都在 DOM 里', introHtml.includes('student-academic.webp') && introHtml.includes('student-sporty.webp'));
+  // ★ 反向断言：真人立绘必须彻底消失。
+  // 素材文件可以留着（未来别处可能用），但这一屏里绝不能引用。
+  const strays = INTRO_FORBIDDEN_ASSETS.filter((a) => introHtml.includes(a));
+  check(
+    '★ 真人立绘已从入场页彻底移除（两个半身像不在这里）',
+    strays.length === 0,
+    strays.length ? `仍在引用：${strays.join(', ')}` : '两张都不再引用',
+  );
+
+  // 推镜必须真的被驱动：`--push` 初始值要写进去，且必须是 0
+  // （写 1 的话整屏会一开始就是推到头的样子，动画等于没有）。
+  // 注意断言要写成 `--push:0` —— React 序列化 inline style 时**不补空格**，
+  // 写成 `--push: 0` 会永远失败，而失败原因看起来像"变量没写进去"。
+  check(
+    '推镜变量 --push 初始为 0（动画没被跳过）',
+    introHtml.includes('--push:0'),
+  );
+  // 各层的 zoom 系数也必须真的写进去，否则 CSS 里 calc() 取不到 var(--zoom)
+  check(
+    '三层各自的 zoom 系数都写进了 inline style',
+    SCENE_LAYERS.every((l) => introHtml.includes(`--zoom:${l.zoom}`)),
+    SCENE_LAYERS.map((l) => l.zoom).join(' / '),
+  );
+  // 推镜的 transform 公式必须在 —— 它是"近处涨得快"落地的地方
+  check(
+    '推镜 transform 用了共享的 --push 做 calc（而不是各层写死 scale）',
+    introHtml.includes('calc(1 + (var(--zoom) - 1) * var(--push))'),
+  );
 
   // 时间线必须真的被写进 inline style —— 元素在、但没挂延迟的话，
   // 整屏会同时出现，入场动画等于没有。这一条抓的就是那种"东西都在但没生效"。
   check(
-    '第一个节拍被写进 inline style',
-    introHtml.includes(`animation-delay:${LAYER_REVEAL.sky}ms`),
+    '纹章的延迟被写进 inline style',
+    introHtml.includes(`animation-delay:${INTRO_TIMING.crest}ms`),
+    `${INTRO_TIMING.crest}ms`,
   );
   check(
-    'CTA 的延迟被写进 inline style（2100ms 那一拍）',
+    'CTA 的延迟被写进 inline style',
     introHtml.includes(`animation-delay:${INTRO_TIMING.cta}ms`),
+    `${INTRO_TIMING.cta}ms`,
   );
+
+  // 三幕节拍必须真的是**递增**的，且总长够（>= 4000ms）。
+  // 这一条防的是"改了一个时间却忘了另一个"—— 那样会出现文字比纹章先到，
+  // 而肉眼只会觉得"有点乱"。
+  const beats = Object.entries(INTRO_TIMING).sort((a, b) => a[1] - b[1]);
+  const ascending = beats.every(([, v], i) => i === 0 || v > beats[i - 1][1]);
+  check('节拍严格递增（纹章 → 标语 → 标题 → 副标 → 说明 → 入口）', ascending);
+  check('入场总长 >= 4000ms（是"一段演出"而不是"界面动画"）', INTRO_TIMING.cta >= 4000, `${INTRO_TIMING.cta}ms`);
+  check('第一幕是纯环境（纹章不早于 1200ms 出现）', INTRO_TIMING.crest >= 1200, `${INTRO_TIMING.crest}ms`);
 
   const introBad = ['undefined', 'NaN', '[object Object]'].filter((s) => introHtml.includes(s));
   check('入场页：HTML 里没有 undefined / NaN / [object Object]', introBad.length === 0, introBad.join(' '));
