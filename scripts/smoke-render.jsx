@@ -27,6 +27,7 @@ import CohortPage from '../src/components/CohortPage.jsx';
 import UploadPanel from '../src/components/UploadPanel.jsx';
 import HubHud from '../src/components/HubHud.jsx';
 import MapScene from '../src/scenes/MapScene.jsx';
+import IntroScene from '../src/scenes/IntroScene.jsx';
 import { useGameStore } from '../src/store/useGameStore.js';
 import { parseCsvText } from '../src/lib/parseCsv.js';
 import { cleanSurveyRows } from '../src/lib/surveyClean.js';
@@ -34,6 +35,8 @@ import { toAttributeMatrix, buildBaseline } from '../src/lib/matrix.js';
 import { QUESTIONS, REQUIRED_COLUMNS } from '../src/lib/surveySchema.js';
 import { PLACES, SLOTS_PER_DAY } from '../src/data/mapPlaces.js';
 import { nextDelta } from '../src/lib/mapEngine.js';
+import { PARALLAX_LAYERS, LAYER_REVEAL } from '../src/lib/introLayers.js';
+import { INTRO_TIMING } from '../src/lib/terminalTheme.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (f) => fs.readFileSync(path.join(ROOT, 'public', 'data', f), 'utf8');
@@ -240,6 +243,64 @@ console.log('\n4.8 · 从地图生成报告（走账本，不走问卷）');
 
   const mapBad = ['undefined', 'NaN', '[object Object]'].filter((s) => mapReportHtml.includes(s));
   check('地图报告：HTML 里没有 undefined / NaN / [object Object]', mapBad.length === 0, mapBad.join(' '));
+}
+
+// ── 4.9 · 入场页（打开网站的第一屏） ──
+// 这是最该被冒烟测覆盖、却一直漏掉的一屏：**它是所有人看到的第一眼**，
+// 一旦渲染抛错或模板里取错字段，后果是"链接打不开"。
+// 而且它以前没有任何自动化覆盖 —— 改一次就得手动开浏览器确认一次。
+// 分层数据（四层视差）的数值规则由 selftest-intro.mjs 断言，这里只验"结构画得出来"。
+console.log('\n4.9 · 入场页（第一屏）');
+{
+  const introHtml = render('入场页', h(IntroScene));
+  const introText = plain(introHtml);
+
+  check('渲染出主标题', introText.includes('你的大学平行宇宙'));
+  check('渲染出题数（跟着题库走，不写死）', introText.includes(`${QUESTIONS.length} 道题`));
+  check('渲染出「进入终端」按钮', introText.includes('进入终端'));
+  check('渲染出键盘入口提示', introText.includes('或按 Enter'));
+  check('渲染出纹章的 aria-label', introHtml.includes('终端纹章'));
+  check('渲染出标语', introText.includes('个人青春行为图谱'));
+
+  // 四层视差的外壳必须在。类名丢了不会报错，只会让整屏退化成"纯黑 + 文字"——
+  // 而那是**看起来正常**的一种坏法，最难发现。
+  check('推镜容器在', introHtml.includes('intro-push'));
+  check('雾团层在', introHtml.includes('intro-sky'));
+  check(
+    `剪影层渲染出 ${PARALLAX_LAYERS.length + 3} 块（几何自创，零素材）`,
+    (introHtml.match(/intro-ridge/g) || []).length > 0,
+  );
+  check('光带层在', introHtml.includes('intro-shaft'));
+  check('光点层在', introHtml.includes('term-dot'));
+
+  // SSR 下 navigator 不存在，预算走保守值 —— 所以这里能预期到确切的元素数
+  check(
+    'SSR 下光点数量等于保守预算（不依赖设备探测）',
+    (introHtml.match(/class="term-dot"/g) || []).length === 24,
+    `实际 ${(introHtml.match(/class="term-dot"/g) || []).length} 个`,
+  );
+
+  // 立绘：窄屏隐藏但仍在 DOM 里（靠 CSS 的 hidden md:block）
+  check('两张立绘都在 DOM 里', introHtml.includes('student-academic.webp') && introHtml.includes('student-sporty.webp'));
+
+  // 时间线必须真的被写进 inline style —— 元素在、但没挂延迟的话，
+  // 整屏会同时出现，入场动画等于没有。这一条抓的就是那种"东西都在但没生效"。
+  check(
+    '第一个节拍被写进 inline style',
+    introHtml.includes(`animation-delay:${LAYER_REVEAL.sky}ms`),
+  );
+  check(
+    'CTA 的延迟被写进 inline style（2100ms 那一拍）',
+    introHtml.includes(`animation-delay:${INTRO_TIMING.cta}ms`),
+  );
+
+  const introBad = ['undefined', 'NaN', '[object Object]'].filter((s) => introHtml.includes(s));
+  check('入场页：HTML 里没有 undefined / NaN / [object Object]', introBad.length === 0, introBad.join(' '));
+
+  // inline style 里出现 `NaNpx` / `undefined%` 是"数值算错"最典型的样子，
+  // 而且它**不会**被上面的兜底抓到 —— 因为字符串里确实没有裸的 "NaN"。
+  const styleAttrs = introHtml.match(/style="[^"]*"/g) || [];
+  check('没有 NaNpx / undefined% 这类坏样式值', !styleAttrs.some((s) => /NaN|undefined/.test(s)));
 }
 
 // ── 5 · 全局兜底：页面上不许出现这三种"坏味道" ──
