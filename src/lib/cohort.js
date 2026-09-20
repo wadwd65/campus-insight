@@ -39,6 +39,12 @@ export const GROUPS = [
 
 const GROUP_KEYS = GROUPS.map((g) => g.key);
 
+/**
+ * 键 → 中文名。`groupOf()` 返回键，凡是**要显示给人看**的地方都必须过这张表。
+ * 之前在「你自己的类型是『?』」那一处漏了这一步，页面上直接印出了英文键 `buddhist`。
+ */
+const GROUP_NAME = Object.fromEntries(GROUPS.map((g) => [g.key, g.name]));
+
 /** 一批属性 → 每个人归到哪个组（取基数最大的那一维；并列时按 GROUPS 顺序，保证确定性）。 */
 export function groupOf(percents) {
   let best = GROUP_KEYS[0];
@@ -127,13 +133,20 @@ export function buildCohort(records, baseline, ownAnswers = null) {
       .map((x) => ({
         id: x.id,
         group: x.group,
-        groupName: GROUPS.find((g) => g.key === x.group)?.name ?? x.group,
+        groupName: GROUP_NAME[x.group] ?? x.group,
         // 距离换算成"像的程度"只是给人看的刻度，不要当成统计量。
         // 分母用同维度随机作答的典型距离量级 —— 8 维、每维 0~100 的百分位
         level: x.dist < 40 ? '非常像' : x.dist < 70 ? '挺像' : '有点像',
         dist: Math.round(x.dist),
       }));
-    similar = { top: ranked, mineGroup: groupOf(toPercents(toAttributes(ownAnswers), baseline)) };
+    // mineGroup 与上面的 groupName 走同一条映射 ——
+    // groupOf() 返回的是键（'buddhist'），直接渲染出去会在页面上出现英文键：
+    // 「你自己的类型是『buddhist』那一种」。它和上方的「非常像 · 佛系型」是同一个东西，
+    // 却显示成两种样子。GROUPS 是这对键名的唯一出处，两边都要过它。
+    similar = {
+      top: ranked,
+      mineGroup: GROUP_NAME[groupOf(toPercents(toAttributes(ownAnswers), baseline))],
+    };
   }
 
   return {

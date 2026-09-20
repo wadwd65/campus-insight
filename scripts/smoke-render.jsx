@@ -129,6 +129,16 @@ check('标题与三块内容都在', ['这个班的位置', '这个班分成几�
 check('给出了「最像的人」', /非常像|挺像|有点像/.test(cohortText));
 check('写明了示例数据是模拟的', cohortText.includes('模拟生成'));
 
+// 「你自己的类型是『?』」那一句必须印中文组名。
+// groupOf() 返回的是键（academic/buddhist…），漏了 key→name 的映射就会把英文键印到页面上 ——
+// 而且这件事**不会**触发上面任何一条断言：页面结构完好，只是有一个词是英文的。
+const mineGroupMatch = /你自己的类型是「([^」]*)」/.exec(cohortText);
+check(
+  '「你自己的类型」印的是中文组名而不是英文键',
+  mineGroupMatch != null && /^[\u4e00-\u9fa5]+型$/.test(mineGroupMatch[1]),
+  mineGroupMatch ? `实际印出：「${mineGroupMatch[1]}」` : '页面上没找到这句话',
+);
+
 // 没答过快入口时，不该凭空造一个「你」
 const noMeHtml = plain(
   render(
