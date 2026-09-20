@@ -354,6 +354,53 @@ console.log('\n9 · 浅色调色板（入场专用）');
   check('文字比雾深得多（对比度够）', lum(LIGHT.mist) - lum(LIGHT.ink) > 0.45);
   check('次级文字比主文字浅、但比雾深', lum(LIGHT.ink) < lum(LIGHT.inkSoft) && lum(LIGHT.inkSoft) < lum(LIGHT.mist));
   check('最淡的说明文字仍比雾深（不然看不见）', lum(LIGHT.inkFaint) < lum(LIGHT.mist));
+
+  /* ── WCAG 对比度（2026-09-20 新增）──────────────────────────────
+     上面那几条"比雾深"的断言**太弱**：inkFaint 只要比 mist 深一点就通过，
+     但它实际可能是 1.8:1 —— 人眼在那个数字上读 11px 小字是吃力的。
+
+     这条断言是被真实事故逼出来的：入场副标题用 inkSoft、底注用 inkFaint，
+     旧的那条"比雾深"全绿，但实测截图量出来的对比度是 1.82:1，
+     远低于 WCAG 正文线 4.5:1（见 .workbuddy-gen/contrast.py 的像素级量化）。
+
+     所以这里改用标准 WCAG 公式（sRGB 线性化 → 相对亮度 → (L1+0.05)/(L2+0.05)），
+     并且**只看色值本身**，不看实际渲染 —— 因为渲染还受动画 opacity 影响，
+     而 opacity 是过渡态，不该进断言。
+
+     门槛取 4.5：副标题 14px、底注 11px，都属"正文"级别（大字线 3.0 只适用于
+     ≥18.66px 粗体或 ≥24px 常规，我们用不上）。 */
+  const srgbToLin = (v) => {
+    const u = v / 255;
+    return u <= 0.03928 ? u / 12.92 : ((u + 0.055) / 1.055) ** 2.4;
+  };
+  const relLum = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    const r = srgbToLin((n >> 16) & 255);
+    const g = srgbToLin((n >> 8) & 255);
+    const b = srgbToLin(n & 255);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const contrast = (fg, bg) => {
+    const a = relLum(fg);
+    const b = relLum(bg);
+    const hi = Math.max(a, b);
+    const lo = Math.min(a, b);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  // 底色取"文字实际会压在上面的颜色"。入场的文字压在柔光带上（偏白），
+  // 所以用比 mist 更亮的近似值 #eeeaf8 作为最坏情况的底 —— 底越亮，
+  // 深色文字的对比度越低，用最坏情况做门槛才安全。
+  const BG = '#eeeaf8';
+  for (const key of ['ink', 'inkSoft', 'inkFaint']) {
+    const c = contrast(LIGHT[key], BG);
+    check(
+      `LIGHT.${key} 对柔光底达到 WCAG AA（≥ 4.5:1）`,
+      c >= 4.5,
+      `${c.toFixed(2)}:1`,
+    );
+  }
+  check('主文字对比度明显高于次级（层次不能颠倒）',
+    contrast(LIGHT.ink, BG) > contrast(LIGHT.inkSoft, BG));
 }
 
 console.log(`\n${'─'.repeat(64)}`);
