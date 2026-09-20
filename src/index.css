@@ -32,13 +32,6 @@ button {
   cursor: pointer;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-  }
-}
-
 /* ── 深色外壳 → 浅色内容 的过渡带 ────────────────────────────────
    直接让深色 HUD 贴上浅色正文，会得到一条硬切的黑白分界线：
    看起来像两张图被拼在一起，而不是一个界面的上下两部分。
@@ -46,11 +39,7 @@ button {
    这里给一条 6px 的过渡带，上面做两件事：
      1. 一条自上而下的渐变，把深色"化"进浅色（不是硬边）
      2. 中间一条 1px 的青色亮线 —— 就是入场里那种"扫描线"的静态版，
-        它给接缝一个明确的"这是一条分隔"的说明，而不是一段糊掉的过渡
-
-   为什么不干脆把 HUD 做成半透明叠在内容上：
-   那样滚动时 HUD 会一直压在正文上，长报告读起来很累。
-   分界线清楚 + 一点点过渡，比叠加更实用。 */
+        它给接缝一个明确的"这是一条分隔"的说明，而不是一段糊掉的过渡 */
 .term-seam {
   height: 6px;
   background: linear-gradient(
@@ -79,13 +68,13 @@ button {
   );
 }
 
-/* ── V3 场景层：战术终端 ────────────────────────────────────────────
-  深色只用在**场景层**（入场 / 主站外壳），内容区仍是浅色。
-   两条不混在同一屏里，是为了不推翻已经跑通的四页浅色版式 ——
-   深色是"外壳与仪表盘"，浅色是"报告正文"，各司其职。
+/* ── V3 场景层：战术终端（深色外壳） ────────────────────────────────
+   深色只用在**外壳与仪表盘**（主站 HUD），内容区仍是浅色。
+   入场层虽然也是"场景"，但它走的是另一套浅色调（见下面的 LIGHT 段），
+   两套色刻意不混用 —— 混用会得到一张灰扑扑的中间色，两边都不像。
 
    动效一律只用 transform / opacity：这两个属性不触发布局重排，
-   在低端机上也不会掉帧；降级统一交给上面的 prefers-reduced-motion。 */
+   在低端机上也不会掉帧；降级统一交给文末的 prefers-reduced-motion。 */
 
 .term-canvas {
   --term-bg: #0b0f14;
@@ -138,117 +127,282 @@ button {
   pointer-events: none;
 }
 
-/* ── 入场动画的四层视差 ──────────────────────────────────────────
-   参考站（Arcaea 复刻）整段入场**没有一处硬切**，全是长时间缓变：
-   推镜、雾团漂移、光带明灭、粒子悬浮各走各的速度。
-   四层从远到近依次是：雾团 → 几何剪影 → 光带 → 光点。
+/* ── 入场：推镜穿过分层场景（2026-09-20 重写） ────────────────────
+   参考站（Arcaea 复刻）的核心机制是**一个镜头持续往里推**，穿过层层景深。
+   不是"多层各自淡入" —— 那是上一版，读起来是平的。
 
-   两点纪律：
-     1. 全部只用 transform / opacity，不碰会触发重排的属性；
-     2. 时长远大于"界面动画"的常规值（20s 起步）。
-        入场动画和交互动画是两种东西 —— 交互动画要快（0.2~0.3s），
-        氛围动画要慢到"看不出它在动"。用交互动画的时长做氛围，会得到抖动。 */
+   做法：各层共享同一个推进量 `--push`，但缩放系数不同（近处涨得快）。
+   推进量由一个 rAF 循环写入，30fps 上限（推镜是匀速慢推，30fps 完全够，
+   还能省掉一半的样式重算）。
 
-/* 推镜容器：整屏极慢放大 + 轻微上移，是"镜头在动"的唯一来源。
-   所有装饰层都挂在这上面，于是它们自动共享同一个镜头运动。 */
-.intro-push {
+   为什么用 JS 驱动变量而不是纯 CSS 动画：
+   纯 CSS 的话每层要各写一条 @keyframes，三条曲线之间没有任何约束关系，
+   改一个忘一个就会出现"层次乱了"而肉眼看不出来。用一个统一的 --push，
+   各层的深度关系就变成代码里可断言的东西（见 src/lib/introLayers.js）。 */
+
+.intro-stage {
   position: absolute;
   inset: 0;
-  transform-origin: 50% 58%;
-  animation: intro-push 26s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
+  overflow: hidden;
+  background: #dfd8ee; /* 最浅的雾色，图像还没解码时先铺上，避免闪白/闪黑 */
+}
+
+/* 单层：整幅铺满，靠 scale 与 translate 做推镜。
+   transform-origin 统一放在画面中心偏下 —— 推镜时"往远处的地平线走"，
+   而不是"往正中央放大"（后者会像在放大一张图片）。
+   inset 给负值让层比视口大一圈，这样放大时边缘不会露底。 */
+.intro-layer {
+  position: absolute;
+  inset: -6%;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  transform-origin: 50% 62%;
   will-change: transform;
-}
-
-@keyframes intro-push {
-  from { transform: scale(1) translateY(0); }
-  to { transform: scale(1.08) translateY(-2.2%); }
-}
-
-/* 雾团：几块大范围的低透明度径向渐变，各自缓慢横向漂移。
-   没有它，深色底就是纯黑，推镜也看不出来（黑背景放大还是黑）。 */
-.intro-sky {
-  position: absolute;
-  inset: -12%;
   pointer-events: none;
 }
 
-.intro-sky span {
-  position: absolute;
-  border-radius: 999px;
-  filter: blur(60px);
-  animation: intro-sky-drift 34s ease-in-out infinite alternate;
+/* 层初始可见性：图像解码那一瞬间元素通常已经推了一会儿了，
+   如果默认 opacity:1，会看到"啪"地闪出来。给一条很短的淡入抹掉它。 */
+.intro-layer-enter {
+  animation: intro-layer-in 900ms ease-out both;
 }
 
-@keyframes intro-sky-drift {
-  from { transform: translate3d(-2%, 0, 0) scale(1); }
-  to { transform: translate3d(3%, -2%, 0) scale(1.12); }
+@keyframes intro-layer-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* 中景剪影：几何色块拼出的"地平线之外还有东西"。
-   用 clip-path 切掉底边一角，读起来像建筑而不是色块。 */
-.intro-ridge {
+/* 前景层的透明度单独压低。
+   实测出来的一课：前景藤蔓是深色的、又大又密，压在中央会把标题吃掉
+   （第一版实测截图里标题几乎读不出来）。它们是"穿过画面的前景"，
+   本来就不该是主体 —— 压到 0.55 之后既保留了纵深，
+   又不会把文字盖住。这个值是实测出来的，不是拍脑袋定的。 */
+.intro-layer-front {
+  opacity: 0.55;
+}
+
+/* ── 文字可读底衬 ──────────────────────────────────────────────────
+   这一层是**必须的**，不是可选的装饰。
+   入场是浅色雾景（参考站也是），标题又落在建筑/光斑最亮的地方，
+   于是"深色细衬线字压在浅色高光上"这个组合的对比度会掉到读不清。
+   实测截图里标题确实读不出来 —— 所以有了这一层。
+
+   做法：一个居中的径向渐变，中心略微压暗、边缘完全透明。
+   为什么不用"整屏压暗"：那样会把参考里最值钱的通透感杀掉。
+   为什么不用"给文字加白底块"：那会变成一张卡片，不再是场景。
+   径向渐变只压中心，边缘不受影响 —— 通透感与可读性同时保住。 */
+.intro-scrim {
   position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 62% 48% at 50% 52%,
+    rgba(228, 223, 244, 0.82) 0%,
+    rgba(228, 223, 244, 0.62) 42%,
+    rgba(228, 223, 244, 0.24) 72%,
+    rgba(228, 223, 244, 0) 100%
+  );
+}
+
+/* 左下角入口处再补一小块，否则玻璃按钮压在前景深色藤蔓上会糊。
+   比中央那块更小更淡，只是把按钮底下的杂色糊开。 */
+.intro-scrim-cta {
+  position: absolute;
+  left: 0;
   bottom: 0;
-  background: linear-gradient(to top, rgba(79, 168, 216, 0.16), transparent 78%);
-  clip-path: polygon(0 18%, 12% 4%, 28% 14%, 46% 0, 62% 12%, 80% 3%, 100% 20%, 100% 100%, 0 100%);
+  width: 46%;
+  height: 34%;
   pointer-events: none;
+  background: radial-gradient(
+    ellipse 78% 88% at 18% 86%,
+    rgba(228, 223, 244, 0.78) 0%,
+    rgba(228, 223, 244, 0.42) 52%,
+    rgba(228, 223, 244, 0) 100%
+  );
 }
 
-/* 前景光带：一排竖直光柱，各自极慢地明灭。
-   高度与位置在 JS 里按确定性随机散开（见 src/lib/introLayers.js）。
-
-   关键是 **blur(0.5px)** 与**两端渐隐**：
-   不带模糊、两端不收的竖线，无论多细都读成"栅栏"；
-   加上这两样，同样的元素数才会读成"光"。 */
-.intro-shaft {
+/* 光雨：持续下落的细亮线。
+   与"竖直光柱"的区别是有速度、有倾角 —— 光柱是静止明灭的，雨是往下走的。 */
+.intro-rain {
   position: absolute;
-  border-radius: 999px;
+  top: -20%;
   background: linear-gradient(
     to bottom,
     transparent,
-    var(--term-cyan) 28%,
-    var(--term-cyan) 72%,
+    rgba(255, 255, 255, 0.9),
     transparent
   );
-  filter: blur(0.5px);
-  animation: intro-shaft-glow ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes intro-shaft-glow {
-  0%, 100% { transform: scaleY(0.68); opacity: 0.3; }
-  50% { transform: scaleY(1); opacity: 1; }
-}
-
-/* 上行光点：每个点自带不同的延时与时长，看不出同一节拍。
-   `--sway` 由组件按层写进来，让每个点有各自的横向漂移幅度。 */
-.term-dot {
-  position: absolute;
   border-radius: 999px;
-  background: var(--term-cyan);
-  opacity: 0;
-  animation: term-drift linear infinite;
+  animation: intro-rain-fall linear infinite;
   pointer-events: none;
 }
 
-@keyframes term-drift {
-  0% { opacity: 0; transform: translate3d(0, 0, 0); }
-  12% { opacity: var(--dot-peak, 0.75); }
-  88% { opacity: var(--dot-peak, 0.75); }
-  100% { opacity: 0; transform: translate3d(var(--sway, 0px), -72vh, 0); }
+@keyframes intro-rain-fall {
+  0% { transform: translate3d(0, -20vh, 0); opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { transform: translate3d(-9vh, 120vh, 0); opacity: 0; }
 }
 
-/* 层的整体淡入：四层各自在不同的时刻亮起（由远及近）。
-   和 .term-rise 分开，是因为这个要**慢**：2.4s 才淡到位，
-   而 .term-rise 是 0.3s 的"啪"地就位。两种节奏不能共用一个类。 */
-.intro-fade {
+/* 飘浮物：蝴蝶 / 花瓣。
+   横向飘过 + 纵向正弦波动 + 自身旋转。
+   三者用不同的时长，所以每个的轨迹都不会同步 —— 同步是"看起来假"的头号原因。 */
+.intro-floater {
+  position: absolute;
+  animation: intro-float-x linear infinite;
+  pointer-events: none;
+}
+
+/* 反向的那一批用第二条 keyframes。写成一个 class 而不是内联 style，
+   是因为 @keyframes 名字没法内联注入。 */
+.intro-floater-rev {
+  animation-name: intro-float-x-rev;
+}
+
+.intro-floater > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: intro-float-y ease-in-out infinite alternate,
+    intro-float-spin linear infinite;
+}
+
+@keyframes intro-float-x {
+  0% { transform: translate3d(-8vw, 0, 0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translate3d(108vw, 0, 0); opacity: 0; }
+}
+
+@keyframes intro-float-x-rev {
+  0% { transform: translate3d(108vw, 0, 0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translate3d(-8vw, 0, 0); opacity: 0; }
+}
+
+@keyframes intro-float-y {
+  from { transform: translateY(calc(var(--bob) * -1)); }
+  to { transform: translateY(var(--bob)); }
+}
+
+@keyframes intro-float-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(calc(var(--spin) * 12deg)); }
+}
+
+/* 入场文字：逐行浮现 + 淡光晕。
+   参考里的文字是**细衬线 + 发光**，不是粗无衬线。
+   浮现带一点 blur → 0：这是"光凝成形"的读法，
+   纯透明度变化读起来像"灯亮了"，两者差别很明显。 */
+.intro-line {
   opacity: 0;
-  animation: intro-fade 2.4s ease-out both;
+  animation: intro-line-in 1400ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
-@keyframes intro-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes intro-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* 发光用三层 text-shadow：近处紧一圈、远处散一点，再加一层"柔光晕"。
+   两层在深色底上够用，但入场是**浅色**底 —— 浅底上的光晕几乎看不见，
+   文字对比度还是不够（实测截图里标题发虚）。
+   所以第三层换成"往深色方向散"的阴影，作用是给字加一圈极淡的暗边，
+   把字从背景的高光里"剥"出来，同时不显脏。 */
+.intro-glow {
+  text-shadow:
+    0 0 12px rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(58, 53, 80, 0.28),
+    0 0 34px rgba(255, 255, 255, 0.75);
+}
+
+/* 入场专用字体：细衬线 + 拉开字距。
+   系统衬线在 Windows 上是宋体/Georgia，跟参考的"细衬线发光"气质最接近，
+   且不需要额外下载字体文件（首屏绝不为字体再等一次网络）。 */
+.intro-serif {
+  font-family: "Songti SC", "Noto Serif SC", Georgia, "Times New Roman", serif;
+  font-weight: 400;
+}
+
+/* 「进入终端」那一处：参考放在**左下角**而不是正中（正中留给纹章）。
+   正中一旦有按钮，整屏就读成"一个等待操作的对话框"；
+   挪到角落，它才读成"一整片环境，你随时可以走进去"。 */
+.intro-enter {
+  position: absolute;
+  left: 3rem;
+  bottom: 3rem;
+  z-index: 20;
+}
+
+@media (max-width: 767px) {
+  /* 窄屏左下角会显得空悬，改回居中排列 */
+  .intro-enter {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    margin: 0 auto 2.5rem;
+    align-items: center;
+  }
+}
+
+/* ── 玻璃质感 ──────────────────────────────────────────────────────
+   浅色入场上的按钮与面板，三件套：
+     半透明白底 + 内侧高光边 + backdrop 模糊。
+   缺了 backdrop-filter 就只剩一块半透明色，不会有"玻璃"的意思。
+   参考站的核心质感就是这个 —— 可操作的东西像是"按在玻璃上"。 */
+.glass-btn {
+  background: rgba(255, 255, 255, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(10px) saturate(1.3);
+  -webkit-backdrop-filter: blur(10px) saturate(1.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 6px 22px rgba(90, 80, 130, 0.18);
+  transition: background 220ms ease, box-shadow 220ms ease, transform 140ms ease;
+}
+
+.glass-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 10px 30px rgba(90, 80, 130, 0.26);
+}
+
+.glass-btn:active {
+  transform: translateY(1px) scale(0.985);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 3px 12px rgba(90, 80, 130, 0.2);
+}
+
+/* 玻璃面板：比按钮更大更透，用于功能入口 */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(12px) saturate(1.25);
+  -webkit-backdrop-filter: blur(12px) saturate(1.25);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 8px 26px rgba(90, 80, 130, 0.16);
+  transition: background 240ms ease, box-shadow 240ms ease, transform 200ms ease;
+}
+
+.glass-panel:hover {
+  background: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 14px 38px rgba(90, 80, 130, 0.24);
 }
 
 /* 切角面板。注意：clip-path 会把 border-radius 裁掉，
@@ -289,7 +443,6 @@ button {
    节奏参数（2026-09-16 调过一轮）：0.55s/缓入缓出 → 0.3s/强 ease-out。
    "干脆"的关键不是时长本身，而是缓动曲线：起始快、收尾定得住，
    读起来像"啪"地就位；缓入缓出让每一段都像在慢慢飘过去。
-   位移也从 10px 收到 8px —— 幅度小了，同样的时间里观感更利落。
    forwards/both 是关键：没有它，元素会闪回初始的 opacity:0。 */
 .term-rise {
   opacity: 0;
@@ -311,10 +464,24 @@ button {
   50% { opacity: 0.5; }
 }
 
+/* 纹章虚线外环自转。38s 一圈 —— 慢到第一眼看不出来，但盯着看它是活的。
+   虚线的断口让旋转能被看出来：实线圆环转起来是完全静态的，转了等于没转。
+   注意 viewBox 是 120x120，原点在 60,60 —— 旋转中心必须写成 60px 60px，
+   写成 50% 50% 在 SVG 里会在某些浏览器上绕错点。 */
+.term-orbit {
+  animation: term-orbit 38s linear infinite;
+  transform-origin: 60px 60px;
+}
+
+@keyframes term-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* 场景转场：从入场切到主站时，主站整体淡入并轻微上浮。
    只做单向（进），不做退 —— 退场要让两个场景同时存在才能交叉淡化，
    那意味着入场组件不能卸载，代价与收益不成比例。
-   280ms + 强 ease-out：切场景不该有等待感（上一版 420ms 偏慢）。 */
+   280ms + 强 ease-out：切场景不该有等待感。 */
 .term-enter {
   animation: term-enter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -324,74 +491,33 @@ button {
   to { opacity: 1; transform: none; }
 }
 
-/* 中央纹章的缓慢旋转外环：比呼吸更"远"，让中心有一个持续运动的锚点。
-   24s 一圈 —— 慢到第一眼看不出来，但盯着看它是活的。 */
-.term-orbit {
-  animation: term-orbit 24s linear infinite;
-  transform-origin: 60px 60px;
-}
-
-@keyframes term-orbit {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* 「进入」那一处：参考站把它放在**左下角**而不是正中（正中留给纹章），
-   并配大字 + 一小行 `Click to Enter`。这个位置关系不是随意的 ——
-   正中一旦有按钮，整屏就变成"一个等待操作的对话框"，
-   而不是"一整片环境，你随时可以走进去"。 */
-.intro-enter {
-  position: absolute;
-  left: 2.5rem;
-  bottom: 3rem;
-  z-index: 20;
-}
-
-@media (max-width: 767px) {
-  /* 窄屏没有立绘让位，左下角会显得空悬，改回居中排列 */
-  .intro-enter {
-    position: relative;
-    left: auto;
-    bottom: auto;
-    margin: 0 auto 2.5rem;
-    align-items: center;
-  }
-}
-
-/* 减少动效：把入场元素直接置为终态，并把延迟清零。
+/* ── 减少动效：统一次处理 ──────────────────────────────────────────
    只把 animation-duration 压到 0.01ms 是不够的 —— animation-delay 还在，
-   元素会先空白等着（最长 2 秒），比不动更难受。
-   .term-breathe 同理：给一个固定的中间透明度即可。 */
+   元素会先空白等着（最长 4 秒），比不动更难受。
+   所以这里把入场元素**直接置为终态**，并把纯装饰层整个 display:none
+   （不是 opacity:0 —— 那样 DOM 里仍然挂着几十个元素在跑合成）。 */
 @media (prefers-reduced-motion: reduce) {
-  .term-rise {
-    animation: none;
-    opacity: 1;
-    transform: none;
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
-  .term-breathe {
-    animation: none;
-    opacity: 0.3;
-  }
-  .term-enter {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-  /* 四层视差一次性全部就位：不留推镜、不留漂移、不留明灭。
-     这里同时把 will-change 收回 —— 静止的图层不该继续占着合成层。 */
-  .intro-push,
-  .intro-sky span,
-  .intro-ridge,
-  .intro-shaft,
-  .intro-fade,
+  .intro-layer,
+  .intro-layer-enter,
+  .intro-line,
+  .term-rise,
+  .term-enter,
+  .term-breathe,
   .term-orbit {
     animation: none;
     opacity: 1;
     transform: none;
+    filter: none;
     will-change: auto;
   }
-  .term-dot {
-    animation: none;
-    opacity: 0;
+  .intro-rain,
+  .intro-floater,
+  .intro-floater > span,
+  .term-scan {
+    display: none;
   }
 }

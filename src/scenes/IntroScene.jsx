@@ -1,76 +1,81 @@
 /**
  * 入场场景 —— 打开网站的第一屏。
  *
- * 它要解决的不是"好看"，而是**把这一屏和后面的报告接上**：
- * 报告是浅色的、读数据的；这一屏是深色的、像仪表盘。
- * 两屏之间的落差本身就是"从终端进入报告"的暗示，比加一句"正在加载报告"有用。
+ * ── 2026-09-20 第三版：真看了参考视频之后的重写 ──────────────────────
  *
- * ── 2026-09-16 第二版：按参考站重做，加入四层视差 ──────────────────
+ * 前两版都错在同一个地方：**把参考当配方抄，而不是当"效果能做到什么程度"看**。
  *
- * 参考站（桌面参赛包 07-素材调研/参考站-ArcaeaWeb复刻）给了一条很具体的配方：
- * 入场画面由**四层**叠成，每层速度不同 ——
+ * 第一版（深色终端 + 逐条淡入）根本没做动态，只是界面加载。
+ * 第二版（四层平铺视差）以为读懂了参考，其实理解成了"多层各自淡入 + 相互漂移"。
  *
- *   底（雾/天空）  慢速推镜        → .intro-sky   （34s 循环，最慢）
- *   中景（剪影）   比底快一点      → .intro-ridge
- *   粒子（光点）   悬浮，大小不一  → .term-dot
- *   前景（光带）   极慢明灭        → .intro-shaft
- *   中心（纹章）   对称 + 缓呼吸    → <Crest />
+ * 真去抽帧看了参考（B站 BV16N41117xb，0-30s 逐帧）之后，真相是：
  *
- * 关键观察，也是上一版最缺的一点：**整段没有一处硬切，全是长时间缓变**。
- * 上一版只有"逐条淡入"（各 0.3s）+ 一片静止的光点，读起来是"界面在加载"；
- * 参考站读起来是"环境一直在那里，你刚好走进来"。差别就在**有没有慢层**。
+ *   12s 起，是**一整段不间断的推镜**，镜头缓缓穿过一层层景深。
+ *   画面是**浅紫→灰蓝的雾蒙蒙天空**（很亮、很淡，不是深色）。
+ *   有**下落的光雨**贯穿全屏、**蝴蝶/花瓣**在飘。
+ *   背景里有**破碎的大教堂尖塔**与**悬浮的碎玻璃**。
+ *   文字是**细衬线 + 发光、逐行浮现**，而且前 6 秒一个字都没有。
  *
- * 三条纪律没有变，反而更重要了：
- *   1. **不用动画库**。四层视差全是 CSS keyframes，零 JS 逐帧。
- *      引进 framer-motion 会让首屏包多约 42 kB（gzip）—— 评委点开链接的第一眼，
- *      不该花在下载一个只在地图转场时才用得上的库上（那个场景会按需加载）。
- *   2. **装饰层全部零素材**。雾团是 CSS 径向渐变、剪影是 clip-path 几何块、
- *      光带是渐变条、纹章是自绘 SVG。参考站的音/图/字体版权归 lowiro，
- *      **一个字节都不能进我们的公开仓库**，所以这里没有借用任何素材。
- *   3. **减少动效交给 CSS 一次处理**，不在 JS 里写第二套分支：
- *      `index.css` 的 @media (prefers-reduced-motion) 会同时关掉四层动画与延时，
- *      元素直接显示终态。两处各写一套，迟早会不一致。
+ * 四条因此落地的改动：
+ *   - 平铺视差 → **推镜穿过场景**（各层按景深缩放，近处涨得快）
+ *   - 深色 → **浅紫雾调**（进去之后才切深色 HUD，落差即"进入"）
+ *   - 竖直光柱 → **下落光雨**（有速度有倾角的才是雨）
+ *   - **两侧真人立绘整个删掉**。参考里主角就在场景里，
+ *     不是贴两张照片在边缘 —— 而"平行宇宙"这件事，
+ *     交给主站 HUD 的八维条去表达，比两个半身像准确得多。
  *
- * 一条刻意的不变：**"进入"始终可点，且从第一时刻就能点**。
- * 动画只是包装，不给用户"必须等它演完"的枷锁 —— 慢节奏是给愿意看的人的，
+ * 两条纪律没有变：
+ *   1. **不用动画库**。推镜是一个 rAF 写 CSS 变量，其余全是 CSS keyframes。
+ *      引进 framer-motion 会让首屏多约 42 kB（gzip）；它留给地图转场按需加载。
+ *   2. **场景素材是我们自己生成的**（见 docs/素材说明.md）。
+ *      参考站的图/音/字体版权归 lowiro，**一个字节都不能进公开仓库**。
+ *      所以这里只有"同样在推镜、同样在下雨、同样是浅雾"的机制借鉴。
+ *
+ * 一条刻意的不变：**「进入」始终可点，且从第一时刻就能点**。
+ * 动画是包装，不给用户"必须等它演完"的枷锁 —— 慢节奏是给愿意看的人的，
  * 不愿意看的人一进来按 Enter 就该走。
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore.js';
 import { QUESTIONS } from '../lib/surveySchema.js';
-import { TERMINAL, INTRO_TIMING, preferCalm } from '../lib/terminalTheme.js';
+import { LIGHT, INTRO_TIMING, TERMINAL, preferCalm } from '../lib/terminalTheme.js';
 import {
-  buildDots,
-  buildLightShafts,
-  buildRidges,
-  pickLayerBudget,
-  LAYER_REVEAL,
+  SCENE_LAYERS,
+  PUSH,
+  layerTransform,
+  buildFloaters,
+  buildLightRain,
+  pickSceneBudget,
 } from '../lib/introLayers.js';
+import { startPush } from '../lib/introPush.js';
 
-/** 时间线上的位置 → animation-delay。元素统一挂 .term-rise。 */
+/** 时间线上的位置 → animation-delay。 */
 const at = (ms) => ({ animationDelay: `${ms}ms` });
-
-/** 氛围层的延迟写法：本层淡入慢（2.4s），所以不能复用 .term-rise 的 0.3s。 */
-const fadeAt = (ms) => ({ animationDelay: `${ms}ms` });
-
-/** 雾团：三块大范围径向渐变，颜色取终端的青与骨白，位置各不相同。 */
-const SKY_BLOBS = [
-  { left: '-10%', top: '8%', size: '62vw', color: 'rgba(79, 168, 216, 0.20)' },
-  { left: '48%', top: '-6%', size: '54vw', color: 'rgba(232, 226, 210, 0.10)' },
-  { left: '18%', top: '52%', size: '70vw', color: 'rgba(79, 168, 216, 0.13)' },
-];
 
 export default function IntroScene() {
   const enter = useGameStore((s) => s.enter);
   const calm = useMemo(() => preferCalm(), []);
+  const stageRef = useRef(null);
 
   // 减少动效时所有装饰层都不生成：它们纯氛围，省下的渲染对弱机是实打实的。
   // 注意这里连"生成再隐藏"都不做 —— 那样 DOM 里仍然挂着几十个元素。
-  const budget = useMemo(() => (calm ? { dots: 0, shafts: 0, ridges: 0 } : pickLayerBudget()), [calm]);
-  const dots = useMemo(() => buildDots(budget.dots), [budget]);
-  const shafts = useMemo(() => buildLightShafts(budget.shafts), [budget]);
-  const ridges = useMemo(() => buildRidges(budget.ridges), [budget]);
+  const budget = useMemo(() => (calm ? { floaters: 0, rain: 0 } : pickSceneBudget()), [calm]);
+  const floaters = useMemo(() => buildFloaters(budget.floaters), [budget]);
+  const rain = useMemo(() => buildLightRain(budget.rain), [budget]);
+
+  // 推镜：一个 rAF 循环往 .intro-stage 写 `--push`，各层在 CSS 里按自己的
+  // zoom 系数读它。这条循环**比入场动画本身长得多**（34s vs 4.6s）——
+  // 意思是用户看完文字、点进终端时，镜头还在推。
+  // 只要这一屏还在，它就不该停；停下来才显得是"动画播完了"。
+  useEffect(() => {
+    if (calm) {
+      // 减少动效：直接把终态写进去（推到头），不留任何逐帧。
+      stageRef.current?.style.setProperty('--push', '1');
+      return undefined;
+    }
+    return startPush(stageRef.current, PUSH.durationMs);
+  }, [calm]);
 
   // 键盘也能进：焦点在第一屏时，回车/空格不该毫无反应
   useEffect(() => {
@@ -85,152 +90,124 @@ export default function IntroScene() {
   }, [enter]);
 
   return (
-    <div className="term-canvas term-grid min-h-screen relative overflow-hidden flex flex-col">
-      {/* ── 四层视差，全部装在推镜容器里共享同一个镜头运动 ──
-          顺序即层序：先画的在最下面。z-index 不必写 —— DOM 顺序已经说明了一切。 */}
-      <div className="intro-push" aria-hidden="true">
-        {/* 第 1 层 · 雾团：没有它，深色底就是纯黑，推镜也看不出来（黑背景放大还是黑） */}
-        <div className="intro-sky intro-fade" style={fadeAt(LAYER_REVEAL.sky)}>
-          {SKY_BLOBS.map((b, i) => (
-            <span
-              key={i}
-              style={{
-                left: b.left,
-                top: b.top,
-                width: b.size,
-                height: b.size,
-                background: `radial-gradient(circle, ${b.color}, transparent 70%)`,
-                animationDelay: `${i * 3.4}s`,
-              }}
-            />
-          ))}
-        </div>
+    <div
+      className="relative min-h-screen overflow-hidden flex flex-col"
+      style={{ background: LIGHT.mist, color: LIGHT.ink }}
+    >
+      {/* ── 推镜舞台 ──
+          三层景深，全部读同一个 `--push`。DOM 顺序即层序：先画的在最下面。
+          z-index 不必写 —— 顺序已经说明了一切。 */}
+      <div className="intro-stage" ref={stageRef} aria-hidden="true">
+        {SCENE_LAYERS.map((layer) => (
+          <div
+            key={layer.id}
+            className={`intro-layer intro-layer-enter${layer.id === 'front' ? ' intro-layer-front' : ''}`}
+            // 各层初始不可见，靠这条把 --push=0 时的 scale/drift 写进去。
+            // 推镜过程中由 rAF 覆盖 --push，这里的初始值只负责第一帧。
+            style={{
+              backgroundImage: `url(/art/${layer.asset})`,
+              '--zoom': layer.zoom,
+              '--drift': layer.drift,
+              '--push': 0,
+              // 呼吸式的错开：近层稍晚一点淡入，读起来像"镜头先看清远处"
+              animationDelay: `${layer.depth * 160}ms`,
+              transform: layerStatic(layer),
+            }}
+          />
+        ))}
 
-        {/* 第 2 层 · 几何剪影：自创的"建筑天际线"。参考站用的是实拍级素材，版权归 lowiro，
-            所以这里换成 clip-path 拼的几何块 —— 效果弱一些，但零素材依赖、可安全公开。 */}
-        <div className="intro-fade absolute inset-0" style={fadeAt(LAYER_REVEAL.ridge)}>
-          {ridges.map((r) => (
+        {/* 光雨：贯穿全屏的下落细线。放在场景层之上、文字之下 ——
+            它是"空气里的光"，不该盖住字。 */}
+        <div className="absolute inset-0">
+          {rain.map((r) => (
             <span
               key={r.key}
-              className="intro-ridge"
+              className="intro-rain"
               style={{
                 left: r.left,
-                width: r.width,
-                height: r.height,
+                width: `${r.thickness}px`,
+                height: `${r.length}px`,
                 opacity: r.opacity,
-                transform: `skewX(${r.skew})`,
+                animationDuration: r.duration,
+                animationDelay: r.delay,
+                rotate: `${r.tilt}deg`,
               }}
             />
           ))}
         </div>
 
-        {/* 第 3 层 · 光带：参考站前景里最显眼的特征（一排竖直细线）。
-            没画成"雨"——雨是斜的、有落差感的；这里要的是静止的光柱在极慢明灭。 */}
-        <div className="intro-fade absolute inset-0 overflow-hidden" style={fadeAt(LAYER_REVEAL.shaft)}>
-          {shafts.map((s) => (
+        {/* 飘浮物：蝴蝶 / 花瓣。极小极多，是"画面活着"的关键细节。 */}
+        <div className="absolute inset-0">
+          {floaters.map((f) => (
             <span
-              key={s.key}
-              className="intro-shaft"
+              key={f.key}
+              className={`intro-floater${f.toRight ? '' : ' intro-floater-rev'}`}
               style={{
-                left: s.left,
-                width: s.width,
-                height: s.height,
-                top: s.top,
-                opacity: s.opacity,
-                animationDuration: s.duration,
-                animationDelay: s.delay,
+                left: f.left,
+                top: f.top,
+                width: `${f.size}px`,
+                height: `${f.size}px`,
+                opacity: f.opacity,
+                animationDuration: f.duration,
+                animationDelay: f.delay,
+                '--bob': `${f.bob}px`,
+                '--spin': f.spin,
               }}
-            />
-          ))}
-        </div>
-
-        {/* 第 4 层 · 光点：分三档深度，大小/速度/亮度各不相同 */}
-        <div className="intro-fade absolute inset-0" style={fadeAt(LAYER_REVEAL.dots)}>
-          {dots.map((d) => (
-            <span
-              key={d.key}
-              className="term-dot"
-              style={{
-                left: d.left,
-                bottom: d.bottom,
-                width: d.size,
-                height: d.size,
-                animationDuration: d.duration,
-                animationDelay: d.delay,
-                '--sway': d.sway,
-                '--dot-peak': d.opacity,
-              }}
-            />
+            >
+              <span aria-hidden="true">{f.kind === 'petal' ? <Petal /> : <Butterfly />}</span>
+            </span>
           ))}
         </div>
       </div>
 
-      {/* ── 屏幕质感层：不参与推镜，所以放在 .intro-push 外面 ──
+      {/* ── 屏幕质感层：不参与推镜，所以放在 .intro-stage 外面 ──
           它们模拟的是"显示器本身"，不是"显示器里的世界"。
-          跟着推镜一起放大会露馅 —— 扫描线和 CRT 细纹应该恒定不动。 */}
+          跟着推镜一起放大就会露馅。 */}
       <div className="term-crt" />
-      {!calm && <div className="term-scan" />}
+
+      {/* ── 文字可读底衬 ──
+          压在场景之上、文字之下。没有它，浅色雾景上的标题读不清 ——
+          这是实测截图看出来的，不是理论上该有的。见 index.css 的注释。 */}
+      <div className="intro-scrim" aria-hidden="true" />
+      <div className="intro-scrim-cta" aria-hidden="true" />
 
       {/* ── 顶栏：像终端的状态条，不是导航 ── */}
       <div
         className="term-rise relative z-10 flex items-center justify-between px-6 py-5 text-[11px] term-mono"
-        style={{ color: TERMINAL.inkDim, ...at(INTRO_TIMING.kicker) }}
+        style={{ color: LIGHT.inkFaint, ...at(INTRO_TIMING.scene + 1500) }}
       >
         <span>CAMPUS&nbsp;ARCHIVE&nbsp;//&nbsp;TERMINAL&nbsp;v3</span>
         <span className="hidden sm:inline">基准人群 2000 · 已就绪</span>
-        <span style={{ color: TERMINAL.ok }}>●&nbsp;ONLINE</span>
+        <span style={{ color: LIGHT.inkSoft }}>●&nbsp;ONLINE</span>
       </div>
 
-      {/* ── 两侧立绘 ──
-          两个角色是同一个人的两种可能：左边偏学术（青），右边偏运动（琥珀），
-          正好用掉终端的两个强调色 —— 「平行宇宙」这件事因此不用写一个字就能看出来。
-
-          只在 md 以上出现：窄屏放不下，硬挤会把标题压成两行。
-          alt 留空 + aria-hidden：它们是装饰，读屏软件不该念出"图片"。
-
-          素材是 AI 生成的，来源与授权状态见 docs/素材说明.md。
-
-          动画用 .intro-fade（2.4s）而不是 .term-rise（0.3s）：
-          立绘是"环境的一部分"，该和雾团一起慢慢浮出来，而不是"啪"地弹入。
-          z-index 压在最底，让它们待在雾与光带之后。 */}
-      <img
-        src="/art/student-academic.webp"
-        alt=""
-        aria-hidden="true"
-        className="intro-fade hidden md:block absolute bottom-0 left-[2%] lg:left-[6%] h-[60vh] max-h-[540px] w-auto select-none pointer-events-none z-[1]"
-        style={fadeAt(LAYER_REVEAL.ridge + 240)}
-      />
-      <img
-        src="/art/student-sporty.webp"
-        alt=""
-        aria-hidden="true"
-        className="intro-fade hidden md:block absolute bottom-0 right-[2%] lg:right-[6%] h-[60vh] max-h-[540px] w-auto select-none pointer-events-none z-[1]"
-        style={fadeAt(LAYER_REVEAL.ridge + 420)}
-      />
-
-      {/* ── 中央 ── */}
+      {/* ── 中央 ──
+          参考里前 6 秒屏幕上没有任何要读的东西，这里压到 1.5 秒 ——
+          仪式感要有，但评委的时间比视频观众贵。
+          文字用 .intro-line（1400ms + blur 从 6px 解开）而不是 .term-rise，
+          因为"凝成光"和"亮起来"是两种完全不同的观感。 */}
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center">
-        <div className="term-rise" style={at(INTRO_TIMING.crest)}>
+        <div className="intro-line" style={at(INTRO_TIMING.crest)}>
           <Crest />
         </div>
 
         <p
-          className="term-rise term-mono mt-7 mb-3 text-[11px]"
-          style={{ color: TERMINAL.cyan, ...at(INTRO_TIMING.rule) }}
+          className="intro-line term-mono mt-8 mb-4 text-[11px] tracking-[0.3em]"
+          style={{ color: LIGHT.inkSoft, ...at(INTRO_TIMING.rule) }}
         >
           {'// 个人青春行为图谱'}
         </p>
 
         <h1
-          className="term-rise text-3xl sm:text-5xl tracking-tight"
-          style={{ fontWeight: 500, color: TERMINAL.ink, ...at(INTRO_TIMING.title) }}
+          className="intro-line intro-serif intro-glow text-3xl sm:text-5xl tracking-[0.12em]"
+          style={{ color: LIGHT.ink, ...at(INTRO_TIMING.title) }}
         >
           你的大学平行宇宙
         </h1>
 
         <p
-          className="term-rise mt-5 text-sm sm:text-base leading-7 max-w-md"
-          style={{ color: TERMINAL.inkSoft, ...at(INTRO_TIMING.subtitle) }}
+          className="intro-line mt-6 text-sm sm:text-base leading-8 max-w-md"
+          style={{ color: LIGHT.inkSoft, ...at(INTRO_TIMING.subtitle) }}
         >
           {QUESTIONS.length} 道题，决定了你在哪一层宇宙
           <br />
@@ -238,36 +215,34 @@ export default function IntroScene() {
         </p>
 
         <p
-          className="term-rise term-mono mt-8 text-[11px] leading-6"
-          style={{ color: TERMINAL.inkDim, ...at(INTRO_TIMING.meta) }}
+          className="intro-line term-mono mt-9 text-[11px] leading-6"
+          style={{ color: LIGHT.inkFaint, ...at(INTRO_TIMING.meta) }}
         >
           零准备 · 不上传任何数据 · 约 1 分钟
         </p>
       </div>
 
-      {/* ── 进入：参考站放在**左下角**，正中留给纹章 ──
-          这个位置关系不是随意的：正中一旦有按钮，整屏就读成
-          "一个等待操作的对话框"；挪到角落，它才读成
-          "一整片环境，你随时可以走进去"。窄屏由 CSS 改回居中。
+      {/* ── 进入 ──
+          参考放在**左下角**，正中留给纹章。这个位置关系不是随意的：
+          正中一旦有按钮，整屏就读成"一个等待操作的对话框"；
+          挪到角落，它才读成"一整片环境，你随时可以走进去"。
+          窄屏由 CSS 改回居中。
 
-          同时保持"从第一时刻就可点"——慢节奏是给愿意看的人的礼物，不是收费站。 */}
-      <div className="intro-enter term-rise flex flex-col gap-4" style={at(INTRO_TIMING.cta)}>
-        <span className="term-mono text-[11px]" style={{ color: TERMINAL.inkSoft }}>
+          玻璃质感（.glass-btn）是这一版新加的：参考里可操作的东西
+          读起来是"按在玻璃上"，而不是"一块实心色块"。 */}
+      <div className="intro-enter intro-line flex flex-col gap-4 items-start" style={at(INTRO_TIMING.cta)}>
+        <span className="term-mono text-[11px]" style={{ color: LIGHT.inkSoft }}>
           欢迎回来
         </span>
         <button
           type="button"
           onClick={enter}
-          className="term-panel term-mono group relative px-10 py-3.5 text-sm transition-colors self-start"
-          style={{ color: TERMINAL.amber, border: `1px solid ${TERMINAL.line}` }}
+          className="glass-btn term-mono group relative px-11 py-3.5 text-sm rounded-sm"
+          style={{ color: LIGHT.ink }}
         >
-          <span className="relative z-10 tracking-[0.2em]">进入终端</span>
-          <span
-            className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ background: 'rgba(245, 166, 35, 0.08)' }}
-          />
+          <span className="relative z-10 tracking-[0.25em]">进入终端</span>
         </button>
-        <span className="term-mono text-[10px]" style={{ color: TERMINAL.inkDim }}>
+        <span className="term-mono text-[10px]" style={{ color: LIGHT.inkFaint }}>
           或按 Enter
         </span>
       </div>
@@ -276,30 +251,59 @@ export default function IntroScene() {
 }
 
 /**
- * 纹章：六边形 + 内环 + 中心菱形 + 对称射线 + 缓慢旋转的外环。
- * 全对称是有意的 —— 不对称的图形会读成"某个 logo"，对称的才读成"某台机器的标志"。
+ * 层的静态 transform —— 纯 CSS 变量驱动的推镜 transform。
  *
- * 旋转外环（.term-orbit，24s 一圈）是本版新加的：参考站的中心纹章虽然静态，
- * 但整屏仍在动（推镜 + 粒子），中心需要一个"自身也在动"的锚点，
- * 否则视线落上去会觉得那里是张图片。24 秒慢到第一眼看不出来，盯着看它是活的。
+ * 关键在 `calc(1 + (var(--zoom) - 1) * var(--push))`：
+ * 每个层自己带一个 zoom 系数，共享的 --push 从 0 涨到 1，
+ * 于是"近处涨得快、远处涨得慢"变成了**数据上的层次关系**，
+ * 而不是三条各写各的 @keyframes。
+ *
+ * 为什么还在 JS 里算一遍同样的公式（layerTransform）：
+ * 自检要能对"近处涨得快"这条直接下断言，而在 CSS 字符串上做断言太脆
+ * （改一个空格就断）。公式在 introLayers.js 里是唯一的真源，
+ * 这里只是把它序列化成 CSS —— 两边一致由 selftest 守。
+ */
+function layerStatic(layer) {
+  const { drift } = layerTransform(layer, 0);
+  return [
+    'translate3d(0,0,0)',
+    `scale(calc(1 + (var(--zoom) - 1) * var(--push)))`,
+    `translateX(calc(${layer.drift}px * var(--push) * ${layer.depth % 2 === 0 ? 1 : -1}))`,
+    drift ? '' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+/**
+ * 纹章。
+ *
+ * 参考里的中心纹章是**静态**的（整屏在动就够了）。这里让它极慢自转 + 呼吸，
+ * 因为我们的画面元素比参考少，中心需要一个"自身也在动"的锚点，
+ * 否则视线落上去会觉得那里是一张图片。
+ *
+ * 全对称是有意的 —— 不对称的图形会读成"某个 logo"，
+ * 对称的才读成"某台机器的标志"。
+ *
+ * 配色改用 LIGHT（浅色入场上的深紫系），不再是深色终端的青金。
  */
 function Crest() {
   return (
-    <svg width="112" height="112" viewBox="0 0 120 120" role="img" aria-label="终端纹章">
+    <svg width="104" height="104" viewBox="0 0 120 120" role="img" aria-label="终端纹章">
       <title>终端纹章</title>
       <polygon
         points="60,4 108,32 108,88 60,116 12,88 12,32"
         fill="none"
-        stroke={TERMINAL.cyan}
-        strokeWidth="1"
-        opacity="0.45"
+        stroke={LIGHT.stone}
+        strokeWidth="0.8"
+        opacity="0.5"
       />
       <polygon
         points="60,20 96,40 96,80 60,100 24,80 24,40"
         fill="none"
-        stroke={TERMINAL.amber}
-        strokeWidth="1"
-        opacity="0.8"
+        stroke={LIGHT.inkSoft}
+        strokeWidth="0.8"
+        opacity="0.85"
       />
       {[0, 60, 120, 180, 240, 300].map((deg) => (
         <line
@@ -308,19 +312,19 @@ function Crest() {
           y1="34"
           x2="60"
           y2="44"
-          stroke={TERMINAL.cyan}
-          strokeWidth="1"
-          opacity="0.5"
+          stroke={LIGHT.stone}
+          strokeWidth="0.8"
+          opacity="0.55"
           transform={`rotate(${deg} 60 60)`}
         />
       ))}
-      <polygon points="60,46 74,60 60,74 46,60" fill={TERMINAL.amber} opacity="0.9" />
+      <polygon points="60,46 74,60 60,74 46,60" fill={LIGHT.ink} opacity="0.9" />
       <polygon
         className="term-breathe"
         points="60,30 86,45 86,75 60,90 34,75 34,45"
         fill="none"
-        stroke={TERMINAL.bone}
-        strokeWidth="0.75"
+        stroke={LIGHT.accent}
+        strokeWidth="0.8"
       />
       {/* 外圈虚线环，缓慢自转。虚线的断口让旋转能被看出来 ——
           实线圆环转起来是完全静态的，转了等于没转。 */}
@@ -330,11 +334,45 @@ function Crest() {
         cy="60"
         r="54"
         fill="none"
-        stroke={TERMINAL.cyan}
+        stroke={LIGHT.stone}
         strokeWidth="0.6"
         strokeDasharray="2 7"
-        opacity="0.4"
+        opacity="0.45"
       />
     </svg>
   );
 }
+
+/** 花瓣：一片略微卷曲的水滴形。刻意画成不对称的，才像被风吹着。 */
+function Petal() {
+  return (
+    <svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true">
+      <path
+        d="M12 2 C18 8, 20 15, 12 22 C4 15, 6 8, 12 2 Z"
+        fill="rgba(255,255,255,0.85)"
+        stroke="rgba(200,190,240,0.7)"
+        strokeWidth="0.5"
+      />
+    </svg>
+  );
+}
+
+/** 蝴蝶：两对翅 + 一条身。很小（10~47px），所以只保留最必要的形。 */
+function Butterfly() {
+  return (
+    <svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true">
+      <path d="M12 6 C8 1, 2 3, 4 9 C6 14, 10 13, 12 12 Z" fill="rgba(255,255,255,0.8)" />
+      <path d="M12 6 C16 1, 22 3, 20 9 C18 14, 14 13, 12 12 Z" fill="rgba(255,255,255,0.6)" />
+      <path d="M12 12 C8 13, 5 17, 8 20 C10 22, 12 17, 12 15 Z" fill="rgba(255,255,255,0.7)" />
+      <path d="M12 12 C16 13, 19 17, 16 20 C14 22, 12 17, 12 15 Z" fill="rgba(255,255,255,0.5)" />
+      <line x1="12" y1="5" x2="12" y2="17" stroke="rgba(140,130,180,0.6)" strokeWidth="0.6" />
+    </svg>
+  );
+}
+
+/** 供 smoke 断言用：这一屏里不允许再出现真人立绘。 */
+export const INTRO_FORBIDDEN_ASSETS = ['student-academic.webp', 'student-sporty.webp'];
+/** 供 smoke 断言用：场景层必须正好用上 SCENE_LAYERS 里那几张。 */
+export const INTRO_REQUIRED_ASSETS = SCENE_LAYERS.map((l) => l.asset);
+/** 供 smoke 断言用：浅色调色板必须真的被用上（防止改回深色而没人发现）。 */
+export const INTRO_PALETTE_KEYS = Object.keys(LIGHT);
