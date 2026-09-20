@@ -29,7 +29,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { QUESTIONS, ALL_ATTR_KEYS, REQUIRED_COLUMNS, optionsOf, labelOf } from '../src/lib/surveySchema.js';
+import { QUESTIONS, ALL_ATTR_KEYS, REQUIRED_COLUMNS, OPTIONAL_COLUMNS, MATRIX_VERSION, optionsOf, labelOf } from '../src/lib/surveySchema.js';
 import { parseCsvText } from '../src/lib/parseCsv.js';
 import { cleanSurveyRows } from '../src/lib/surveyClean.js';
 import {
@@ -95,6 +95,22 @@ function mulberry32(seed) {
 
 group('A · 矩阵结构');
 
+// 契约自带的版本号：它是 matrix.json 与代码同步的唯一标记。
+// 不校验它，「Python 生成端与前端读同一份」这句话就没有可观测的证据。
+// 注意版本号是**数字**（当前为 1），不是字符串 —— 断言写成 typeof === 'string' 会误报，
+// 这一点是本次自检自己抓出来的。
+check(
+  '契约带版本号（matrix.json.version）',
+  (typeof MATRIX_VERSION === 'number' && Number.isFinite(MATRIX_VERSION)) ||
+    (typeof MATRIX_VERSION === 'string' && MATRIX_VERSION.length > 0),
+  `实际 ${JSON.stringify(MATRIX_VERSION)}（类型 ${typeof MATRIX_VERSION}）`,
+);
+
+// 可选列也要从契约读。上一版这里在 surveyClean 里硬写了「编号」两个字面量，
+// 与「不在任何地方手写列名」的设计声明自相矛盾 —— 这两条断言把它钉住。
+check('可选列在契约里声明（不再散落字面量）', OPTIONAL_COLUMNS.length === 1 && OPTIONAL_COLUMNS[0] === '编号', JSON.stringify(OPTIONAL_COLUMNS));
+check('必需列与可选列不相交', OPTIONAL_COLUMNS.every((c) => !REQUIRED_COLUMNS.includes(c)));
+
 check('10 个问题', QUESTIONS.length === 10, `实际 ${QUESTIONS.length}`);
 
 const OPTION_COUNT = QUESTIONS.reduce((s, q) => s + q.options.length, 0);
@@ -147,6 +163,31 @@ check('基准 CSV 剔除 0 条（说明每个值都在矩阵选项内）', clean
 if (cleaned.report.droppedCount) console.log(`      ${cleaned.report.summary}`);
 
 check('基准 CSV 2000 行', cleaned.records.length === 2000, `实际 ${cleaned.records.length}`);
+
+// 「编号」列的存在感要验两端：
+//   有编号 → 用它；没编号 → 用行号兜底。缺了兜底那半边，没编号的文件会让每条记录 _id 为 undefined，
+//   而 _id 是「最像的人」「第几行被剔除」这些界面文案的指认依据。
+check(
+  '带编号的文件：_id 取自「编号」列（列名从契约读）',
+  cleaned.records[0]._id === 'S0001',
+  `实际 ${JSON.stringify(cleaned.records[0]._id)}`,
+);
+const noIdRows = parsed.rows.map(({ __line, __raw }) => {
+  const { 编号, ...rest } = __raw;
+  return { __line, __raw: rest };
+});
+check(
+  '不带编号的文件：_id 回落成行号而不是 undefined',
+  /^第\d+行$/.test(cleanSurveyRows(noIdRows).records[0]._id ?? ''),
+  `实际 ${JSON.stringify(cleanSurveyRows(noIdRows).records[0]._id)}`,
+);
+// 落回的是 CSV 的**物理行号**（表头占第 1 行，所以首条数据是「第2行」）。
+// 这里断言「与 __line 一致」而不是写死 2，免得将来 CSV 加了前置注释行就误报。
+check(
+  '回落的行号与记录的物理行号一致（不是从 1 重新数）',
+  cleanSurveyRows(noIdRows).records[0]._id === `第${noIdRows[0].__line}行`,
+  `实际 ${JSON.stringify(cleanSurveyRows(noIdRows).records[0]._id)} / __line=${noIdRows[0].__line}`,
+);
 
 // 示例班级问卷（真入口用）也必须零漂移 —— 它往往是评委试用的**第一份**数据，
 // 它出错，等于真入口第一次被打开就是个错误
