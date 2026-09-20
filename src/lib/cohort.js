@@ -162,9 +162,3 @@ export function cohortHeadline(cohort) {
   }
   return parts.join('');
 }
-
-/** 供自检与界面共用：均值属性（保留给"和基准均值比"这类用法）。 */
-export function cohortMeanAttrs(records) {
-  const attrs = toAttributeMatrix(records);
-  return Object.fromEntries(ALL_ATTR_KEYS.map((k) => [k, mean(attrs.map((a) => a[k]))]));
-}

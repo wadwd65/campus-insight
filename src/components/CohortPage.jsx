@@ -15,7 +15,7 @@ import { useMemo } from 'react';
 import Chart from './Chart.jsx';
 import RadarChart from './RadarChart.jsx';
 import { buildCohort, cohortHeadline } from '../lib/cohort.js';
-import { BRAND, INK_SOFT, FONT } from '../lib/theme.js';
+import { BRAND, INK_SOFT, FONT, AXIS_LABEL_STYLE } from '../lib/theme.js';
 
 export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, onRestart }) {
   const cohort = useMemo(
@@ -186,7 +186,7 @@ function GroupBars({ groups, size }) {
       yAxis: {
         type: 'category',
         data: shown.map((g) => g.name),
-        axisLabel: { color: INK_SOFT, fontSize: 12, fontFamily: FONT },
+        axisLabel: AXIS_LABEL_STYLE,
         axisLine: { show: false },
         axisTick: { show: false },
       },
@@ -202,9 +202,7 @@ function GroupBars({ groups, size }) {
             show: true,
             position: 'right',
             formatter: (p) => `${p.value} 人 · ${Math.round((p.value / total) * 1000) / 10}%`,
-            color: INK_SOFT,
-            fontSize: 12,
-            fontFamily: FONT,
+            ...AXIS_LABEL_STYLE,
           },
         },
       ],

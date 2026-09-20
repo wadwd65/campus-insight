@@ -7,8 +7,8 @@
  * 读者得在每张图前重新建立一次对应关系。
  */
 
-/** 五个类别的主色，供环形图 / 曲线 / 图例共用。 */
-export const PALETTE = {
+/** 五个类别的主色，供环形图 / 曲线 / 图例共用。不外传 —— 对外只暴露语义化的 TIME_COLORS。 */
+const PALETTE = {
   study: '#378ADD',
   fun: '#7F77DD',
   social: '#D85A30',
@@ -36,16 +36,14 @@ export const TIME_COLORS = {
   睡觉: PALETTE.sleep,
 };
 
-/** 雷达图五轴 → 颜色（与时间分配共用同一套语义） */
-export const AXIS_COLORS = {
-  学术力: PALETTE.study,
-  社交力: PALETTE.social,
-  运动力: PALETTE.sleep,
-  美食力: PALETTE.food,
-  佛系指数: PALETTE.fun,
-};
-
 export const FONT = 'system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif';
 
-/** 雷达图 / 折线图等的统一文字样式 */
+/**
+ * 图表坐标轴 / 图例 / 标注的统一文字样式。
+ *
+ * 这几个属性在 RadarChart、MoodCurve、CohortPage 里原本各写了一遍
+ * （`{ color: INK_SOFT, fontSize: 12, fontFamily: FONT }` 共出现 6 次）。
+ * 抽成常量不只是省字：**改字号或颜色时只需要动这里一处**，
+ * 否则会出现「雷达图 12px、曲线图 14px」这种肉眼能看出、但代码里找不到的错位。
+ */
 export const AXIS_LABEL_STYLE = { color: INK_SOFT, fontSize: 12, fontFamily: FONT };

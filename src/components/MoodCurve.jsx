@@ -12,7 +12,7 @@
 
 import { useMemo } from 'react';
 import Chart from './Chart.jsx';
-import { BRAND, INK, INK_SOFT, LINE, FONT } from '../lib/theme.js';
+import { BRAND, INK, LINE, FONT, AXIS_LABEL_STYLE } from '../lib/theme.js';
 
 export default function MoodCurve({ data }) {
   const option = useMemo(
@@ -29,7 +29,7 @@ export default function MoodCurve({ data }) {
         boundaryGap: false,
         axisLine: { lineStyle: { color: LINE } },
         axisTick: { show: false },
-        axisLabel: { color: INK_SOFT, fontSize: 12, fontFamily: FONT },
+        axisLabel: AXIS_LABEL_STYLE,
       },
       yAxis: {
         type: 'value',
@@ -51,9 +51,8 @@ export default function MoodCurve({ data }) {
             show: true,
             position: 'top',
             formatter: '{c}',
+            ...AXIS_LABEL_STYLE,
             color: INK,
-            fontSize: 12,
-            fontFamily: FONT,
           },
         },
       ],

@@ -15,7 +15,7 @@
 
 import { useMemo } from 'react';
 import Chart from './Chart.jsx';
-import { BRAND, INK_SOFT, LINE, FONT } from '../lib/theme.js';
+import { BRAND, INK_SOFT, LINE, FONT, AXIS_LABEL_STYLE } from '../lib/theme.js';
 
 export default function RadarChart({ data, compare = null, name = '你的画像' }) {
   const option = useMemo(() => {
@@ -57,14 +57,14 @@ export default function RadarChart({ data, compare = null, name = '你的画像'
             bottom: 0,
             itemWidth: 12,
             itemHeight: 8,
-            textStyle: { color: INK_SOFT, fontSize: 12, fontFamily: FONT },
+            textStyle: AXIS_LABEL_STYLE,
           }
         : undefined,
       radar: {
         indicator: data.map((d) => ({ name: d.axis, max: 100 })),
         radius: '64%',
         center: ['50%', compare ? '48%' : '52%'],
-        axisName: { color: INK_SOFT, fontSize: 12, fontFamily: FONT },
+        axisName: AXIS_LABEL_STYLE,
         splitLine: { lineStyle: { color: LINE } },
         axisLine: { lineStyle: { color: LINE } },
         splitArea: { show: false },

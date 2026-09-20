@@ -54,8 +54,3 @@ export function loadBaseline() {
 
   return pending;
 }
-
-/** 供真入口复用：把一批已清洗的问卷记录灌成基线。 */
-export function makeBaseline(records) {
-  return buildBaseline(toAttributeMatrix(records));
-}

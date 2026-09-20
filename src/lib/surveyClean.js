@@ -13,7 +13,7 @@
  *   单行选项不认识 → 剔除该行（说明数据脏，但其余仍可用）
  */
 
-import { QUESTIONS, isKnownOption } from './surveySchema.js';
+import { QUESTIONS, OPTIONAL_COLUMNS, isKnownOption } from './surveySchema.js';
 import { normalizeCell } from './text.js';
 
 /**
@@ -61,8 +61,8 @@ export function cleanSurveyRows(rows) {
     //
     // 原因很具体：
     //   学习记录的一行是「一次学习会话」，两行完全相同几乎只可能是复制粘贴的脏数据；
-    //   问卷的一行是「一个人的答案」，而 28 个选项的组合只有一万种，
-    //   2000 人里必然有几百人答案完全一致 —— 那是真人，不是脏数据。
+    //   问卷的一行是「一个人的答案」，而 48 个选项的组合只有几百万种，
+    //   2000 人里必然有相当一部分人答案完全一致 —— 那是真人，不是脏数据。
     //   照上一版的规则去重，会安静地删掉两成样本，把百分位整体算歪；
     //   更糟的是，删掉的恰恰是最「大众」的那部分人，偏差还是系统性的。
     //
@@ -74,7 +74,9 @@ export function cleanSurveyRows(rows) {
     records.push({
       __line,
       ...values,
-      _id: normalizeCell(__raw?.编号) || `第${__line}行`,
+      // 「编号」这一列名从契约取，不在这里手写 —— 它上面那句注释（"不在任何地方手写"）
+      // 原本就是被这个字面量违反的。缺编号时用行号兜底，保证每行都有可指认的 id。
+      _id: normalizeCell(__raw?.[OPTIONAL_COLUMNS[0]]) || `第${__line}行`,
     });
   }
 

@@ -8,7 +8,7 @@
  * 设计依据：docs/设计-01-问题与映射矩阵.md 第四节。
  */
 
-import { QUESTIONS, ATTRIBUTES, DERIVED, ALL_ATTR_KEYS } from './surveySchema.js';
+import { QUESTIONS, DERIVED, ALL_ATTR_KEYS } from './surveySchema.js';
 
 /** 全零属性向量（含派生维）。 */
 export function emptyVector() {
@@ -98,6 +98,3 @@ export function toPercents(attributes, baseline) {
   }
   return out;
 }
-
-/** 属性清单里的中文标签，界面直接用。 */
-export const ATTRIBUTE_META = [...ATTRIBUTES, ...DERIVED];
