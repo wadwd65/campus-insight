@@ -9,6 +9,13 @@ dist-ssr/
 # 冒烟测试的临时 SSR 产物（npm run smoke 每次重新生成）
 .smoke-out/
 
+# 调试用浏览器的用户数据目录（含登录态，绝不提交）
+# 同时已在 vite.config.js 的 watch.ignored 里排除 —— 不排除会导致 HMR 死循环
+.browser-profile/
+
+# 本机跑图/抠图的临时脚本与中间产物（只为生成素材，不属于产品代码）
+.workbuddy-gen/
+
 # 编辑器
 .vscode/*
 !.vscode/extensions.json

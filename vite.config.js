@@ -7,6 +7,18 @@ export default defineConfig({
   server: {
     port: 5173,
     open: false,
+    // 调试期在项目里放过的目录必须排除，否则 Vite 会监视它们：
+    // `.browser-profile/` 是调试用 Edge 的用户数据目录，浏览器**每写一次
+    // Code Cache 就触发一次全量 reload** —— 页面会永远停在「还没挂载」的白屏上。
+    // 2026-09-20 实测踩到：dev 页面 body 只有 103 字节、root.children=0，
+    // 一度误判成代码 bug，实际是 HMR 被自己的浏览器 profile 反复打断。
+    watch: {
+      ignored: [
+        '**/.browser-profile/**',
+        '**/.workbuddy-gen/**',
+        '**/.smoke-out/**',
+      ],
+    },
   },
   build: {
     // 阈值放宽到 700 KB，**只针对一个已知的块**：ECharts（约 570 KB）。
