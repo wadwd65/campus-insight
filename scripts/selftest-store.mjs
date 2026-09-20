@@ -144,6 +144,67 @@ console.log('\n5 · HUD 显示规则（纯函数）');
   check('正负相抵时仍算已有数据', cancel.started === true);
 }
 
+console.log('\n6 · 最强 / 最弱不能落在「没被碰过」的维度上');
+
+// 这一节锁的是地图上线后抓到的一个真实缺陷：
+// 只去过图书馆（学术 +4）时，HUD 摘要显示「↓ 夜猫程度 0」——
+// 说"你最弱的是夜猫程度，值是 0"没有信息量，
+// 而且把"没被任何行动影响过"和"被负向影响过"混成了一件事。
+{
+  const one = summarizeAttributes({ academic: 4 });
+  check('只有一项非零时，最强是它', one.top.label === '学术投入' && one.top.value === 4);
+  // 真正的不变量是"绝不指向没被碰过的维度"，而不是"bottom 必须是负值"。
+  // 只有一项非零时 bottom 指向那一项本身 —— 这是对的：touched 里只有它，
+  // 它就是"被碰过的维度里最低的那个"。（我第一版断言写成 `bottom.value < 0`，
+  // 于是这条自己红了 —— 断言写错比代码写错更常见，这里如实留着。）
+  check('最弱项绝不指向值为 0 的维度', one.bottom.value !== 0, `实际拿到 ${one.bottom.label} ${one.bottom.value}`);
+  check(
+    '只有一项被碰过时，最强与最弱是同一项（这是对的，不是缺陷）',
+    one.top.key === one.bottom.key,
+    `${one.top.label} / ${one.bottom.label}`,
+  );
+  check('记录了"被碰过"的维度数', one.touchedCount === 1, `touchedCount=${one.touchedCount}`);
+
+  // 有负值时，最弱才是真的弱
+  const withNeg = summarizeAttributes({ academic: 4, night: -2 });
+  check('有负值时最弱指向真正的负值', withNeg.bottom.label === '夜猫程度' && withNeg.bottom.value === -2);
+  check('此时被碰过的维度是两项', withNeg.touchedCount === 2);
+
+  // 全为非负：不该选出任何"弱项"
+  const allPos = summarizeAttributes({ academic: 3, social: 2 });
+  check('全为非负时最弱项也是正值', allPos.bottom.value === 2, `${allPos.bottom.label} ${allPos.bottom.value}`);
+  check('全为非负时没有被碰过的负向维度', allPos.rows.every((r) => r.value >= 0));
+
+  // ★ 直接复现修之前那个缺陷的场景：只去过图书馆（8 项里 5 项是 0）。
+  //   旧实现在全部 8 项里取最小，会被 0 项吃掉 —— 当没有任何负值时，
+  //   最小值就是 0，于是界面上出现「↓ 夜猫程度 0」这种没有信息量的话。
+  const partly = summarizeAttributes({ academic: 4, plan: 2, night: -1, sport: -1, social: -1 });
+  const zeros = partly.rows.filter((r) => r.value === 0).map((r) => r.label);
+  check('确实存在没被碰过的维度（这条不成立，下面那条就没意义）', zeros.length === 3, `0 值维度：${zeros.join('、')}`);
+  check(
+    '最弱项不是任何一个 0 值维度',
+    partly.bottom.value !== 0 && !zeros.includes(partly.bottom.label),
+    `最弱=${partly.bottom.label} ${partly.bottom.value}；0 值维度=${zeros.join('、')}`,
+  );
+
+  // 这才是旧实现真正会出错的形状：所有被碰过的项都是正的，其余是 0。
+  // 旧实现必然选出 0（因为 0 < 任何正数），并且会把"没碰过"说成"最弱"。
+  const onlyPos = summarizeAttributes({ academic: 4, plan: 2 });
+  const zeroDims = onlyPos.rows.filter((r) => r.value === 0).map((r) => r.label);
+  check('全正的账本里，0 值维度有 6 个', zeroDims.length === 6, zeroDims.join('、'));
+  check(
+    '旧缺陷复现点：最弱不能是 0 值维度',
+    onlyPos.bottom.value !== 0,
+    `最弱=${onlyPos.bottom.label} ${onlyPos.bottom.value}（若为 0 则缺陷回归）`,
+  );
+  check('此时最弱应落在被碰过的最低项上', onlyPos.bottom.label === '计划性' && onlyPos.bottom.value === 2);
+
+  // 与空态的区别：空账本 top/bottom 都是 null，不能因此崩掉
+  const empty2 = summarizeAttributes({});
+  check('空账本 top / bottom 仍是 null', empty2.top === null && empty2.bottom === null);
+  check('空账本 touchedCount 为 0', empty2.touchedCount === 0);
+}
+
 console.log(`\n${'─'.repeat(64)}`);
 if (failures.length) {
   console.log(`✗ ${pass} 项通过，${failures.length} 项失败：`);

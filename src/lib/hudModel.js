@@ -27,6 +27,9 @@ export function summarizeAttributes(attributes) {
   const rows = ATTRIBUTES.map((a) => ({
     key: a.key,
     label: a.label,
+    // HUD 的柱子只有 14px 宽，标签只能是**一个字**：
+    // 「学术 社交 运动 美食 夜猫 计划 尝鲜 抗压」→「学 社 运 美 夜 计 尝 抗」，猜得出来。
+    // 两个字的名字（shortLabelOf）给地图的增益标签用，那边空间够。
     short: a.label.slice(0, 1),
     value: attributes?.[a.key] ?? 0,
   }));
@@ -41,12 +44,23 @@ export function summarizeAttributes(attributes) {
     positive: r.value >= 0,
   }));
 
+  /**
+   * 最强 / 最弱只在**真正有取值**的项里选。
+   *
+   * 这件事上踩过一次：原来是在全部 8 项里取最大最小，于是只去过图书馆（学术 +4）时，
+   * 摘要显示「↓ 夜猫程度 0」—— 说"你最弱的是夜猫程度，0"没有任何信息量，
+   * 而且把"没被任何行动影响过"和"被负向影响过"混为一谈（两者含义完全不同）。
+   * 修法：先过滤掉 0，再选极值；一项都没动过时返回 null（空态已在 started 里处理）。
+   */
+  const touched = scaled.filter((r) => r.value !== 0);
+
   return {
     rows: scaled,
     peak,
     started,
-    top: started ? scaled.reduce((a, b) => (b.value > a.value ? b : a)) : null,
-    bottom: started ? scaled.reduce((a, b) => (b.value < a.value ? b : a)) : null,
+    touchedCount: touched.length,
+    top: touched.length ? touched.reduce((a, b) => (b.value > a.value ? b : a)) : null,
+    bottom: touched.length ? touched.reduce((a, b) => (b.value < a.value ? b : a)) : null,
   };
 }
 

@@ -250,10 +250,30 @@ function describe(item) {
  * @param {{size:number, sorted:object}} baseline
  */
 export function buildReport(answers, baseline) {
-  const attributes = toAttributes(answers);
+  return buildReportFromAttributes(toAttributes(answers), baseline, { answers });
+}
+
+/**
+ * 同一份报告，但**跳过"问卷答案 → 属性"这一步**，直接拿一本算好的属性。
+ *
+ * 为什么需要它（这是地图上线时才暴露出来的一个结构性缺口）：
+ *   报告页原本只认 `answers`（问卷答案对象），于是从地图点「生成档案」会走到欢迎页 ——
+ *   因为地图玩家根本没答过题，`answers` 是空的。
+ *   而地图的全部意义恰恰是"不答题也能出一份档案"。
+ *
+ *   修法不是给 ReportView 加一堆 if，而是把这条链上真正的**分界点**找出来：
+ *   「属性」才是报告页的输入，`answers` 只是一种**得出属性的方式**。
+ *   于是在这里切开 —— 计算层从此不关心数据来自问卷还是地图，
+ *   与 store 里那句"两条路进同一本账，档案页不必关心数据从哪来"是同一件事。
+ *
+ * @param {Record<string,number>} attributes 8 基础属性 + 派生（缺的按 0 算）
+ * @param {{size:number, sorted:object}} baseline
+ * @param {{answers?:object}} extra 透传原始答案（有就带上，供摘要复用）
+ */
+export function buildReportFromAttributes(attributes, baseline, extra = {}) {
   const percents = toPercents(attributes, baseline);
   return {
-    answers,
+    answers: extra.answers ?? null,
     attributes,
     percents,
     radar: radarOf(percents),

@@ -119,12 +119,19 @@ export default function HubHud({ onRestart }) {
           <div className="ml-3 mt-0.5 term-mono text-[11px] leading-5" style={{ color: TERMINAL.inkSoft }}>
             {model.started ? (
               <>
+                {/* 强项：有任何非零项就显示（值可能为负，比如只去过食堂时最强的是美食 +4，没问题） */}
                 <div style={{ color: TERMINAL.cyan }}>
                   ↑ {model.top.label} {signed(model.top.value)}
                 </div>
-                <div style={{ color: TERMINAL.amber }}>
-                  ↓ {model.bottom.label} {signed(model.bottom.value)}
-                </div>
+                {/* 弱项：**只在真有负值时才显示**。
+                    只去过图书馆（学术 +4）时，若照旧渲染「↓ 夜猫程度 0」，
+                    这句话既没信息量，又会让人以为"夜猫被扣过" —— 它只是没被碰过。
+                    见 hudModel.js 里 touched 的说明。 */}
+                {model.bottom.value < 0 && (
+                  <div style={{ color: TERMINAL.amber }}>
+                    ↓ {model.bottom.label} {signed(model.bottom.value)}
+                  </div>
+                )}
               </>
             ) : (
               <div style={{ color: TERMINAL.inkDim }}>答完一轮题或走过地图，这里开始长数据</div>
