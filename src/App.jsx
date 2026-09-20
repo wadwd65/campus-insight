@@ -20,6 +20,7 @@ import SurveyForm from './components/SurveyForm.jsx';
 import UploadPanel from './components/UploadPanel.jsx';
 import HubHud from './components/HubHud.jsx';
 import IntroScene from './scenes/IntroScene.jsx';
+import MapScene from './scenes/MapScene.jsx';
 import { loadBaseline } from './data/loadSample.js';
 import { useGameStore } from './store/useGameStore.js';
 import { QUESTIONS, vectorOf } from './lib/surveySchema.js';
@@ -34,13 +35,19 @@ export default function App() {
   const applyChoice = useGameStore((s) => s.applyChoice);
   const resetPlayer = useGameStore((s) => s.resetPlayer);
 
-  const [stage, setStage] = useState('welcome'); // welcome | quiz | report | upload | cohort
+  const [stage, setStage] = useState('welcome'); // welcome | quiz | report | upload | cohort | map
   const [baseline, setBaseline] = useState(null);
   const [answers, setAnswers] = useState(null);
   const [cohort, setCohort] = useState(null); // 真入口最近一次上传的可用记录
   const [fromCohort, setFromCohort] = useState(false); // 答题是为了回到群体画像
   const [name, setName] = useState('');
   const [error, setError] = useState(null);
+
+  // 报告有两条来路：问卷（answers）与地图（账本里的 attributes）。
+  // 这里用一个标记记住"这份报告是从地图来的"，因为两者的数据形状不同 ——
+  // 地图没有 answers，只有一本累加的账。见 results.js 的 buildReportFromAttributes。
+  const [mapRun, setMapRun] = useState(false);
+  const player = useGameStore((s) => s.player);
 
   // 基准数据在**入场动画播放时就已经开始下载**：等用户点「进入终端」时它多半已就绪，
   // 所以这个 effect 不能挪到 hub 分支里去 —— 那样就会白白等一次网络往返。
@@ -61,11 +68,13 @@ export default function App() {
   function restart() {
     setAnswers(null);
     setFromCohort(false);
+    setMapRun(false);
     setStage('welcome');
   }
 
   function finishQuiz(a) {
     setAnswers(a);
+    setMapRun(false); // 走问卷这条路，报告就读 answers，不读地图的账
 
     // 把这一轮作答的增量写进终端账本。
     // 先清空再写：重答一次应该得到一份新账，而不是在上一次的基础上继续累加。
@@ -86,6 +95,28 @@ export default function App() {
   // 入场场景独立成屏：它是深色的、不依赖基准数据，不该被上面的加载态卡住。
   if (scene === 'intro') return <IntroScene />;
 
+  // 地图同样独立成屏 —— 理由与入场同源：它是**场景层**（深色满宽），
+  // 而下面那个 main 是浅色内容容器（max-w-5xl + 白底内边距）。
+  // 把地图塞进内容容器，会得到"浅色页面里嵌一块深色"，也就是这个项目
+  // 一直在避免的拼接感。两个场景层各自成屏，"两条不混在同一屏里"这条边界才守得住。
+  if (stage === 'map') {
+    return (
+      <div className="min-h-full flex flex-col term-enter">
+        <HubHud onRestart={restart} />
+        <main className="flex-1 w-full">
+          {/* 基准数据还没到也不拦着 —— 地图不依赖基准人群，它只写账本 */}
+          <MapScene
+            onGoReport={() => {
+              setMapRun(true);
+              setStage('report');
+            }}
+            onGoQuiz={() => setStage('quiz')}
+          />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-full flex flex-col term-enter">
       <HubHud onRestart={restart} />
@@ -97,9 +128,16 @@ export default function App() {
           <Hint text="正在加载基准人群数据…" />
         ) : stage === 'quiz' ? (
           <SurveyForm onComplete={finishQuiz} onCancel={restart} />
-        ) : stage === 'report' && answers ? (
+        ) : stage === 'report' && (answers || mapRun) ? (
           <Suspense fallback={<Hint text="正在生成你的报告…" />}>
-            <ReportView answers={answers} baseline={baseline} name={name} onRestart={restart} />
+            <ReportView
+              answers={answers}
+              attributes={mapRun ? player.attributes : undefined}
+              trail={mapRun ? player.trail : undefined}
+              baseline={baseline}
+              name={name}
+              onRestart={restart}
+            />
           </Suspense>
         ) : stage === 'upload' ? (
           <UploadPanel
@@ -126,6 +164,7 @@ export default function App() {
             name={name}
             onNameChange={(v) => setName(cleanName(v))}
             onStart={() => setStage('quiz')}
+            onMap={() => setStage('map')}
             onUpload={() => setStage('upload')}
           />
         )}
@@ -141,7 +180,7 @@ export default function App() {
   );
 }
 
-function Welcome({ name, onNameChange, onStart, onUpload }) {
+function Welcome({ name, onNameChange, onStart, onMap, onUpload }) {
   return (
     <div className="max-w-2xl mx-auto py-8 text-center">
       <h2 className="text-3xl font-semibold tracking-tight leading-snug mb-5">
@@ -178,6 +217,23 @@ function Welcome({ name, onNameChange, onStart, onUpload }) {
       >
         开始（{QUESTIONS.length} 题，约 1 分钟）
       </button>
+
+      {/* 第二条路：地图。摆在旁边而不是收进二级入口，因为它不是"更多选项"，
+          而是完全不同的玩法 —— 问卷是答完就没，地图是可以反复走的。
+          两条路写进同一本账，所以先走哪条都行 */}
+      <div className="mt-4">
+        <button
+          type="button"
+          onClick={onMap}
+          className="term-mono rounded-xl px-6 py-3 text-sm transition-[border-color,color]"
+          style={{
+            border: '1px solid var(--line)',
+            color: 'var(--ink-soft)',
+          }}
+        >
+          ▸ 或者去校园里走走（4 个时段，16 个地方）
+        </button>
+      </div>
 
       <div className="mt-6 pt-6 border-t border-[var(--line)]">
         <button

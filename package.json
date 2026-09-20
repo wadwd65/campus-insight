@@ -10,8 +10,9 @@
     "preview": "vite preview",
     "selftest": "node scripts/selftest-matrix.mjs",
     "selftest:store": "node scripts/selftest-store.mjs",
+    "selftest:map": "node scripts/selftest-map.mjs",
     "smoke": "vite build --ssr scripts/smoke-render.jsx --outDir .smoke-out --logLevel warn && node .smoke-out/smoke-render.js",
-    "check": "npm run selftest && npm run selftest:store && npm run smoke",
+    "check": "npm run selftest && npm run selftest:store && npm run selftest:map && npm run smoke",
     "gen:data": "python scripts/generate-survey-data.py",
     "gen:cohort": "python scripts/generate-survey-data.py -n 48 --seed 20261001 --out public/data/示例-班级问卷.csv"
   },

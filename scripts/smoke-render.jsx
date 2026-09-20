@@ -26,11 +26,14 @@ import ReportView from '../src/components/ReportView.jsx';
 import CohortPage from '../src/components/CohortPage.jsx';
 import UploadPanel from '../src/components/UploadPanel.jsx';
 import HubHud from '../src/components/HubHud.jsx';
+import MapScene from '../src/scenes/MapScene.jsx';
 import { useGameStore } from '../src/store/useGameStore.js';
 import { parseCsvText } from '../src/lib/parseCsv.js';
 import { cleanSurveyRows } from '../src/lib/surveyClean.js';
 import { toAttributeMatrix, buildBaseline } from '../src/lib/matrix.js';
 import { QUESTIONS, REQUIRED_COLUMNS } from '../src/lib/surveySchema.js';
+import { PLACES, SLOTS_PER_DAY } from '../src/data/mapPlaces.js';
+import { nextDelta } from '../src/lib/mapEngine.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (f) => fs.readFileSync(path.join(ROOT, 'public', 'data', f), 'utf8');
@@ -159,6 +162,74 @@ console.log('\n4.5 · 主站 HUD（空态）');
 
   const bad = ['undefined', 'NaN', '[object Object]'].filter((s) => hudHtml.includes(s));
   check('HUD：HTML 里没有 undefined / NaN / [object Object]', bad.length === 0, bad.join(' '));
+}
+
+// ── 4.7 · 行动地图（空态） ──
+// 与 HUD 同一个理由：地图的**规则**（衰减、时段、可用性）由 selftest-map.mjs 断言，
+// 这里只验"结构能不能画出来" —— 地点名、氛围句、时段数是渲染层的事。
+console.log('\n4.7 · 行动地图（空态）');
+{
+  useGameStore.getState().resetPlayer();
+  const mapHtml = render('行动地图（空态）', h(MapScene, { onGoReport: () => {}, onGoQuiz: () => {} }));
+  const mapText = plain(mapHtml);
+
+  check('渲染出标题问句', mapText.includes('今天的四个时段'));
+  check(
+    `16 个地点名都在`,
+    PLACES.every((p) => mapText.includes(p.name)),
+    `共 ${PLACES.length} 个地点`,
+  );
+  check('渲染出地点氛围句', mapText.includes(PLACES[0].line));
+  check('显示时段计数', mapText.includes(`${SLOTS_PER_DAY} / ${SLOTS_PER_DAY}`), `空态应为 ${SLOTS_PER_DAY}/${SLOTS_PER_DAY}`);
+  check('四个区域名都在', ['北区 · 教学', '东区 · 运动', '南区 · 生活', '西区 · 自由'].every((z) => mapText.includes(z)));
+  check('空态下主按钮不可用但仍渲染出来', mapText.includes('用这段经历生成档案'));
+  check('空态下给出「先答题」的备选路径', mapText.includes(`先答 ${QUESTIONS.length} 题`));
+  check('写明了衰减规则', mapText.includes('最多计 3 次增量'));
+
+  const mapBad = ['undefined', 'NaN', '[object Object]'].filter((s) => mapHtml.includes(s));
+  check('地图：HTML 里没有 undefined / NaN / [object Object]', mapBad.length === 0, mapBad.join(' '));
+}
+
+// ── 4.8 · 从地图生成报告（不答题也能出档案） ──
+// 这是地图存在的意义。上线时这里曾经**真是坏的**：点「用这段经历生成档案」
+// 会掉回欢迎页，因为 ReportView 只认问卷的 answers，而地图玩家没答过题。
+// 下面这两条断言就是钉死那个缺陷不再回来。
+console.log('\n4.8 · 从地图生成报告（走账本，不走问卷）');
+{
+  const lib = PLACES.find((p) => p.id === 'library');
+  const attrs = { ...nextDelta(lib, {}).vec };
+
+  const mapReportHtml = render(
+    '地图报告页',
+    h(ReportView, {
+      answers: null,
+      attributes: attrs,
+      trail: [{ id: 'library', label: '图书馆', at: 1 }],
+      baseline,
+      name: '地图玩家',
+      onRestart: () => {},
+    }),
+  );
+  const mapReportText = plain(mapReportHtml);
+
+  check('地图路径也能渲染出称号与五个 section', mapReportText.includes('你的称号'));
+  check(
+    '地图路径的五块内容都在',
+    ['大学生活者画像', '时间去哪了', '四年心情曲线', '人群冷知识', '给你的话'].every((t) =>
+      mapReportText.includes(t),
+    ),
+  );
+  check('地图路径多出「你走过的路」这一块', mapReportText.includes('你走过的路'));
+  check('轨迹里出现了去过的地点名', mapReportText.includes('图书馆'));
+
+  // 反过来：问卷路径不该出现"你走过的路"（它没有轨迹这个概念）
+  const quizReportText = plain(
+    render('问卷报告页（不应有轨迹块）', h(ReportView, { answers: myAnswers, baseline, onRestart: () => {} })),
+  );
+  check('问卷路径不出现「你走过的路」', !quizReportText.includes('你走过的路'));
+
+  const mapBad = ['undefined', 'NaN', '[object Object]'].filter((s) => mapReportHtml.includes(s));
+  check('地图报告：HTML 里没有 undefined / NaN / [object Object]', mapBad.length === 0, mapBad.join(' '));
 }
 
 // ── 5 · 全局兜底：页面上不许出现这三种"坏味道" ──

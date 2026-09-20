@@ -67,6 +67,33 @@ export function labelOf(key) {
   return [...ATTRIBUTES, ...DERIVED].find((a) => a.key === key)?.label ?? key;
 }
 
+/**
+ * 属性 key → **两个字的短名**，给空间紧张的地方用（HUD 的八根柱子、地图的增益标签）。
+ *
+ * 为什么必须在这里定义，不能各组件自己 `label.slice(0,1)`：
+ *   截首字会得到「学 社 运 美 夜 计 尝 抗」—— 这些还能猜。
+ *   但如果哪天要显示两个字的缩写，`slice(0,2)` 会得到「学术 社交 运动 美食 夜猫 计划 尝鲜 抗压」，
+ *   看着没问题；而一旦有人拿英文 key 去 slice（这是真实踩过的坑），
+ *   就会得到 `ac` `so` `pl` 这种拼音缩写，界面上直接变成乱码一样的字符。
+ *   短名是一种**展示约定**，它属于契约，不属于某个组件。
+ */
+const SHORT_LABELS = {
+  academic: '学术',
+  social: '社交',
+  sport: '运动',
+  food: '美食',
+  night: '夜猫',
+  plan: '计划',
+  novelty: '尝鲜',
+  resilience: '抗压',
+  buddhist: '佛系',
+};
+
+/** 短名；没登记过的 key 退回中文标签的前两个字（而不是英文 key）。 */
+export function shortLabelOf(key) {
+  return SHORT_LABELS[key] ?? (labelOf(key) ?? key).slice(0, 2);
+}
+
 /** 空作答：{字段名: null}。界面表单以此为初始状态。 */
 export function emptyAnswers() {
   return Object.fromEntries(QUESTIONS.map((q) => [q.field, null]));
