@@ -19,6 +19,8 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import SurveyForm from './components/SurveyForm.jsx';
 import UploadPanel from './components/UploadPanel.jsx';
 import HubHud from './components/HubHud.jsx';
+import TermPanel, { TermBlock } from './components/TermPanel.jsx';
+import { MonoTag } from './components/TermHead.jsx';
 import IntroScene from './scenes/IntroScene.jsx';
 import MapScene from './scenes/MapScene.jsx';
 import { loadBaseline } from './data/loadSample.js';
@@ -26,6 +28,7 @@ import { useGameStore } from './store/useGameStore.js';
 import { QUESTIONS, vectorOf } from './lib/surveySchema.js';
 import { cleanName } from './lib/text.js';
 import { BRAND } from './lib/theme.js';
+import { monoTag } from './lib/surface.js';
 
 const ReportView = lazy(() => import('./components/ReportView.jsx'));
 const CohortPage = lazy(() => import('./components/CohortPage.jsx'));
@@ -103,6 +106,9 @@ export default function App() {
     return (
       <div className="min-h-full flex flex-col term-enter">
         <HubHud onRestart={restart} />
+        {/* 地图整屏都是深的，所以这里**不加**过渡带 ——
+            过渡带的作用是"深浅相接处化一下"，而这里两侧都是深色，
+            加一条亮线只会在深色里多出一条没有意义的横线。 */}
         <main className="flex-1 w-full">
           {/* 基准数据还没到也不拦着 —— 地图不依赖基准人群，它只写账本 */}
           <MapScene
@@ -120,6 +126,9 @@ export default function App() {
   return (
     <div className="min-h-full flex flex-col term-enter">
       <HubHud onRestart={restart} />
+      {/* 深色 HUD → 浅色正文的过渡带。见 index.css 的 .term-seam 说明：
+          不加它，这条边界就是一条硬切的黑白线。 */}
+      <div className="term-seam" aria-hidden="true" />
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-6 py-12">
         {error ? (
@@ -171,9 +180,23 @@ export default function App() {
       </main>
 
       <footer className="border-t border-[var(--line)] bg-[var(--surface)]">
-        <div className="max-w-5xl mx-auto px-6 py-3 text-xs text-[var(--ink-soft)] leading-5">
-          你的选择与上传的文件只在浏览器里计算；开启大模型解读时，只把算好的百分比与称号发给模型服务来写那段话，
-          其余什么都不发 · 基准人群与示例班级数据为模拟生成，非真实调查结果
+        <div className="max-w-5xl mx-auto px-6 py-4 space-y-2">
+          {/* 两条声明各占一行。原先挤成一行时，"PRIVACY //" 后面跟了 40 多个字，
+              等宽小标的作用就没了 —— 它本来是用来分隔和指路的，
+              被正文淹没之后只剩噪音。 */}
+          <div className="flex gap-3">
+            <MonoTag style={{ minWidth: 76, flexShrink: 0 }}>PRIVACY&nbsp;//</MonoTag>
+            <span className="text-xs text-[var(--ink-soft)] leading-5">
+              你的选择与上传的文件只在浏览器里计算；开启大模型解读时，
+              只把算好的百分比与称号发给模型服务来写那段话，其余什么都不发
+            </span>
+          </div>
+          <div className="flex gap-3">
+            <MonoTag style={{ minWidth: 76, flexShrink: 0 }}>SIMULATED&nbsp;//</MonoTag>
+            <span className="text-xs text-[var(--ink-soft)] leading-5">
+              基准人群与示例班级数据为模拟生成，非真实调查结果
+            </span>
+          </div>
         </div>
       </footer>
     </div>
@@ -182,78 +205,130 @@ export default function App() {
 
 function Welcome({ name, onNameChange, onStart, onMap, onUpload }) {
   return (
-    <div className="max-w-2xl mx-auto py-8 text-center">
-      <h2 className="text-3xl font-semibold tracking-tight leading-snug mb-5">
-        回答 {QUESTIONS.length} 个问题，
-        <br />
-        看看你的大学落在哪一个宇宙
-      </h2>
-
-      <p className="text-base text-[var(--ink-soft)] leading-7 mb-8">
-        不需要账号，不需要上传任何数据。
-        <br />
-        {QUESTIONS.length} 道有画面感的选择题，大约 1 分钟。
-      </p>
-
-      {/* 称呼是选填的。但它值一个输入框：报告里带上名字，
-          那份「这是在说我」的感觉是"你"这个代词给不了的 */}
-      <label className="block mb-6">
-        <span className="sr-only">怎么称呼你</span>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => onNameChange(e.target.value)}
-          maxLength={8}
-          placeholder="怎么称呼你？（选填，比如一个姓）"
-          className="w-56 mx-auto block rounded-lg border border-[var(--line)] bg-[var(--surface)] px-4 py-2.5 text-sm text-center text-[var(--ink)] outline-none transition focus:border-[var(--brand)]"
-        />
-      </label>
-
-      <button
-        type="button"
-        onClick={onStart}
-        className="rounded-xl px-7 py-3.5 text-base text-white transition hover:opacity-90"
-        style={{ background: BRAND }}
-      >
-        开始（{QUESTIONS.length} 题，约 1 分钟）
-      </button>
-
-      {/* 第二条路：地图。摆在旁边而不是收进二级入口，因为它不是"更多选项"，
-          而是完全不同的玩法 —— 问卷是答完就没，地图是可以反复走的。
-          两条路写进同一本账，所以先走哪条都行 */}
-      <div className="mt-4">
-        <button
-          type="button"
-          onClick={onMap}
-          className="term-mono rounded-xl px-6 py-3 text-sm transition-[border-color,color]"
-          style={{
-            border: '1px solid var(--line)',
-            color: 'var(--ink-soft)',
-          }}
-        >
-          ▸ 或者去校园里走走（4 个时段，16 个地方）
-        </button>
+    <div className="max-w-2xl mx-auto py-8">
+      {/* 顶部：把"当前在哪一台机器上"讲出来。
+          这一段在入场里是主角（CAMPUS ARCHIVE // TERMINAL），
+          内容区原先完全没有 —— 于是翻页之后像换了个网站。
+          它不占地方，但是四页之间血缘的关键一环。 */}
+      <div className="flex items-center justify-between mb-10">
+        <MonoTag>CAMPUS&nbsp;ARCHIVE&nbsp;//&nbsp;SESSION&nbsp;READY</MonoTag>
+        <MonoTag tone="cyan">● 基准人群 2000 已载入</MonoTag>
       </div>
 
-      <div className="mt-6 pt-6 border-t border-[var(--line)]">
+      <div className="text-center">
+        <h2 className="text-3xl font-semibold tracking-tight leading-snug mb-5">
+          回答 {QUESTIONS.length} 个问题，
+          <br />
+          看看你的大学落在哪一个宇宙
+        </h2>
+
+        <p className="text-base text-[var(--ink-soft)] leading-7 mb-8">
+          不需要账号，不需要上传任何数据。
+          <br />
+          {QUESTIONS.length} 道有画面感的选择题，大约 1 分钟。
+        </p>
+
+        {/* 称呼是选填的。但它值一个输入框：报告里带上名字，
+            那份「这是在说我」的感觉是"你"这个代词给不了的 */}
+        <label className="block mb-6">
+          <span className="sr-only">怎么称呼你</span>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => onNameChange(e.target.value)}
+            maxLength={8}
+            placeholder="怎么称呼你？（选填，比如一个姓）"
+            className="w-56 mx-auto block border border-[var(--line)] bg-[var(--surface)] px-4 py-2.5 text-sm text-center text-[var(--ink)] outline-none transition focus:border-[var(--brand)]"
+            style={monoTag({ letterSpacing: '0.05em' })}
+          />
+        </label>
+
         <button
           type="button"
-          onClick={onUpload}
-          className="text-sm text-[var(--ink-soft)] underline decoration-dotted hover:text-[var(--ink)] transition"
+          onClick={onStart}
+          className="px-7 py-3.5 text-base text-white transition hover:opacity-90"
+          style={{ background: BRAND }}
         >
-          或者：上传一份班级问卷 CSV，看一个群体的画像 →
+          开始（{QUESTIONS.length} 题，约 1 分钟）
         </button>
+
+        {/* 第二条路：地图。摆在旁边而不是收进二级入口，因为它不是"更多选项"，
+            而是完全不同的玩法 —— 问卷是答完就没，地图是可以反复走的。
+            两条路写进同一本账，所以先走哪条都行 */}
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={onMap}
+            className="px-6 py-3 text-sm transition-[border-color,color]"
+            style={{
+              ...monoTag({ letterSpacing: '0.06em' }),
+              border: '1px solid var(--line)',
+              color: 'var(--ink-soft)',
+            }}
+          >
+            ▸ 或者去校园里走走（4 个时段，16 个地方）
+          </button>
+        </div>
       </div>
 
-      <p className="mt-8 text-sm text-[var(--ink-soft)] leading-7 text-left">
-        答完你会拿到一份只属于你的报告：一张人物雷达图、一份「时间去哪了」、
-        一条四年的心情曲线，以及一段只有你会拿到的话 —— 最后那句话由大模型照着你的数据写。
-        <br />
+      {/* 三条入口的说明：换成切角块，与报告页的卡片同源 */}
+      <div className="mt-10 grid gap-3">
+        <TermBlock>
+          <div className="flex items-start gap-3">
+            <MonoTag tone="amber" style={{ lineHeight: '20px' }}>
+              01
+            </MonoTag>
+            <p className="text-sm text-[var(--ink)] leading-6">
+              <span className="font-medium">快入口</span>
+              <span className="text-[var(--ink-soft)]">
+                　答完 {QUESTIONS.length} 题，拿到一张人物雷达图、一份「时间去哪了」、
+                一条四年心情曲线，以及一段由大模型照着你的数据写的话。
+              </span>
+            </p>
+          </div>
+        </TermBlock>
+
+        <TermBlock>
+          <div className="flex items-start gap-3">
+            <MonoTag tone="amber" style={{ lineHeight: '20px' }}>
+              02
+            </MonoTag>
+            <p className="text-sm text-[var(--ink)] leading-6">
+              <span className="font-medium">行动地图</span>
+              <span className="text-[var(--ink-soft)]">
+                　不答题也能出档案。一天 4 个时段、16 个地方，去过的会衰减 ——
+                所以"去哪"这件事是有后果的。
+              </span>
+            </p>
+          </div>
+        </TermBlock>
+
+        <TermBlock>
+          <button
+            type="button"
+            onClick={onUpload}
+            className="w-full text-left flex items-start gap-3 group"
+          >
+            <MonoTag tone="amber" style={{ lineHeight: '20px' }}>
+              03
+            </MonoTag>
+            <p className="text-sm text-[var(--ink)] leading-6">
+              <span className="font-medium">真入口</span>
+              <span className="text-[var(--ink-soft)]">
+                　手上有已经收集好的问卷，就上传一份班级 CSV，
+                看这个群体的分布，以及班里跟谁和你最像。
+              </span>
+              <span className="block mt-1 text-xs text-[var(--ink-soft)] group-hover:text-[var(--ink)] transition-colors">
+                上传一份班级问卷 CSV →
+              </span>
+            </p>
+          </button>
+        </TermBlock>
+      </div>
+
+      <p className="mt-6 text-xs text-[var(--ink-soft)] leading-6">
         你的每一题都会同时影响 8 个属性，再与 2000 人基准人群比对 ——
         所以不同的人答完，结果是真的不一样。
-        <br />
-        如果你手上有一批已经收集好的问卷，走真入口可以看这个群体的分布，
-        以及班里跟谁和你最像。
       </p>
     </div>
   );

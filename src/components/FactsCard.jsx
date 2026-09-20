@@ -13,29 +13,40 @@
  */
 
 import { BRAND } from '../lib/theme.js';
+import TermPanel from './TermPanel.jsx';
+import { monoTag } from '../lib/surface.js';
 
 export default function FactsCard({ facts }) {
   return (
     <ul className="space-y-3">
-      {facts.lines.map((line) => (
-        <li
-          key={line.key}
-          className="flex gap-3 rounded-xl bg-[var(--surface)] border border-[var(--line)] px-4 py-3.5"
-        >
-          <span
-            className="shrink-0 mt-2 w-1.5 h-1.5 rounded-full"
-            style={{ background: BRAND }}
-          />
-          <p className="text-sm leading-6 text-[var(--ink)]">
-            <span className="text-[var(--ink-soft)]">在「{line.label}」上，你</span>
-            <span className="text-[var(--ink-soft)]">{line.high ? '超过' : '低于'}</span>
-            <span className="font-semibold tabular-nums" style={{ color: BRAND }}>
-              {line.high ? line.pct : 100 - line.pct}%
-            </span>
-            <span className="text-[var(--ink-soft)]">的大学生</span>
-            <span className="text-[var(--ink-soft)]"> —— </span>
-            {line.copy}
-          </p>
+      {facts.lines.map((line, i) => (
+        <li key={line.key}>
+          {/* 与欢迎页的三条入口、报告页的其它块同一种容器 ——
+              切角面板是内容区的基本单位，这里不再另创一种卡片 */}
+          <TermPanel hoverable style={{ padding: '14px 16px' }} className="group">
+            <div className="flex gap-3">
+              <span
+                className="shrink-0"
+                style={{
+                  ...monoTag({ fontSize: 11 }),
+                  color: 'var(--ink-soft)',
+                  lineHeight: '22px',
+                }}
+              >
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <p className="text-sm leading-6 text-[var(--ink)]">
+                <span className="text-[var(--ink-soft)]">在「{line.label}」上，你</span>
+                <span className="text-[var(--ink-soft)]">{line.high ? '超过' : '低于'}</span>
+                <span className="font-semibold tabular-nums" style={{ color: BRAND }}>
+                  {line.high ? line.pct : 100 - line.pct}%
+                </span>
+                <span className="text-[var(--ink-soft)]">的大学生</span>
+                <span className="text-[var(--ink-soft)]"> —— </span>
+                {line.copy}
+              </p>
+            </div>
+          </TermPanel>
         </li>
       ))}
     </ul>

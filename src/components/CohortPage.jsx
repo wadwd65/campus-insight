@@ -16,6 +16,9 @@ import Chart from './Chart.jsx';
 import RadarChart from './RadarChart.jsx';
 import { buildCohort, cohortHeadline } from '../lib/cohort.js';
 import { BRAND, INK_SOFT, FONT, AXIS_LABEL_STYLE } from '../lib/theme.js';
+import TermPanel from './TermPanel.jsx';
+import { MonoTag, SectionHead } from './TermHead.jsx';
+import { TERM_INK, monoTag, sectionIndex } from '../lib/surface.js';
 
 export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, onRestart }) {
   const cohort = useMemo(
@@ -26,13 +29,23 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
 
   return (
     <div className="max-w-2xl mx-auto">
+      {/* 状态行 —— 与报告页的 `REPORT // GENERATED` 同句式，让"这是另一份档案"一眼成立 */}
+      <div className="flex items-baseline justify-between gap-3 mb-6">
+        <MonoTag>COHORT // COMPUTED</MonoTag>
+        <MonoTag>{cohort.size} 人 · 5 维</MonoTag>
+      </div>
+
       <div className="mb-10">
-        <p className="text-xs tracking-widest text-[var(--ink-soft)] mb-3">群体画像</p>
-        <h1 className="text-2xl font-semibold tracking-tight leading-snug mb-4">
-          {cohort.size} 个人的大学，落在这些位置
-        </h1>
+        <SectionHead
+          index={1}
+          title={`${cohort.size} 个人的大学，落在这些位置`}
+          hint="结论优先 —— 下面这句可以直接念出来"
+        />
         {headline && (
-          <p className="text-base leading-7 text-[var(--ink)]" style={{ borderLeft: `3px solid ${BRAND}`, paddingLeft: '0.9rem' }}>
+          <p
+            className="text-base leading-7 text-[var(--ink)] mt-3"
+            style={{ borderLeft: `2px solid ${TERM_INK.cyan}`, paddingLeft: '0.9rem' }}
+          >
             {headline}
           </p>
         )}
@@ -40,8 +53,9 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
 
       <div className="space-y-12">
         <Section
+          n={2}
           title="这个班的位置"
-          hint="实线是班里每个人的百分位的**中位数**；虚线圈是全体大学生 50% 的位置。同标尺，可以直接和快入口的报告对比"
+          hint="实线是班里每个人的百分位的中位数；虚线圈是全体大学生 50% 的位置。同标尺，可以直接和快入口的报告对比"
         >
           <RadarChart
             data={cohort.axes.map((a) => ({ key: a.key, axis: a.axis, value: a.median }))}
@@ -63,7 +77,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
           </ul>
         </Section>
 
-        <Section title="这个班分成几类" hint="按每个人最突出的那一维归组，一个人只会进一个组">
+        <Section n={3} title="这个班分成几类" hint="按每个人最突出的那一维归组，一个人只会进一个组">
           <GroupBars groups={cohort.groups} size={cohort.size} />
           <ul className="mt-3 space-y-1">
             {cohort.groups.map((g) => (
@@ -75,42 +89,41 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
           </ul>
         </Section>
 
-        <Section title="班里和你最像的人" hint="按九维属性算距离。需要一个『你』做参照">
+        <Section n={4} title="班里和你最像的人" hint="按九维属性算距离。需要一个『你』做参照">
           {cohort.similar ? (
             <div className="space-y-2">
               {cohort.similar.top.map((s, i) => (
-                <div
-                  key={s.id}
-                  className="flex items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface)] px-4 py-3"
-                >
-                  <span className="text-xs text-[var(--ink-soft)] tabular-nums w-4">{i + 1}</span>
-                  <span className="text-sm text-[var(--ink)] flex-1">{s.id}</span>
-                  <span className="text-xs text-[var(--ink-soft)]">{s.groupName}</span>
-                  <span className="text-xs font-medium" style={{ color: BRAND }}>
-                    {s.level}
-                  </span>
-                </div>
+                <TermPanel key={s.id} hoverable style={{ padding: '12px 16px' }}>
+                  <div className="flex items-center gap-3">
+                    <span style={monoTag({ color: 'var(--ink-soft)', fontSize: 11 })}>{sectionIndex(i + 1)}</span>
+                    <span className="text-sm text-[var(--ink)] flex-1">{s.id}</span>
+                    <span className="text-xs text-[var(--ink-soft)]">{s.groupName}</span>
+                    <span className="text-xs font-medium" style={{ color: BRAND }}>
+                      {s.level}
+                    </span>
+                  </div>
+                </TermPanel>
               ))}
               <p className="text-xs text-[var(--ink-soft)] pt-1">
                 你自己的类型是「{cohort.similar.mineGroup}」那一种。
               </p>
             </div>
           ) : (
-            <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-4">
+            <TermPanel style={{ padding: '18px 20px' }}>
               <p className="text-sm text-[var(--ink)] leading-6 mb-3">
                 要先有一份「你的」作答，才能算出谁和你最像 —— 这也正是两个入口的交点：
                 <br />
-                六个选择题，答案会和班里每个人的答案逐一对上距离。
+                十个选择题，答案会和班里每个人的答案逐一对上距离。
               </p>
               <button
                 type="button"
                 onClick={onGoQuiz}
-                className="rounded-lg px-4 py-2 text-sm text-white transition hover:opacity-90"
+                className="px-4 py-2 text-sm text-white transition hover:opacity-90"
                 style={{ background: BRAND }}
               >
                 先答完一轮，再回来看
               </button>
-            </div>
+            </TermPanel>
           )}
         </Section>
 
@@ -138,7 +151,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
         <button
           type="button"
           onClick={onRestart}
-          className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm text-[var(--ink)] transition hover:border-slate-300"
+          className="border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm text-[var(--ink)] transition hover:border-slate-300"
         >
           回到首页
         </button>
@@ -150,11 +163,10 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
   );
 }
 
-function Section({ title, hint, children }) {
+function Section({ n, title, hint, children }) {
   return (
     <section>
-      <h3 className="text-base font-medium text-[var(--ink)] mb-1">{title}</h3>
-      {hint ? <p className="text-xs text-[var(--ink-soft)] mb-4 leading-5">{hint}</p> : <div className="mb-4" />}
+      <SectionHead index={n} title={title} hint={hint} />
       {children}
     </section>
   );

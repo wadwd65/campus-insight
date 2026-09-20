@@ -19,6 +19,7 @@
 import { useEffect, useState } from 'react';
 import { streamSummary, llmStatus } from '../lib/llm.js';
 import { fallbackText } from '../lib/fallback.js';
+import TermPanel from './TermPanel.jsx';
 
 const REASON_TEXT = {
   'not-configured': '页面没有配置大模型接口，这里是内置文案',
@@ -97,7 +98,7 @@ export default function AiSummary({ report, name = '', onText }) {
   const status = llmStatus();
 
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-5">
+    <TermPanel style={{ padding: '20px 22px' }}>
       {paragraphs.length === 0 ? (
         <p className="text-sm text-[var(--ink-soft)] flex items-center gap-2">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
@@ -134,6 +135,6 @@ export default function AiSummary({ report, name = '', onText }) {
           </button>
         )}
       </div>
-    </div>
+    </TermPanel>
   );
 }

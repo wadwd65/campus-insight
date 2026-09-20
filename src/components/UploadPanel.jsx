@@ -25,6 +25,8 @@ import { parseCsvText } from '../lib/parseCsv.js';
 import { cleanSurveyRows } from '../lib/surveyClean.js';
 import { REQUIRED_COLUMNS } from '../lib/surveySchema.js';
 import { BRAND } from '../lib/theme.js';
+import TermPanel from './TermPanel.jsx';
+import { MonoTag, SectionHead } from './TermHead.jsx';
 
 const SAMPLE_FILE = '示例-班级问卷.csv';
 
@@ -98,12 +100,22 @@ export default function UploadPanel({ onReady }) {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h2 className="text-2xl font-semibold tracking-tight mb-2">看一个班的分布</h2>
-      <p className="text-sm text-[var(--ink-soft)] leading-6 mb-6">
-        上传一份问卷结果 CSV（每人一行、每道题的作答），就能看到这个群体的画像：
-        五维位置、类型分布、以及班里和你最像的人。
-        <br />
-        列名需要是：{REQUIRED_COLUMNS.join(' / ')}（顺序可以不同，多出的列会被忽略）。
+      {/* 状态行 —— 与问卷页、报告页同一句式（大写动作 + // + 状态），
+          三页连起来看才是一条线，而不是三个互不相干的页面 */}
+      <div className="flex items-baseline justify-between gap-3 mb-6">
+        <MonoTag>COLLECTING // UPLOAD</MonoTag>
+        <MonoTag>CSV · 逐行校验</MonoTag>
+      </div>
+
+      <SectionHead
+        index={1}
+        title="看一个班的分布"
+        hint="上传一份问卷结果 CSV（每人一行、每道题的作答），就能看到这个群体的画像：五维位置、类型分布、以及班里和你最像的人。"
+      />
+
+      <p className="text-xs text-[var(--ink-soft)] leading-5 mb-6">
+        列名需要是：<span style={{ fontFamily: 'ui-monospace, Consolas, monospace' }}>{REQUIRED_COLUMNS.join(' / ')}</span>
+        （顺序可以不同，多出的列会被忽略）。
       </p>
 
       {!result && (
@@ -120,7 +132,7 @@ export default function UploadPanel({ onReady }) {
               readFile(e.dataTransfer?.files?.[0]);
             }}
             className={[
-              'rounded-xl border-2 border-dashed px-6 py-12 text-center transition',
+              'border-2 border-dashed px-6 py-12 text-center transition',
               dragging ? 'border-[var(--brand)] bg-slate-50' : 'border-[var(--line)]',
             ].join(' ')}
           >
@@ -132,7 +144,7 @@ export default function UploadPanel({ onReady }) {
               type="button"
               disabled={busy}
               onClick={() => inputRef.current?.click()}
-              className="rounded-lg px-4 py-2 text-sm text-white transition hover:opacity-90 disabled:opacity-50"
+              className="px-4 py-2 text-sm text-white transition hover:opacity-90 disabled:opacity-50"
               style={{ background: BRAND }}
             >
               选择文件
@@ -164,7 +176,7 @@ export default function UploadPanel({ onReady }) {
       )}
 
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50/60 px-5 py-4">
+        <TermPanel className="mt-6" style={{ padding: '16px 20px', borderColor: '#fecaca' }}>
           <p className="text-sm font-medium text-red-900 mb-1">{error.title}</p>
           <p className="text-sm text-red-800/90 leading-6">{error.message}</p>
           <button
@@ -174,7 +186,7 @@ export default function UploadPanel({ onReady }) {
           >
             换一个文件
           </button>
-        </div>
+        </TermPanel>
       )}
 
       {result && (
@@ -193,9 +205,9 @@ function ResultCard({ result, onConfirm, onReset }) {
   const dropped = report.droppedCount;
 
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-5 py-5">
-      <p className="text-xs text-[var(--ink-soft)] mb-1">{fileName}</p>
-      <p className="text-base text-[var(--ink)] mb-1">
+    <TermPanel style={{ padding: '20px 22px' }}>
+      <MonoTag>{fileName}</MonoTag>
+      <p className="text-base text-[var(--ink)] mt-2 mb-1">
         读入 <strong className="tabular-nums">{report.inputCount}</strong> 条，
         可用 <strong className="tabular-nums">{records.length}</strong> 条
         {dropped > 0 && <>（剔除 {dropped} 条）</>}
@@ -227,7 +239,7 @@ function ResultCard({ result, onConfirm, onReset }) {
         <button
           type="button"
           onClick={onConfirm}
-          className="rounded-lg px-4 py-2 text-sm text-white transition hover:opacity-90"
+          className="px-4 py-2 text-sm text-white transition hover:opacity-90"
           style={{ background: BRAND }}
         >
           看这个班的画像
@@ -240,6 +252,6 @@ function ResultCard({ result, onConfirm, onReset }) {
           换一个文件
         </button>
       </div>
-    </div>
+    </TermPanel>
   );
 }
