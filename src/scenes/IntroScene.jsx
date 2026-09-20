@@ -167,18 +167,23 @@ export default function IntroScene() {
 
       {/* ── 文字可读底衬 ──
           压在场景之上、文字之下。没有它，浅色雾景上的标题读不清 ——
-          这是实测截图看出来的，不是理论上该有的。见 index.css 的注释。 */}
+          这是实测截图看出来的，不是理论上该有的。见 index.css 的注释。
+          两层分工：.intro-scrim 管整块中心（保住通透感），
+          .intro-title-scrim 只管标题那一横条（治"字被前景藤蔓穿过"）。 */}
       <div className="intro-scrim" aria-hidden="true" />
+      <div className="intro-title-scrim" aria-hidden="true" />
       <div className="intro-scrim-cta" aria-hidden="true" />
 
-      {/* ── 顶栏：像终端的状态条，不是导航 ── */}
+      {/* ── 顶栏：像终端的状态条，不是导航 ──
+          同样按量化结果处理：原用 inkFaint，11px 小字在雾景上不够。
+          顶栏压在画面最上沿（那里恰好是天空最亮的区域），更不能淡。 */}
       <div
         className="term-rise relative z-10 flex items-center justify-between px-6 py-5 text-[11px] term-mono"
-        style={{ color: LIGHT.inkFaint, ...at(INTRO_TIMING.scene + 1500) }}
+        style={{ color: LIGHT.inkSoft, ...at(INTRO_TIMING.scene + 1500) }}
       >
         <span>CAMPUS&nbsp;ARCHIVE&nbsp;//&nbsp;TERMINAL&nbsp;v3</span>
         <span className="hidden sm:inline">基准人群 2000 · 已就绪</span>
-        <span style={{ color: LIGHT.inkSoft }}>●&nbsp;ONLINE</span>
+        <span style={{ color: LIGHT.ink }}>●&nbsp;ONLINE</span>
       </div>
 
       {/* ── 中央 ──
@@ -206,17 +211,23 @@ export default function IntroScene() {
         </h1>
 
         <p
-          className="intro-line mt-6 text-sm sm:text-base leading-8 max-w-md"
-          style={{ color: LIGHT.inkSoft, ...at(INTRO_TIMING.subtitle) }}
+          className="intro-line intro-subtle mt-6 text-sm sm:text-base leading-8 max-w-md"
+          style={{ color: LIGHT.ink, ...at(INTRO_TIMING.subtitle) }}
         >
           {QUESTIONS.length} 道题，决定了你在哪一层宇宙
           <br />
           两千个人的数据在这里等着和你的答案对上
         </p>
 
+        {/* 底部 meta：11px 小字。
+            ⚠️ 实测数据：用 LIGHT.inkFaint(#5c5578) 时对比度只有 **1.82:1**，
+            远低于小字该有的 4.5:1（对比度是像素级量出来的，不是看着调的，
+            见 .workbuddy-gen/contrast.py）。11px 的字抗锯齿本身就吃掉一部分
+            笔画，色值必须比同屏的大字更深才等价。
+            改用 inkSoft(#4a4463) 并把字重提到 500 —— 两处一起改才够。 */}
         <p
-          className="intro-line term-mono mt-9 text-[11px] leading-6"
-          style={{ color: LIGHT.inkFaint, ...at(INTRO_TIMING.meta) }}
+          className="intro-line intro-subtle term-mono mt-9 text-[11px] leading-6"
+          style={{ color: LIGHT.inkSoft, fontWeight: 500, ...at(INTRO_TIMING.meta) }}
         >
           零准备 · 不上传任何数据 · 约 1 分钟
         </p>
@@ -242,7 +253,7 @@ export default function IntroScene() {
         >
           <span className="relative z-10 tracking-[0.25em]">进入终端</span>
         </button>
-        <span className="term-mono text-[10px]" style={{ color: LIGHT.inkFaint }}>
+        <span className="term-mono text-[10px]" style={{ color: LIGHT.inkSoft }}>
           或按 Enter
         </span>
       </div>
