@@ -138,7 +138,90 @@ button {
   pointer-events: none;
 }
 
-/* 上行光点：每个点自带不同的延时与时长，看不出同一节拍 */
+/* ── 入场动画的四层视差 ──────────────────────────────────────────
+   参考站（Arcaea 复刻）整段入场**没有一处硬切**，全是长时间缓变：
+   推镜、雾团漂移、光带明灭、粒子悬浮各走各的速度。
+   四层从远到近依次是：雾团 → 几何剪影 → 光带 → 光点。
+
+   两点纪律：
+     1. 全部只用 transform / opacity，不碰会触发重排的属性；
+     2. 时长远大于"界面动画"的常规值（20s 起步）。
+        入场动画和交互动画是两种东西 —— 交互动画要快（0.2~0.3s），
+        氛围动画要慢到"看不出它在动"。用交互动画的时长做氛围，会得到抖动。 */
+
+/* 推镜容器：整屏极慢放大 + 轻微上移，是"镜头在动"的唯一来源。
+   所有装饰层都挂在这上面，于是它们自动共享同一个镜头运动。 */
+.intro-push {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 58%;
+  animation: intro-push 26s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
+  will-change: transform;
+}
+
+@keyframes intro-push {
+  from { transform: scale(1) translateY(0); }
+  to { transform: scale(1.08) translateY(-2.2%); }
+}
+
+/* 雾团：几块大范围的低透明度径向渐变，各自缓慢横向漂移。
+   没有它，深色底就是纯黑，推镜也看不出来（黑背景放大还是黑）。 */
+.intro-sky {
+  position: absolute;
+  inset: -12%;
+  pointer-events: none;
+}
+
+.intro-sky span {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(60px);
+  animation: intro-sky-drift 34s ease-in-out infinite alternate;
+}
+
+@keyframes intro-sky-drift {
+  from { transform: translate3d(-2%, 0, 0) scale(1); }
+  to { transform: translate3d(3%, -2%, 0) scale(1.12); }
+}
+
+/* 中景剪影：几何色块拼出的"地平线之外还有东西"。
+   用 clip-path 切掉底边一角，读起来像建筑而不是色块。 */
+.intro-ridge {
+  position: absolute;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(79, 168, 216, 0.16), transparent 78%);
+  clip-path: polygon(0 18%, 12% 4%, 28% 14%, 46% 0, 62% 12%, 80% 3%, 100% 20%, 100% 100%, 0 100%);
+  pointer-events: none;
+}
+
+/* 前景光带：一排竖直光柱，各自极慢地明灭。
+   高度与位置在 JS 里按确定性随机散开（见 src/lib/introLayers.js）。
+
+   关键是 **blur(0.5px)** 与**两端渐隐**：
+   不带模糊、两端不收的竖线，无论多细都读成"栅栏"；
+   加上这两样，同样的元素数才会读成"光"。 */
+.intro-shaft {
+  position: absolute;
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--term-cyan) 28%,
+    var(--term-cyan) 72%,
+    transparent
+  );
+  filter: blur(0.5px);
+  animation: intro-shaft-glow ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes intro-shaft-glow {
+  0%, 100% { transform: scaleY(0.68); opacity: 0.3; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+/* 上行光点：每个点自带不同的延时与时长，看不出同一节拍。
+   `--sway` 由组件按层写进来，让每个点有各自的横向漂移幅度。 */
 .term-dot {
   position: absolute;
   border-radius: 999px;
@@ -149,10 +232,23 @@ button {
 }
 
 @keyframes term-drift {
-  0% { opacity: 0; transform: translateY(0); }
-  12% { opacity: 0.75; }
-  88% { opacity: 0.75; }
-  100% { opacity: 0; transform: translateY(-72vh); }
+  0% { opacity: 0; transform: translate3d(0, 0, 0); }
+  12% { opacity: var(--dot-peak, 0.75); }
+  88% { opacity: var(--dot-peak, 0.75); }
+  100% { opacity: 0; transform: translate3d(var(--sway, 0px), -72vh, 0); }
+}
+
+/* 层的整体淡入：四层各自在不同的时刻亮起（由远及近）。
+   和 .term-rise 分开，是因为这个要**慢**：2.4s 才淡到位，
+   而 .term-rise 是 0.3s 的"啪"地就位。两种节奏不能共用一个类。 */
+.intro-fade {
+  opacity: 0;
+  animation: intro-fade 2.4s ease-out both;
+}
+
+@keyframes intro-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* 切角面板。注意：clip-path 会把 border-radius 裁掉，
@@ -228,9 +324,43 @@ button {
   to { opacity: 1; transform: none; }
 }
 
+/* 中央纹章的缓慢旋转外环：比呼吸更"远"，让中心有一个持续运动的锚点。
+   24s 一圈 —— 慢到第一眼看不出来，但盯着看它是活的。 */
+.term-orbit {
+  animation: term-orbit 24s linear infinite;
+  transform-origin: 60px 60px;
+}
+
+@keyframes term-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 「进入」那一处：参考站把它放在**左下角**而不是正中（正中留给纹章），
+   并配大字 + 一小行 `Click to Enter`。这个位置关系不是随意的 ——
+   正中一旦有按钮，整屏就变成"一个等待操作的对话框"，
+   而不是"一整片环境，你随时可以走进去"。 */
+.intro-enter {
+  position: absolute;
+  left: 2.5rem;
+  bottom: 3rem;
+  z-index: 20;
+}
+
+@media (max-width: 767px) {
+  /* 窄屏没有立绘让位，左下角会显得空悬，改回居中排列 */
+  .intro-enter {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    margin: 0 auto 2.5rem;
+    align-items: center;
+  }
+}
+
 /* 减少动效：把入场元素直接置为终态，并把延迟清零。
    只把 animation-duration 压到 0.01ms 是不够的 —— animation-delay 还在，
-   元素会先空白等着（最长 1.78 秒），比不动更难受。
+   元素会先空白等着（最长 2 秒），比不动更难受。
    .term-breathe 同理：给一个固定的中间透明度即可。 */
 @media (prefers-reduced-motion: reduce) {
   .term-rise {
@@ -246,5 +376,22 @@ button {
     animation: none;
     opacity: 1;
     transform: none;
+  }
+  /* 四层视差一次性全部就位：不留推镜、不留漂移、不留明灭。
+     这里同时把 will-change 收回 —— 静止的图层不该继续占着合成层。 */
+  .intro-push,
+  .intro-sky span,
+  .intro-ridge,
+  .intro-shaft,
+  .intro-fade,
+  .term-orbit {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    will-change: auto;
+  }
+  .term-dot {
+    animation: none;
+    opacity: 0;
   }
 }
