@@ -19,6 +19,7 @@ import { useGameStore } from '../store/useGameStore.js';
 import { ZONES, placesInZone } from '../data/mapPlaces.js';
 import { mapModel, nextDelta, DECAY_LIMIT } from '../lib/mapEngine.js';
 import { summarizeAttributes, signed } from '../lib/hudModel.js';
+import EntryDock from '../components/EntryDock.jsx';
 // 题数从契约取 —— 题库从 6 扩到 10 题时，写死过的地方全都成了谎话
 import { QUESTIONS, shortLabelOf } from '../lib/surveySchema.js';
 
@@ -145,7 +146,7 @@ function SlotBar({ slots, total }) {
   );
 }
 
-export default function MapScene({ onGoReport, onGoQuiz }) {
+export default function MapScene({ onGoReport, onGoQuiz, onUpload }) {
   const player = useGameStore((s) => s.player);
   const applyChoice = useGameStore((s) => s.applyChoice);
   const resetPlayer = useGameStore((s) => s.resetPlayer);
@@ -307,42 +308,28 @@ export default function MapScene({ onGoReport, onGoQuiz }) {
               )}
             </div>
 
-            {/* 出口 */}
-            <div className="flex flex-col gap-2">
+            {/* ── 功能入口坞 ──
+                答题从"主入口"降成这里的 02 号。
+                见 EntryDock.jsx 顶部的说明：地图是可反复的主体，
+                答题是一次性的功能点，不该当门。
+                坞里 01（生成档案）的状态跟地图走，03（上传）是独立入口。 */}
+            <EntryDock
+              canReport={hud.started}
+              onGoReport={onGoReport}
+              onGoQuiz={onGoQuiz}
+              onUpload={onUpload}
+            />
+
+            {model.totalTrips > 0 && (
               <button
                 type="button"
-                onClick={onGoReport}
-                disabled={!hud.started}
-                className="term-mono text-[11px] py-2.5 transition-[border-color,color]"
-                style={{
-                  border: `1px solid ${hud.started ? '#4fa8d8' : 'var(--term-line)'}`,
-                  color: hud.started ? '#4fa8d8' : '#5d6b7a',
-                  cursor: hud.started ? 'pointer' : 'not-allowed',
-                }}
+                onClick={resetPlayer}
+                className="term-mono text-[10px] py-1.5 w-full"
+                style={{ color: '#5d6b7a' }}
               >
-                用这段经历生成档案 →
+                清空重来
               </button>
-              {!hud.started && (
-                <button
-                  type="button"
-                  onClick={onGoQuiz}
-                  className="term-mono text-[11px] py-2.5 transition-colors"
-                  style={{ border: '1px solid var(--term-line)', color: 'var(--term-ink-soft)' }}
-                >
-                  或者，先答 {QUESTIONS.length} 题
-                </button>
-              )}
-              {model.totalTrips > 0 && (
-                <button
-                  type="button"
-                  onClick={resetPlayer}
-                  className="term-mono text-[10px] py-1.5"
-                  style={{ color: '#5d6b7a' }}
-                >
-                  清空重来
-                </button>
-              )}
-            </div>
+            )}
 
             <p className="text-[10px] leading-relaxed" style={{ color: '#5d6b7a' }}>
               同一地点最多计 {DECAY_LIMIT} 次增量。这就是为什么"去哪"比"去几次"更重要。

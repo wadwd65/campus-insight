@@ -1,25 +1,41 @@
 /**
- * 应用外壳：入场 → （主站）欢迎 → 答题 → 结果 ／ 欢迎 → 上传 → 群体画像。
+ * 应用外壳。
  *
- * 四条刻意的安排：
- *   1. **带 ECharts 的两页单独分包**（结果页、群体画像页）。欢迎页与答题页一行图表都用不到，
- *      首屏因此只剩 React + 表单 —— 评委点开链接的第一眼不该在等图表库下载。
- *      （入场动画同样遵守这条：它用 CSS 排版，不引动画库，理由见 IntroScene.jsx 顶部。）
- *   2. **基准数据进页面就开始加载**（不等用户点「进入」）。看入场动画的这几秒里它早就准备好了，
- *      出结果不该让人等。真入口也用它，所以基准只下载一次。
- *   3. **两个入口共用 `answers`**。在真入口里点「先答一轮」，答完会**回到群体画像**而不是
- *      跳去个人报告 —— 用户的目标是"看谁和我最像"，不该被带走。
- *      这也顺手让两个入口有了一处真正的交点，而不只是并列的两条路。
+ * ── 2026-09-20 改版：地图升为主界面，答题降为子入口 ─────────────────
+ *
+ * 改版前是「入场 → Welcome（正中一个大蓝按钮「开始 10 题」）→ 答题 → 结果」。
+ * 那个结构把**答题当成了门**，地图反而是旁边一条次按钮。
+ * 用户指出来这是反的：「**地图是第一界面，答题是他的子端口，而不是主端口**」。
+ *
+ * 理由站得住：地图是可反复走的、有空间感的、有即时反馈的；
+ * 答题是一次性的。可反复的那个才该是家，一次性的那个该是家中的一个功能。
+ *
+ * 新结构：
+ *   入场 → 地图（默认界面，深色场景层）
+ *          ├─ 01 生成档案（走过地方之后可用）→ 报告
+ *          ├─ 02 答 10 题 → 答题入口面板 → 问卷 → 报告
+ *          └─ 03 上传班级 CSV → 群体画像
+ *
+ * 另外新加了 `gate` 这一站（答题入口面板）——
+ * 点「答 10 题」不再直接落到第一题。见 QuizGate.jsx 的说明。
+ *
+ * 四条沿用至今的安排：
+ *   1. **带 ECharts 的两页单独分包**（结果页、群体画像页）。首屏因此只剩
+ *      React + 表单 —— 评委点开链接的第一眼不该在等图表库下载。
+ *   2. **基准数据进页面就开始加载**（不等用户点「进入」）。看入场动画的这几秒里
+ *      它早就准备好了，出结果不该让人等。真入口也用它，所以基准只下载一次。
+ *   3. **两个入口共用 `answers`**。在真入口里点「先答一轮」，答完会**回到群体画像**
+ *      而不是跳去个人报告 —— 用户的目标是"看谁和我最像"，不该被带走。
  *   4. **答题结果同时写进终端账本**（useGameStore）。问卷的每道题本来就带 8 维增量向量，
- *      是现成的真实数据源；写进去之后，顶部 HUD 立刻有数据可看，
+ *      是现成的真实数据源；写进去之后 HUD 立刻有数据可看，
  *      而且"问卷"和"地图"从此进的是同一本账 —— 档案页不必关心数据从哪来。
  */
 
 import { lazy, Suspense, useEffect, useState } from 'react';
 import SurveyForm from './components/SurveyForm.jsx';
 import UploadPanel from './components/UploadPanel.jsx';
+import QuizGate from './components/QuizGate.jsx';
 import HubHud from './components/HubHud.jsx';
-import TermPanel, { TermBlock } from './components/TermPanel.jsx';
 import { MonoTag } from './components/TermHead.jsx';
 import IntroScene from './scenes/IntroScene.jsx';
 import MapScene from './scenes/MapScene.jsx';
@@ -27,8 +43,6 @@ import { loadBaseline } from './data/loadSample.js';
 import { useGameStore } from './store/useGameStore.js';
 import { QUESTIONS, vectorOf } from './lib/surveySchema.js';
 import { cleanName } from './lib/text.js';
-import { BRAND } from './lib/theme.js';
-import { monoTag } from './lib/surface.js';
 
 const ReportView = lazy(() => import('./components/ReportView.jsx'));
 const CohortPage = lazy(() => import('./components/CohortPage.jsx'));
@@ -38,7 +52,10 @@ export default function App() {
   const applyChoice = useGameStore((s) => s.applyChoice);
   const resetPlayer = useGameStore((s) => s.resetPlayer);
 
-  const [stage, setStage] = useState('welcome'); // welcome | quiz | report | upload | cohort | map
+  // ★ 默认就是地图。这是本次改版的核心一行 ——
+  // 改版前这里写的是 'welcome'，于是答题成了门。
+  // map | gate | quiz | report | upload | cohort
+  const [stage, setStage] = useState('map');
   const [baseline, setBaseline] = useState(null);
   const [answers, setAnswers] = useState(null);
   const [cohort, setCohort] = useState(null); // 真入口最近一次上传的可用记录
@@ -68,11 +85,23 @@ export default function App() {
     };
   }, []);
 
+  // ★ 回到地图 —— 这是全站的"回首页"。
+  // 注意它**不清空账本**（restart 才清）：从报告页按返回、从上传页按返回，
+  // 玩家走过的地方应该还在，否则"回去再走一段"这件事就没法做了。
+  function backToMap() {
+    setFromCohort(false);
+    setStage('map');
+  }
+
+  // 彻底重来：清账本、清作答、回地图。
+  // 它对应 HUD 上的「重来」——那是"我不想保留这一轮了"，语义与 backToMap 不同。
   function restart() {
+    resetPlayer();
     setAnswers(null);
     setFromCohort(false);
     setMapRun(false);
-    setStage('welcome');
+    setName('');
+    setStage('map');
   }
 
   function finishQuiz(a) {
@@ -95,13 +124,13 @@ export default function App() {
     }
   }
 
-  // 入场场景独立成屏：它是深色的、不依赖基准数据，不该被上面的加载态卡住。
+  // 入场场景独立成屏：它不依赖基准数据，也不依赖账本，不该被上面的加载态卡住。
   if (scene === 'intro') return <IntroScene />;
 
-  // 地图同样独立成屏 —— 理由与入场同源：它是**场景层**（深色满宽），
-  // 而下面那个 main 是浅色内容容器（max-w-5xl + 白底内边距）。
-  // 把地图塞进内容容器，会得到"浅色页面里嵌一块深色"，也就是这个项目
-  // 一直在避免的拼接感。两个场景层各自成屏，"两条不混在同一屏里"这条边界才守得住。
+  // ── 场景层：地图 ──
+  // 它是**深色满宽**的仪表盘，不该塞进下面那个浅色内容容器
+  // （max-w-5xl + 白底内边距）里 —— 那样会得到"浅色页面里嵌一块深色"，
+  // 也就是这个项目一直在避免的拼接感。
   if (stage === 'map') {
     return (
       <div className="min-h-full flex flex-col term-enter">
@@ -116,7 +145,8 @@ export default function App() {
               setMapRun(true);
               setStage('report');
             }}
-            onGoQuiz={() => setStage('quiz')}
+            onGoQuiz={() => setStage('gate')}
+            onUpload={() => setStage('upload')}
           />
         </main>
       </div>
@@ -135,8 +165,12 @@ export default function App() {
           <ErrorBlock message={error} />
         ) : !baseline ? (
           <Hint text="正在加载基准人群数据…" />
+        ) : stage === 'gate' ? (
+          /* 答题入口面板：点「答 10 题」不再直接落到第一题。
+             用户原话「答题应该是一个功能，而不是点进去就是答题」。 */
+          <QuizGate onStart={() => setStage('quiz')} onBack={backToMap} />
         ) : stage === 'quiz' ? (
-          <SurveyForm onComplete={finishQuiz} onCancel={restart} />
+          <SurveyForm onComplete={finishQuiz} onCancel={() => setStage('gate')} />
         ) : stage === 'report' && (answers || mapRun) ? (
           <Suspense fallback={<Hint text="正在生成你的报告…" />}>
             <ReportView
@@ -146,6 +180,7 @@ export default function App() {
               baseline={baseline}
               name={name}
               onRestart={restart}
+              onBackToMap={backToMap}
             />
           </Suspense>
         ) : stage === 'upload' ? (
@@ -154,6 +189,7 @@ export default function App() {
               setCohort(r.records);
               setStage('cohort');
             }}
+            onBack={backToMap}
           />
         ) : stage === 'cohort' && cohort ? (
           <Suspense fallback={<Hint text="正在算这个班的画像…" />}>
@@ -163,19 +199,15 @@ export default function App() {
               ownAnswers={answers}
               onGoQuiz={() => {
                 setFromCohort(true);
-                setStage('quiz');
+                setStage('gate');
               }}
               onRestart={restart}
             />
           </Suspense>
         ) : (
-          <Welcome
-            name={name}
-            onNameChange={(v) => setName(cleanName(v))}
-            onStart={() => setStage('quiz')}
-            onMap={() => setStage('map')}
-            onUpload={() => setStage('upload')}
-          />
+          /* 兜底不再是 Welcome —— 那条"两条并列的路"的版式整个删掉了。
+             任何没被上面接住的状态都回地图。 */
+          <FallbackToMap onBack={backToMap} />
         )}
       </main>
 
@@ -203,133 +235,25 @@ export default function App() {
   );
 }
 
-function Welcome({ name, onNameChange, onStart, onMap, onUpload }) {
+/**
+ * 兜底：任何没能匹配上的 stage 都回地图。
+ *
+ * 为什么不保留旧的 Welcome 当兜底：
+ * 那个组件就是"两条并列的路"的版式本身，而这一版要删的正是它。
+ * 留一个改过用途的 Welcome 会让人以为"首页还在"，下次改版又会绕回来。
+ */
+function FallbackToMap({ onBack }) {
   return (
-    <div className="max-w-2xl mx-auto py-8">
-      {/* 顶部：把"当前在哪一台机器上"讲出来。
-          这一段在入场里是主角（CAMPUS ARCHIVE // TERMINAL），
-          内容区原先完全没有 —— 于是翻页之后像换了个网站。
-          它不占地方，但是四页之间血缘的关键一环。 */}
-      <div className="flex items-center justify-between mb-10">
-        <MonoTag>CAMPUS&nbsp;ARCHIVE&nbsp;//&nbsp;SESSION&nbsp;READY</MonoTag>
-        <MonoTag tone="cyan">● 基准人群 2000 已载入</MonoTag>
-      </div>
-
-      <div className="text-center">
-        <h2 className="text-3xl font-semibold tracking-tight leading-snug mb-5">
-          回答 {QUESTIONS.length} 个问题，
-          <br />
-          看看你的大学落在哪一个宇宙
-        </h2>
-
-        <p className="text-base text-[var(--ink-soft)] leading-7 mb-8">
-          不需要账号，不需要上传任何数据。
-          <br />
-          {QUESTIONS.length} 道有画面感的选择题，大约 1 分钟。
-        </p>
-
-        {/* 称呼是选填的。但它值一个输入框：报告里带上名字，
-            那份「这是在说我」的感觉是"你"这个代词给不了的 */}
-        <label className="block mb-6">
-          <span className="sr-only">怎么称呼你</span>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => onNameChange(e.target.value)}
-            maxLength={8}
-            placeholder="怎么称呼你？（选填，比如一个姓）"
-            className="w-56 mx-auto block border border-[var(--line)] bg-[var(--surface)] px-4 py-2.5 text-sm text-center text-[var(--ink)] outline-none transition focus:border-[var(--brand)]"
-            style={monoTag({ letterSpacing: '0.05em' })}
-          />
-        </label>
-
-        <button
-          type="button"
-          onClick={onStart}
-          className="px-7 py-3.5 text-base text-white transition hover:opacity-90"
-          style={{ background: BRAND }}
-        >
-          开始（{QUESTIONS.length} 题，约 1 分钟）
-        </button>
-
-        {/* 第二条路：地图。摆在旁边而不是收进二级入口，因为它不是"更多选项"，
-            而是完全不同的玩法 —— 问卷是答完就没，地图是可以反复走的。
-            两条路写进同一本账，所以先走哪条都行 */}
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={onMap}
-            className="px-6 py-3 text-sm transition-[border-color,color]"
-            style={{
-              ...monoTag({ letterSpacing: '0.06em' }),
-              border: '1px solid var(--line)',
-              color: 'var(--ink-soft)',
-            }}
-          >
-            ▸ 或者去校园里走走（4 个时段，16 个地方）
-          </button>
-        </div>
-      </div>
-
-      {/* 三条入口的说明：换成切角块，与报告页的卡片同源 */}
-      <div className="mt-10 grid gap-3">
-        <TermBlock>
-          <div className="flex items-start gap-3">
-            <MonoTag tone="amber" style={{ lineHeight: '20px' }}>
-              01
-            </MonoTag>
-            <p className="text-sm text-[var(--ink)] leading-6">
-              <span className="font-medium">快入口</span>
-              <span className="text-[var(--ink-soft)]">
-                　答完 {QUESTIONS.length} 题，拿到一张人物雷达图、一份「时间去哪了」、
-                一条四年心情曲线，以及一段由大模型照着你的数据写的话。
-              </span>
-            </p>
-          </div>
-        </TermBlock>
-
-        <TermBlock>
-          <div className="flex items-start gap-3">
-            <MonoTag tone="amber" style={{ lineHeight: '20px' }}>
-              02
-            </MonoTag>
-            <p className="text-sm text-[var(--ink)] leading-6">
-              <span className="font-medium">行动地图</span>
-              <span className="text-[var(--ink-soft)]">
-                　不答题也能出档案。一天 4 个时段、16 个地方，去过的会衰减 ——
-                所以"去哪"这件事是有后果的。
-              </span>
-            </p>
-          </div>
-        </TermBlock>
-
-        <TermBlock>
-          <button
-            type="button"
-            onClick={onUpload}
-            className="w-full text-left flex items-start gap-3 group"
-          >
-            <MonoTag tone="amber" style={{ lineHeight: '20px' }}>
-              03
-            </MonoTag>
-            <p className="text-sm text-[var(--ink)] leading-6">
-              <span className="font-medium">真入口</span>
-              <span className="text-[var(--ink-soft)]">
-                　手上有已经收集好的问卷，就上传一份班级 CSV，
-                看这个群体的分布，以及班里跟谁和你最像。
-              </span>
-              <span className="block mt-1 text-xs text-[var(--ink-soft)] group-hover:text-[var(--ink)] transition-colors">
-                上传一份班级问卷 CSV →
-              </span>
-            </p>
-          </button>
-        </TermBlock>
-      </div>
-
-      <p className="mt-6 text-xs text-[var(--ink-soft)] leading-6">
-        你的每一题都会同时影响 8 个属性，再与 2000 人基准人群比对 ——
-        所以不同的人答完，结果是真的不一样。
-      </p>
+    <div className="max-w-md mx-auto py-16 text-center">
+      <p className="text-sm text-[var(--ink-soft)] mb-5">这里没有内容，回地图吧。</p>
+      <button
+        type="button"
+        onClick={onBack}
+        className="term-mono text-[12px] px-6 py-3 rounded-sm transition-colors"
+        style={{ border: '1px solid var(--line)', color: 'var(--ink-soft)' }}
+      >
+        ← 回到地图
+      </button>
     </div>
   );
 }

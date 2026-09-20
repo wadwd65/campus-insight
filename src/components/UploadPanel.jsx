@@ -30,7 +30,7 @@ import { MonoTag, SectionHead } from './TermHead.jsx';
 
 const SAMPLE_FILE = '示例-班级问卷.csv';
 
-export default function UploadPanel({ onReady }) {
+export default function UploadPanel({ onReady, onBack }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -103,7 +103,20 @@ export default function UploadPanel({ onReady }) {
       {/* 状态行 —— 与问卷页、报告页同一句式（大写动作 + // + 状态），
           三页连起来看才是一条线，而不是三个互不相干的页面 */}
       <div className="flex items-baseline justify-between gap-3 mb-6">
-        <MonoTag>COLLECTING // UPLOAD</MonoTag>
+        <div className="flex items-baseline gap-3">
+          {/* 回地图。上传页现在是从地图的入口坞进来的（不是从首页），
+              所以"回去"的语义是"回地图"，而不是"回上一页"。
+              没有它，用户会卡在这一页 —— 之前只有浏览器后退键可用。 */}
+          <button
+            type="button"
+            onClick={onBack}
+            className="term-mono text-[10.5px] tracking-[0.12em] transition-colors"
+            style={{ color: 'var(--ink-soft)' }}
+          >
+            ← 回到地图
+          </button>
+          <MonoTag>COLLECTING // UPLOAD</MonoTag>
+        </div>
         <MonoTag>CSV · 逐行校验</MonoTag>
       </div>
 

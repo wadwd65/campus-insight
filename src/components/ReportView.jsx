@@ -36,7 +36,15 @@ import { TERM_INK } from '../lib/surface.js';
  * 硬要在外面把地图的账伪造一份 answers，等于在数据层撒谎，
  * 而且摘要（buildSummary）读 answers 时会真的筛出错误的题。
  */
-export default function ReportView({ answers, attributes, trail, baseline, name = '', onRestart }) {
+export default function ReportView({
+  answers,
+  attributes,
+  trail,
+  baseline,
+  name = '',
+  onRestart,
+  onBackToMap,
+}) {
   const report = useMemo(
     () =>
       attributes
@@ -184,6 +192,18 @@ export default function ReportView({ answers, attributes, trail, baseline, name 
         >
           再答一次
         </button>
+        {/* 回地图。改版后地图是主界面，报告是它的一个产出 ——
+            所以"看完这份报告"的默认去向是回地图，而不是重来一遍。
+            没有这个出口，玩家看完报告就只能关掉页面（或按浏览器的后退键）。 */}
+        {onBackToMap && (
+          <button
+            type="button"
+            onClick={onBackToMap}
+            className="border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm text-[var(--ink-soft)] transition hover:border-slate-300 hover:text-[var(--ink)]"
+          >
+            ← 回到地图
+          </button>
+        )}
         <span className="text-xs text-[var(--ink-soft)]">
           换个答案，报告的走向会完全不同
         </span>
