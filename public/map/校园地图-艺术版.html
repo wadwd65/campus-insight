@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>武汉晴川学院 · 校园平行宇宙</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0B1116;
+  font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  color:#E6EFE6;-webkit-font-smoothing:antialiased}
+#viewport{position:fixed;inset:0;overflow:hidden;cursor:grab;touch-action:none}
+#viewport.drag{cursor:grabbing}
+#world{position:absolute;left:0;top:0;will-change:transform}
+#map{display:block;user-select:none;-webkit-user-drag:none}
+/* ── 热点 ── */
+.spot{position:absolute;transform:translate(-50%,-50%);border-radius:50%;
+  cursor:pointer;z-index:5;opacity:.8;transition:opacity .18s}
+.spot:hover{opacity:1}
+.spot::before{content:'';position:absolute;inset:0;border-radius:50%;
+  border:2px solid rgba(216,232,76,.85);
+  box-shadow:0 0 12px rgba(216,232,76,.45),inset 0 0 8px rgba(216,232,76,.22);
+  animation:pulse 2.8s ease-out infinite}
+.spot::after{content:'';position:absolute;left:50%;top:50%;width:6px;height:6px;
+  margin:-3px 0 0 -3px;border-radius:50%;background:#D8E84C;
+  box-shadow:0 0 6px rgba(216,232,76,.9)}
+@keyframes pulse{0%{transform:scale(.84);opacity:1}70%{transform:scale(1.22);opacity:.25}100%{transform:scale(.84);opacity:1}}
+.spot:hover::before{animation:none;transform:scale(1.1);border-color:#EDF7A0}
+.spot.sel{opacity:1}
+.spot.sel::before{animation:none;transform:scale(1.18);border-width:3px;
+  border-color:#EDF7A0;box-shadow:0 0 24px rgba(216,232,76,.85),inset 0 0 12px rgba(216,232,76,.4)}
+/* 点击反馈三件套：弹跳 / 冲击波 / 建筑光斑 */
+.spot.sel.bounce::before{animation:bnc .55s ease}
+@keyframes bnc{0%{transform:scale(1.18)}35%{transform:scale(1.42)}65%{transform:scale(.95)}100%{transform:scale(1.18)}}
+.shock{position:absolute;transform:translate(-50%,-50%);border:3px solid rgba(216,232,76,.9);
+  border-radius:50%;pointer-events:none;z-index:6;animation:shock .75s ease-out forwards}
+@keyframes shock{0%{opacity:.95;transform:translate(-50%,-50%) scale(.35)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(2.4)}}
+.glow{position:absolute;transform:translate(-50%,-50%);pointer-events:none;border-radius:50%;z-index:4;
+  background:radial-gradient(circle,rgba(236,246,150,.36) 0%,rgba(236,246,150,.13) 45%,transparent 70%);
+  animation:glowp .9s ease-out forwards}
+@keyframes glowp{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
+/* 载入遮罩 */
+#boot{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:18px;
+  background:radial-gradient(circle at 50% 42%,#1A2630,#0B1116 72%);
+  transition:opacity .6s ease}
+#boot.done{opacity:0;pointer-events:none}
+#boot .bi{width:44px;height:44px;border-radius:50%;
+  border:2px solid rgba(216,232,76,.22);border-top-color:#D8E84C;
+  animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+#boot p{font-size:13px;letter-spacing:.24em;color:#8FA396}
+/* 顶栏 */
+#top{position:fixed;left:20px;top:18px;z-index:30;pointer-events:none}
+#top h1{font-size:19px;font-weight:700;letter-spacing:.05em;
+  text-shadow:0 2px 14px rgba(0,0,0,.85)}
+#top .sub{margin-top:5px;font-size:11px;letter-spacing:.2em;color:#93A88F;
+  text-shadow:0 2px 10px rgba(0,0,0,.9)}
+#top .bar{margin-top:9px;display:flex;gap:6px}
+#top .bar i{height:3px;width:26px;background:#D8E84C;opacity:.85;border-radius:2px}
+#top .bar i:nth-child(2){opacity:.5;width:14px}
+#top .bar i:nth-child(3){opacity:.28;width:7px}
+/* 图例 */
+#legend{position:fixed;left:20px;bottom:20px;z-index:30;
+  background:rgba(12,18,24,.72);backdrop-filter:blur(14px);
+  border:1px solid rgba(150,180,150,.16);border-radius:10px;
+  padding:10px 12px;font-size:11px;line-height:1.9;letter-spacing:.04em}
+#legend b{display:block;font-size:10px;letter-spacing:.22em;color:#8FA396;
+  margin-bottom:5px;font-weight:600}
+#legend span{display:flex;align-items:center;gap:7px;color:#CBD8C6}
+#legend em{width:10px;height:10px;border-radius:2px;flex:none;display:inline-block}
+/* ── 信息卡（v2：分区色条 + 属性数值）── */
+#info{position:fixed;right:18px;top:18px;width:296px;z-index:30;overflow:hidden;
+  background:rgba(12,18,24,.82);backdrop-filter:blur(16px);
+  border:1px solid rgba(150,180,150,.18);border-radius:12px;
+  padding:18px 16px 15px;opacity:0;transform:translateX(16px) scale(.98);
+  transition:opacity .28s ease,transform .28s cubic-bezier(.2,.9,.3,1.2);pointer-events:none}
+#info.on{opacity:1;transform:none}
+#in-bar{position:absolute;left:0;top:0;right:0;height:4px;background:#D8E84C}
+#in-zone{font-size:10px;letter-spacing:.2em;margin-bottom:6px}
+#in-name{font-size:22px;font-weight:700;letter-spacing:.03em}
+#in-line{margin-top:11px;padding:9px 10px 9px 12px;border-left:2px solid rgba(216,232,76,.5);
+  background:rgba(216,232,76,.06);border-radius:0 8px 8px 0;
+  font-size:12px;line-height:1.8;color:#C2D2BE}
+#in-vec{margin-top:13px;display:flex;flex-direction:column;gap:7px}
+.vc{display:flex;align-items:center;gap:8px;font-size:11px;color:#C4D2C0}
+.vc b{width:34px;flex:none;font-weight:500}
+.vc i{height:5px;border-radius:3px;background:linear-gradient(90deg,#D8E84C,#8FBF4A);
+  display:block;min-width:6px}
+.vc u{margin-left:auto;text-decoration:none;font-size:10px;color:#8FA396;
+  font-variant-numeric:tabular-nums}
+/* 悬停提示 */
+#tip{position:fixed;z-index:40;padding:4px 9px;border-radius:6px;font-size:12px;
+  background:rgba(216,232,76,.94);color:#18200E;font-weight:600;
+  pointer-events:none;opacity:0;transition:opacity .12s}
+#tip.on{opacity:1}
+/* 底部操作栏 */
+#hint{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:30;
+  background:rgba(12,18,24,.72);backdrop-filter:blur(14px);
+  border:1px solid rgba(150,180,150,.16);border-radius:999px;padding:8px 18px;
+  font-size:11.5px;color:#B9C7B4;letter-spacing:.04em;white-space:nowrap}
+#hint kbd{display:inline-block;padding:2px 6px;margin:0 2px;border-radius:4px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+  font-family:inherit;font-size:10.5px;color:#DCE6D6}
+#hint button{margin-left:8px;padding:5px 12px;border-radius:999px;cursor:pointer;
+  border:1px solid rgba(216,232,76,.35);background:rgba(216,232,76,.10);
+  color:#D8E84C;font-size:11px;font-family:inherit;letter-spacing:.06em}
+#hint button:hover{background:rgba(216,232,76,.22)}
+#err{position:fixed;left:50%;top:46%;transform:translateX(-50%);z-index:95;
+  background:rgba(120,30,30,.9);padding:12px 20px;border-radius:10px;
+  font-size:13px;display:none}
+@media (max-width:820px){#legend{display:none}}
+</style>
+</head>
+<body>
+<div id="viewport"><div id="world">
+  <img id="map" alt="校园地图">
+  <div id="spots"></div>
+</div></div>
+
+<div id="boot"><div class="bi"></div><p>正在展开校园</p></div>
+<div id="err"></div>
+
+<header id="top">
+  <h1>武汉晴川学院 · 校园平行宇宙</h1>
+  <div class="sub">QINGCHUAN CAMPUS · PARALLEL UNIVERSE</div>
+  <div class="bar"><i></i><i></i><i></i></div>
+</header>
+
+<div id="legend"><b>INDEX</b>
+  <span><em style="background:#8FB7E4"></em>行政教学区</span>
+  <span><em style="background:#7FC8B4"></em>中心景观区</span>
+  <span><em style="background:#E0BC55"></em>体育运动区</span>
+  <span><em style="background:#E09470"></em>生活服务区</span>
+</div>
+
+<aside id="info">
+  <div id="in-bar"></div>
+  <div id="in-zone">—</div>
+  <div id="in-name">—</div>
+  <div id="in-line"></div>
+  <div id="in-vec"></div>
+</aside>
+
+<div id="tip"></div>
+<footer id="hint">
+  <span>拖动 <kbd>平移</kbd> ｜ 滚轮 <kbd>缩放</kbd> ｜ 点击光点 <kbd>查看建筑</kbd></span>
+  <button id="btn-reset">复位</button>
+</footer>
+
+<script>
+/* ── 数据（build-art2.py 从 2D 版 SITES 机械抽取 + gate/bridge 手工条目）── */
+var POIS = [{"id": "lib", "x": 0.495, "y": 0.425, "r": 0.056249999999999994, "name": "图书馆", "zone": "center", "line": "晴缘湖畔的新馆，玻璃幕墙把整片湖面收进阅览室。", "vec": {"academic": 4, "resilience": 2}}, {"id": "pav", "x": 0.585, "y": 0.505, "r": 0.03375, "name": "湖心亭", "zone": "center", "line": "要去湖心亭得先绕过半个湖，但没人觉得远。", "vec": {"resilience": 2, "social": 2}}, {"id": "teach1", "x": 0.25, "y": 0.165, "r": 0.04875, "name": "教学楼一", "zone": "north", "line": "U 型回廊把几栋楼连在一起，课间像赶集。", "vec": {"academic": 2, "social": 1}}, {"id": "teach2", "x": 0.4, "y": 0.12, "r": 0.04875, "name": "教学楼二", "zone": "north", "line": "三楼那间大教室的投影仪，每次都要拍一下才亮。", "vec": {"academic": 2, "plan": 1}}, {"id": "teach3", "x": 0.53, "y": 0.1, "r": 0.045, "name": "教学楼三", "zone": "north", "line": "早上第一节，楼梯上全是没睡醒的人。", "vec": {"academic": 1}}, {"id": "admin", "x": 0.63, "y": 0.09, "r": 0.04125, "name": "行政楼", "zone": "north", "line": "教务处的窗口只开到四点半，差一分钟都算明天。", "vec": {"plan": 3, "social": 1}}, {"id": "exp1", "x": 0.135, "y": 0.33, "r": 0.045, "name": "实验楼一", "zone": "north", "line": "焊接实训的第一天，谁都被烫过一下。", "vec": {"academic": 3, "plan": 2}}, {"id": "exp2", "x": 0.1, "y": 0.49, "r": 0.052500000000000005, "name": "实验楼二", "zone": "north", "line": "示波器上的波形一直在抖，老师说这是正常的。", "vec": {"academic": 3}}, {"id": "field", "x": 0.73, "y": 0.125, "r": 0.06, "name": "田径运动场", "zone": "east", "line": "体测那一千米，跑完的人都在弯道后面扶着膝盖。", "vec": {"sport": 4, "resilience": 2}}, {"id": "basket", "x": 0.585, "y": 0.235, "r": 0.04125, "name": "篮球场", "zone": "east", "line": "傍晚的场子要排队，赢的人不下场。", "vec": {"sport": 3, "social": 2}}, {"id": "tennis", "x": 0.67, "y": 0.335, "r": 0.037500000000000006, "name": "网球场", "zone": "east", "line": "球打在网带上的声音，比打中拍面要闷。", "vec": {"sport": 2, "novelty": 1}}, {"id": "gym", "x": 0.875, "y": 0.385, "r": 0.056249999999999994, "name": "体育馆", "zone": "east", "line": "木地板擦得很亮，球鞋一急停就响。", "vec": {"sport": 3, "social": 1}}, {"id": "complex", "x": 0.905, "y": 0.555, "r": 0.045, "name": "综合服务楼", "zone": "south", "line": "办事窗口的叫号机，永远叫不到你要的号。", "vec": {"plan": 3, "social": 1}}, {"id": "innov", "x": 0.755, "y": 0.655, "r": 0.04125, "name": "创新创业楼", "zone": "south", "line": "路演的稿子改了七版，评委只问了成本。", "vec": {"plan": 3, "novelty": 1}}, {"id": "canteen", "x": 0.32, "y": 0.575, "r": 0.04125, "name": "学生食堂", "zone": "south", "line": "二楼靠里的窗口，阿姨手不会抖。", "vec": {"food": 4, "social": 2}}, {"id": "dorm1", "x": 0.39, "y": 0.735, "r": 0.045, "name": "学生公寓 1 栋", "zone": "south", "line": "一楼的风永远最大，晾衣服要夹两个夹子。", "vec": {"night": 2, "social": 2}}, {"id": "dorm3", "x": 0.535, "y": 0.775, "r": 0.045, "name": "学生公寓 3 栋", "zone": "south", "line": "楼下就是快递点和奶茶店，钱包安全性堪忧。", "vec": {"novelty": 2, "food": 1}}, {"id": "dorm5", "x": 0.645, "y": 0.755, "r": 0.04125, "name": "学生公寓 5 栋", "zone": "south", "line": "阳台朝东，夏天的早上六点就亮得睡不着。", "vec": {"night": 2, "plan": 1}}, {"id": "dorm7", "x": 0.31, "y": 0.86, "r": 0.045, "name": "学生公寓 7 栋", "zone": "south", "line": "搬进来的那天，才知道六楼有多高。", "vec": {"night": 2, "sport": 1}}, {"id": "meiyuan", "x": 0.475, "y": 0.875, "r": 0.04125, "name": "公寓梅苑", "zone": "south", "line": "名字好听，隔音一般。", "vec": {"night": 2, "resilience": 1}}, {"id": "gate", "x": 0.13, "y": 0.7, "r": 0.04125, "name": "主校门 · 牌坊", "zone": "gate", "line": "网约车在这里落客 —— 穿过牌坊，迎面就是晴樱广场。", "vec": {"social": 2, "novelty": 2}}, {"id": "bridge", "x": 0.745, "y": 0.31, "r": 0.03, "name": "廊桥", "zone": "center", "line": "连着湖心半岛与两岸的两座廊桥 —— 下雨天从图书馆走回宿舍可以不打伞。", "vec": {"social": 1, "resilience": 2}}];
+var ZONES = {"north": ["行政教学区", "#8FB7E4"], "center": ["中心景观区", "#7FC8B4"], "east": ["体育运动区", "#E0BC55"], "south": ["生活服务区", "#E09470"], "gate": ["校园门户", "#D8E84C"]};
+var KEY = {"academic": "学术", "social": "社交", "sport": "运动", "night": "夜猫", "plan": "计划", "novelty": "尝鲜", "resilience": "抗压", "food": "美食"};
+
+/* ── 视图：transform-origin 0 0，translate 是唯一偏移来源 ── */
+var vp = document.getElementById('viewport');
+var world = document.getElementById('world');
+var map = document.getElementById('map');
+var V = { s: 1, x: 0, y: 0, s0: 1 };
+var BASE = { w: 1536, h: 1024 };
+world.style.transformOrigin = '0 0';
+
+function clampV(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+function apply() {
+  world.style.width = BASE.w + 'px'; world.style.height = BASE.h + 'px';
+  world.style.transform = 'translate(' + V.x + 'px,' + V.y + 'px) scale(' + V.s + ')';
+}
+function clampView() {
+  var vw = vp.clientWidth, vh = vp.clientHeight, m = 70;
+  var w = BASE.w * V.s, h = BASE.h * V.s;
+  V.x = (w <= vw - 2 * m) ? (vw - w) / 2 : clampV(V.x, vw - w - m, m);
+  V.y = (h <= vh - 2 * m) ? (vh - h) / 2 : clampV(V.y, vh - h - m, m);
+}
+function applyAll() { clampView(); apply(); }
+function fit() {
+  var vw = vp.clientWidth, vh = vp.clientHeight;
+  V.s = V.s0 = Math.min(vw / BASE.w, vh / BASE.h);
+  V.x = (vw - BASE.w * V.s) / 2;
+  V.y = (vh - BASE.h * V.s) / 2;
+  apply();
+}
+
+/* ── 热点 ── */
+var spotBox = document.getElementById('spots');
+POIS.forEach(function (p, i) {
+  var d = document.createElement('div');
+  d.className = 'spot';
+  d.dataset.i = i;
+  d.style.left = (p.x * 100) + '%';
+  d.style.top = (p.y * 100) + '%';
+  var px = p.r * 2 * BASE.w;
+  d.style.width = px + 'px'; d.style.height = px + 'px';
+  spotBox.appendChild(d);
+});
+
+/* ── 交互 ── */
+var drag = null, moved = 0;
+vp.addEventListener('pointerdown', function (e) {
+  drag = { x: e.clientX, y: e.clientY, vx: V.x, vy: V.y };
+  moved = 0;
+  vp.classList.add('drag');
+  vp.setPointerCapture(e.pointerId);
+});
+vp.addEventListener('pointermove', function (e) {
+  if (!drag) { hover(e); return; }
+  var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  moved = Math.max(moved, Math.abs(dx) + Math.abs(dy));
+  V.x = drag.vx + dx; V.y = drag.vy + dy;
+  applyAll();
+});
+function endDrag(e) {
+  vp.classList.remove('drag');
+  if (drag && moved < 6) clickAt(e);
+  drag = null;
+}
+vp.addEventListener('pointerup', endDrag);
+vp.addEventListener('pointercancel', function () { drag = null; vp.classList.remove('drag'); });
+vp.addEventListener('wheel', function (e) {
+  e.preventDefault();
+  var ns = Math.max(V.s0 * 0.8, Math.min(V.s0 * 5, V.s * (e.deltaY > 0 ? 0.90 : 1.11)));
+  var r = vp.getBoundingClientRect();
+  var px = e.clientX - r.left, py = e.clientY - r.top;
+  var cx = (px - V.x) / V.s, cy = (py - V.y) / V.s;
+  V.s = ns;
+  V.x = px - cx * ns; V.y = py - cy * ns;
+  applyAll();
+}, { passive: false });
+vp.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+/* ⚠️ setPointerCapture 会重定向 pointerup 的 target —— 用坐标反查 */
+function spotFromPoint(x, y) {
+  var el = document.elementFromPoint(x, y);
+  el = el && el.closest ? el.closest('.spot') : null;
+  return el;
+}
+function clickAt(e) {
+  var el = spotFromPoint(e.clientX, e.clientY);
+  if (el) select(+el.dataset.i);
+}
+var tip = document.getElementById('tip');
+function hover(e) {
+  var el = spotFromPoint(e.clientX, e.clientY);
+  if (el) {
+    var p = POIS[+el.dataset.i];
+    tip.textContent = p.name;
+    tip.style.left = (e.clientX + 14) + 'px';
+    tip.style.top = (e.clientY + 12) + 'px';
+    tip.classList.add('on');
+  } else tip.classList.remove('on');
+}
+
+/* ── 选中：信息卡 + 三段点击反馈（弹跳 / 冲击波 / 建筑光斑）── */
+var SEL = -1;
+function select(i) {
+  SEL = i;
+  var ds = spotBox.children;
+  for (var k = 0; k < ds.length; k++) {
+    ds[k].classList.toggle('sel', k === i);
+    ds[k].classList.remove('bounce');
+  }
+  var el = ds[i];
+  void el.offsetWidth;                 /* 重启动画 */
+  el.classList.add('bounce');
+  /* 冲击波：从热点扩散一圈 */
+  var sh = document.createElement('div');
+  sh.className = 'shock';
+  sh.style.left = el.style.left; sh.style.top = el.style.top;
+  sh.style.width = el.style.width; sh.style.height = el.style.height;
+  spotBox.appendChild(sh);
+  setTimeout(function () { sh.remove(); }, 800);
+  /* 建筑光斑：在建筑位置打一片光，像"建筑被点亮回应了一下" */
+  var gl = document.createElement('div');
+  gl.className = 'glow';
+  gl.style.left = el.style.left; gl.style.top = el.style.top;
+  var gs = parseFloat(el.style.width) * 2.4;
+  gl.style.width = gs + 'px'; gl.style.height = gs + 'px';
+  spotBox.appendChild(gl);
+  setTimeout(function () { gl.remove(); }, 950);
+
+  var p = POIS[i], z = ZONES[p.zone] || ['—', '#999'];
+  document.getElementById('in-bar').style.background = z[1];
+  document.getElementById('in-zone').textContent = z[0];
+  document.getElementById('in-zone').style.color = z[1];
+  document.getElementById('in-name').textContent = p.name;
+  document.getElementById('in-line').textContent = p.line ? '「' + p.line + '」' : '';
+  var box = document.getElementById('in-vec');
+  box.innerHTML = '';
+  Object.keys(p.vec || {}).forEach(function (kk) {
+    var d = document.createElement('div');
+    d.className = 'vc';
+    d.innerHTML = '<b>' + (KEY[kk] || kk) + '</b><i style="width:' +
+      Math.min(100, p.vec[kk] * 26) + '%"></i><u>' + p.vec[kk] + '</u>';
+    box.appendChild(d);
+  });
+  document.getElementById('info').classList.add('on');
+}
+
+document.getElementById('btn-reset').addEventListener('click', function () {
+  SEL = -1;
+  var ds = spotBox.children;
+  for (var k = 0; k < ds.length; k++) ds[k].classList.remove('sel', 'bounce');
+  document.getElementById('info').classList.remove('on');
+  fit();
+});
+
+/* ── 载入 ── */
+var booted = false;
+map.onload = function () {
+  BASE.w = map.naturalWidth; BASE.h = map.naturalHeight;
+  fit();
+  if (!booted) {
+    booted = true;
+    var b = document.getElementById('boot');
+    b.classList.add('done');
+    setTimeout(function () { b.remove(); }, 700);
+  }
+};
+map.onerror = function () {
+  var er = document.getElementById('err');
+  er.style.display = 'block';
+  er.textContent = '底图加载失败（map-art/campus-art2.png）';
+};
+map.src = 'map-art/campus-art2.png';
+window.addEventListener('resize', function () { fit(); });
+window.__ART = { pois: POIS, fit: fit, view: V, select: select };
+</script>
+</body>
+</html>

@@ -1,0 +1,3940 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>校园行动地图 · 平行宇宙</title>
+<style>
+/* ============================================================
+   明日方舟地图语言 · 第四版（v4）
+   ────────────────────────────────────────────────────────────
+   v4 只回应一句话：
+     「学校完整的做出来，然后四周那些东西全部删掉，我们得重做，
+       地图可以扩大一点」
+   三件事一起做了：
+     ① **删** —— v3 的「校园外的世界」整节删空（北城区 / 源石工业区
+        + 大河 / 农田 / 林地 / 公路网 / 车 / 船 / 烟囱 / 校外地名 ——
+        **这些校外实体在 v4「四周的东西全部删掉」时已全部移除，
+        上面这句只是在记录 v3 曾有的形态。**）
+        校外只剩三层光：地表底色 + 太阳光晕 + 云影。
+     ② **扩** —— 网格 22×15 → 26×18，格子 56 → 64，
+        校园 1232×840 → 1664×1152（面积 ×1.85）；
+        画布从"校园只占中央"收成"刚好装下校园"（2120×1580 → 1918×1400）。
+     ③ **完整** —— 建筑 21 → **34 栋**，补齐一所高校该有的功能配置；
+        路网重排成 3×3 九宫格骨架（三条纵路 + 两条横路）。
+
+   ────────────────────────────────────────────────────────────
+   v5 改的是**比例 + 立体感**（用户：「马路换一下…精细度太低…四周到处
+   都是山、要 3D 立体的…这个比例也不太对」）：
+     · **先 look 了真实地图**：学校坐落于 4A 级龙泉山风景区，
+       「背靠龙泉山，面朝梧桐湖」；占地 1000 余亩 ≈ 820m 见方。
+       → 换算得 **每格约 30m**，而 v4 把整格 30m 都刷成路面，
+         真实主干道只有 10~12m —— **路粗了 3 倍**，这是"比例不对"的关键。
+     · 路宽 1 格 → **0.30~0.40 格**；路面暖灰 → **冷调沥青**（靠色相分离）
+     · 画布 1918×1400 → **2600×1880**（腾出的四周原为山与水）
+     · 比例尺 8m/格 → **30m/格**（原来的数字是错的）
+   ⚠️ 一条通用教训：**"比例对不对"必须靠真实尺度核算，不能靠观感。**
+      上一版我凭手感觉得"路有点宽"，这一版拿 820m/26 格一除，
+      立刻就定位到"粗了 3 倍"这个可证的结论。
+   ★ **v6/v7**：四周的**山**（前后做了 9 轮）与校外的**梧桐湖**，
+      已按用户要求整段删除。原因与教训集中写在下面
+      "③b 环校园山地（已整段删除）"那一段里 —— 要重做山先读它。
+
+   ── 前三版留下的教训（留着，别再犯）────────────────────────
+   v1 错在配色：四个区涂成高饱和大色块 → 整张图像大富翁棋盘。
+      而文件顶部自己引用的第一条方舟规范就是「大面积中性色 + 少量
+      功能色 + 极少量警示色」。引了规则然后违反了它。
+   v2 错在投影：用等距投影。方舟的地图是**正交俯视**（官方早期试过
+      斜角，结论是「不利于方向摆放、能显示格点太少」就放弃了）。
+   v3 错在"用力过猛"：为了回答「学校在一片地方里」，把城外画得比城内
+      还热闹（工业区 / 大河 / 公路 / 车 / 船），于是画面有一半的注意力
+      被引到校外，而校外还是一片灰暗。**地图的主体永远是主体。**
+   ⚠️ 还有一类反复出现的错，是"名字写错但静默退化"：
+      shape 名写错 → 悄悄按矩形画；feat 名写错 → 悄悄不画；
+      ZONES 的 key 改了但引用点没改 → 整脚本挂掉。
+      （v3 的图书馆写着 feat:'glass'、中心广场写着 feat:'flag'，
+        而 FEATS 里两个都没有 —— 特征一直是丢的，没人发现。）
+      v4 对这三条都加了静态断言。
+   ============================================================ */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:#0A0B0C;color:#D2D3CF;
+  font:13px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+  overflow:hidden;-webkit-font-smoothing:antialiased;
+}
+:root{
+  --acid:#C3E84C; --blue:#5FA8E8; --warn:#E8632C;
+  --ink:#D2D3CF; --ink2:#888B86; --ink3:#55584F;
+  --line:rgba(210,211,207,.12); --line2:rgba(210,211,207,.24);
+  --mono:"JetBrains Mono","Cascadia Mono",Consolas,"Courier New",monospace;
+  --serif:"Songti SC","Noto Serif SC",Georgia,serif;
+}
+/* 噪点：方舟的底从不是纯色 */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.45;
+  background-image:radial-gradient(circle at 1px 1px,rgba(255,255,255,.06) 1px,transparent 0);
+  background-size:3px 3px;
+}
+.app{height:100%;display:flex;flex-direction:column;position:relative}
+
+/* ── 顶栏 ── */
+.top{display:flex;align-items:stretch;border-bottom:1px solid var(--line);flex-shrink:0}
+.top .l{padding:13px 24px 11px;position:relative;border-right:1px solid var(--line)}
+.top .l::before{content:"";position:absolute;left:0;top:0;width:3px;height:100%;background:var(--acid)}
+.top .l h1{font-family:var(--serif);font-size:19px;font-weight:700;letter-spacing:.12em;line-height:1.2}
+.top .l .en{font-family:var(--mono);font-size:9px;letter-spacing:.36em;color:var(--ink3);margin-top:4px}
+.top .m{flex:1;padding:13px 24px 11px;display:flex;gap:26px}
+.kv .k{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--ink3)}
+.kv .v{font-family:var(--mono);font-size:14px;color:var(--ink);margin-top:4px;letter-spacing:.05em}
+.kv .v em{font-style:normal;color:var(--acid)}
+.top .r{padding:13px 24px 11px;border-left:1px solid var(--line);text-align:right;min-width:186px}
+.top .r .big{font-family:var(--mono);font-size:16px;color:var(--ink);letter-spacing:.07em}
+.top .r .big b{color:var(--acid);font-weight:400}
+.slots{display:flex;gap:3px;justify-content:flex-end;margin-top:8px}
+.slots i{width:21px;height:5px;background:rgba(210,211,207,.13)}
+.slots i.on{background:var(--acid);box-shadow:0 0 9px rgba(195,232,76,.5)}
+
+main{flex:1;display:flex;min-height:0}
+
+/* ============================================================
+   视窗 —— 这是 v3 最重要的结构变化
+   ────────────────────────────────────────────────────────────
+   v2 的 .mapwrap 是 `display:flex;align-items:center` 把整张 880×610
+   的 SVG 居中塞进可视区。等于「把图缩到能被一屏装下」，
+   所以格子只能那么小、细节只能那么糊。
+
+   v3 反过来：**图放大到 2120×1580，视窗只当取景框**。
+   overflow:hidden 把溢出的部分裁掉，靠相机平移去看其余部分。
+   这就是用户说的「界面显示不完整，让它左右移动显示，
+   这样可以把图做得更大一点」—— 图的尺寸不再受视窗限制。
+   ============================================================ */
+.viewport{
+  flex:1;position:relative;min-width:0;overflow:hidden;
+  background:#0B0D0F;
+  cursor:grab;user-select:none;-webkit-user-select:none;
+  touch-action:none;      /* 让 pointermove 在触屏上不被浏览器手势抢走 */
+}
+.viewport.dragging{cursor:grabbing}
+/* ⚠️ 这里**曾经**写过 `.viewport.busy #scene{shape-rendering:optimizeSpeed}`，
+   设想是"运动时关抗锯齿换帧率"，已实测否定并撤掉：
+   改 `shape-rendering` 会改变光栅化结果，浏览器必须把 4400 个 SVG 元素
+   **整块重新光栅化** —— 实测拖动最长帧从 36ms 飙到 **418ms**，
+   比它省下的绘制成本高一个数量级。
+   **教训：凡是会改变"光栅化结果"的属性（shape-rendering / text-rendering /
+   image-rendering），都不要放进高频切换的状态里。**
+   `.busy` 这个类保留着（它标记"运动态"，是有语义的钩子），
+   但同进同出的开关只用 `--play`（改的是动画播放状态，不触发重栅格化）。 */
+/* 相机层。★ transform-origin 必须是 0 0（左上角）——
+   用中心作原点的话，"把画布坐标 p 移到视窗某处"的解会变成一个
+   绕来绕去的式子；以左上角为原点时它退化成一句话：
+     屏幕位置 = tx + 画布坐标 × s
+   所以相机状态就直接存 tx/ty/s，不做中间换算。 */
+#scene{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+/* 镜头过渡从 .52s 缩到 .34s：动画本身没问题，但**暴露窗口越长，
+   和大图层合成不同步的风险越大**。缩短它是最便宜的加固。 */
+/* .cam.anim 已移除：canvas 版没有 DOM 相机层，缩放由绘制变换完成，
+   相机的"缓动飞行"改由 tween 在 rAF 里插值（见 lookAt/apply）。 */
+svg{display:block;overflow:visible}
+
+/* ── 钉在视窗上的 HUD（不随相机移动）── */
+.vig{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(130% 100% at 50% 48%,rgba(0,0,0,0) 42%,rgba(6,7,8,.78) 100%)}
+.scan{position:absolute;inset:0;pointer-events:none;opacity:.6;
+  background:repeating-linear-gradient(to bottom,rgba(255,255,255,0) 0 3px,rgba(255,255,255,.016) 3px 4px)}
+.corner{position:absolute;width:22px;height:22px;pointer-events:none;
+  border-color:var(--line2);border-style:solid;border-width:0}
+.corner.tl{top:8px;left:8px;border-top-width:1px;border-left-width:1px}
+.corner.tr{top:8px;right:8px;border-top-width:1px;border-right-width:1px}
+.corner.bl{bottom:8px;left:8px;border-bottom-width:1px;border-left-width:1px}
+.corner.br{bottom:8px;right:8px;border-bottom-width:1px;border-right-width:1px}
+
+.probe{
+  position:absolute;left:20px;top:16px;font-family:var(--mono);font-size:9.5px;
+  letter-spacing:.18em;color:var(--ink3);border-left:2px solid var(--acid);padding:1px 0 1px 8px;
+  pointer-events:none;
+}
+.probe b{color:var(--acid);font-weight:400}
+
+/* 指北针 */
+.needle{position:absolute;right:20px;top:16px;width:34px;height:34px;pointer-events:none;opacity:.85}
+.needle .n{font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;color:var(--acid);
+  position:absolute;left:50%;top:-12px;transform:translateX(-50%)}
+.needle .ring{position:absolute;inset:0;border:1px solid var(--line2);border-radius:50%}
+.needle .tri{position:absolute;left:50%;top:50%;width:0;height:0;
+  border-left:4.5px solid transparent;border-right:4.5px solid transparent;border-bottom:12px solid var(--acid);
+  transform:translate(-50%,-88%)}
+.needle .tri2{position:absolute;left:50%;top:50%;width:0;height:0;
+  border-left:3.5px solid transparent;border-right:3.5px solid transparent;border-top:9px solid rgba(210,211,207,.3);
+  transform:translate(-50%,-6%)}
+
+/* 比例尺 */
+.ruler{position:absolute;left:20px;bottom:18px;pointer-events:none}
+.ruler .bar{width:120px;height:6px;border-left:1px solid var(--ink2);border-right:1px solid var(--ink2);
+  border-bottom:1px solid var(--ink2);position:relative}
+.ruler .bar::after{content:"";position:absolute;left:50%;top:0;width:1px;height:6px;background:var(--ink2)}
+.ruler .t{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--ink3);margin-top:5px}
+
+/* 小地图 —— 用户要「左右移动看」，那就必须告诉他"现在看到的是哪一块" */
+.minimap{
+  position:absolute;right:20px;bottom:18px;width:196px;height:146px;
+  border:1px solid var(--line2);background:rgba(8,10,11,.86);
+  cursor:crosshair;overflow:hidden;
+}
+.minimap canvas{display:block;width:100%;height:100%}
+.minimap .cap{
+  position:absolute;left:5px;top:3px;font-family:var(--mono);font-size:8px;
+  letter-spacing:.2em;color:var(--ink3);pointer-events:none;
+}
+.minimap .box{position:absolute;right:5px;bottom:3px;font-family:var(--mono);font-size:8px;
+  letter-spacing:.14em;color:var(--ink3);pointer-events:none}
+
+.tips{
+  position:absolute;left:20px;bottom:62px;font-family:var(--mono);font-size:9px;
+  letter-spacing:.16em;color:rgba(136,139,134,.95);line-height:2;pointer-events:none;
+  text-shadow:0 1px 3px rgba(0,0,0,.9);
+}
+.tips b{color:var(--ink);font-weight:400}
+
+/* ── 右侧详情栏 ── */
+aside{width:308px;flex-shrink:0;border-left:1px solid var(--line);overflow-y:auto;padding:16px 18px 24px 16px}
+aside::-webkit-scrollbar{width:4px}
+aside::-webkit-scrollbar-thumb{background:rgba(210,211,207,.14)}
+
+.para{
+  background:rgba(210,211,207,.035);border:1px solid var(--line);padding:11px 13px 12px;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%);
+  margin-bottom:10px;
+}
+.para.off{clip-path:polygon(10px 0,100% 0,100% 100%,0 100%,0 10px);margin-left:12px}
+.para.hi{border-color:rgba(195,232,76,.4);background:rgba(195,232,76,.05)}
+.sec{font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--ink3);display:flex;align-items:center;gap:7px;margin:15px 0 7px}
+.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+.sec b{color:var(--acid);font-weight:400}
+h3.place{font-family:var(--serif);font-size:16px;font-weight:700;letter-spacing:.07em}
+.zt{font-family:var(--mono);font-size:9px;letter-spacing:.2em;margin-top:3px}
+.desc{font-size:11.5px;color:#9DA09A;line-height:1.8;margin-top:8px}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+.tags span{font-family:var(--mono);font-size:9.5px;padding:2px 6px;letter-spacing:.06em}
+.tags .up{color:var(--acid);background:rgba(195,232,76,.1);border:1px solid rgba(195,232,76,.28)}
+.tags .dn{color:var(--warn);background:rgba(232,99,44,.09);border:1px solid rgba(232,99,44,.26)}
+.bl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;color:var(--ink2);margin:8px 0 3px;letter-spacing:.08em}
+.bl b{color:var(--ink);font-weight:400}
+.bar{height:2px;background:rgba(210,211,207,.11)}
+.bar i{display:block;height:2px;background:var(--acid)}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:5px 9px}
+.lg{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;color:var(--ink2)}
+.lg i{width:12px;height:12px;flex-shrink:0;display:block}
+.hint{font-size:11px;color:var(--ink3);line-height:2}
+kbd{font-family:var(--mono);font-size:9.5px;padding:1px 5px;background:rgba(210,211,207,.09);border:1px solid var(--line);color:var(--ink2)}
+
+.bot{flex-shrink:0;border-top:1px solid var(--line);display:flex;align-items:center;padding:0 24px;height:48px}
+.node{display:flex;align-items:center;gap:8px;padding:0 15px;height:100%}
+.node .dot{width:8px;height:8px;background:rgba(210,211,207,.18);transform:rotate(45deg)}
+.node.on .dot{background:var(--acid);box-shadow:0 0 10px rgba(195,232,76,.75)}
+.node .t{font-family:var(--serif);font-size:12.5px;letter-spacing:.1em;color:var(--ink3)}
+.node.on .t{color:var(--ink)}
+.node .n{font-family:var(--mono);font-size:8.5px;color:var(--ink3);letter-spacing:.16em}
+.link{width:30px;height:1px;background:var(--line2);position:relative}
+.link::after{content:"";position:absolute;right:0;top:-2px;border-left:4px solid var(--line2);border-top:2.5px solid transparent;border-bottom:2.5px solid transparent}
+.bot .tail{margin-left:auto;font-family:var(--mono);font-size:8.5px;color:var(--ink3);letter-spacing:.22em}
+
+/* ============================================================
+   子界面（点地点后从右侧滑出的详情面板）
+   ── 进入动画分四拍，不是一次性淡入 ─────────────────────────
+     ① 0ms    面板本体从右侧滑入 + 边框先画出来（clip-path 揭幕）
+     ② 120ms  标题落地
+     ③ 200ms  分隔线从左往右划开（scaleX 0 → 1）
+     ④ 260ms  正文与属性逐行落位
+   为什么要分拍：一次性淡入读起来是「弹窗」，分拍读起来是
+   「一台机器正在把信息刷出来」—— 方舟的界面全走这个节奏。
+   ============================================================ */
+/* 同理：这层遮罩也**不做 opacity 过渡**。
+   它覆盖整个视窗，做淡入淡出就是一个满屏的合成层在动画 ——
+   和多建筑 opacity 属于同一类隐患。瞬间显隐在视觉上完全够用。 */
+.scrim{
+  position:absolute;inset:0;background:radial-gradient(90% 70% at 34% 50%,rgba(10,11,12,0) 0%,rgba(10,11,12,.72) 78%);
+  opacity:0;pointer-events:none;
+}
+.scrim.on{opacity:1;pointer-events:auto}
+
+.sitecard{
+  position:absolute;right:22px;top:44%;width:296px;
+  background:linear-gradient(155deg,rgba(26,29,32,.97),rgba(16,18,20,.97));
+  border:1px solid rgba(195,232,76,.34);
+  padding:0;overflow:hidden;
+  opacity:0;pointer-events:none;
+  clip-path:polygon(0 0,0 0,0 100%,0 100%);
+}
+.sitecard.on{pointer-events:auto;animation:cardReveal .42s cubic-bezier(.3,.9,.3,1) forwards}
+@keyframes cardReveal{
+  from{opacity:0;transform:translate(26px,-50%) scale(.985);clip-path:polygon(0 0,0 0,0 100%,0 100%)}
+  to  {opacity:1;transform:translate(0,-50%) scale(1);clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}
+}
+.sitecard .sweep{position:absolute;left:0;right:0;top:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--acid),transparent);opacity:0}
+.sitecard.on .sweep{animation:sweep .62s ease-out .1s both}
+@keyframes sweep{0%{opacity:0;transform:translateY(0)}15%{opacity:1}100%{opacity:0;transform:translateY(212px)}}
+
+.sitecard .head{padding:15px 17px 13px;position:relative}
+.sitecard .head .no{position:absolute;right:15px;top:14px;font-family:var(--mono);font-size:9px;
+  letter-spacing:.16em;color:var(--acid);opacity:.75}
+.sitecard h4{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:.1em;line-height:1.2;opacity:0}
+.sitecard .sub{font-family:var(--mono);font-size:9px;letter-spacing:.22em;margin-top:5px;opacity:0}
+.sitecard.on h4{animation:drop .42s cubic-bezier(.2,.9,.3,1) .12s forwards}
+.sitecard.on .sub{animation:drop .42s cubic-bezier(.2,.9,.3,1) .18s forwards}
+@keyframes drop{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
+
+.sitecard .rule{height:1px;background:var(--acid);opacity:.5;transform-origin:left center;transform:scaleX(0)}
+.sitecard.on .rule{animation:drawLine .5s cubic-bezier(.2,.9,.3,1) .2s forwards}
+@keyframes drawLine{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+.sitecard .body{padding:14px 17px 16px}
+.sitecard .body > *{opacity:0}
+.sitecard.on .body > *{animation:drop .4s cubic-bezier(.2,.9,.3,1) forwards}
+.sitecard.on .body > *:nth-child(1){animation-delay:.26s}
+.sitecard.on .body > *:nth-child(2){animation-delay:.32s}
+.sitecard.on .body > *:nth-child(3){animation-delay:.38s}
+.sitecard.on .body > *:nth-child(4){animation-delay:.44s}
+.sitecard.on .body > *:nth-child(5){animation-delay:.50s}
+
+.sitecard .desc{font-size:12px;color:#A6A9A3;line-height:1.85}
+.sitecard .grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px;margin-top:13px}
+.sitecard .cell{border-left:2px solid rgba(195,232,76,.4);padding-left:8px}
+.sitecard .cell .k{font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;color:var(--ink3)}
+.sitecard .cell .v{font-family:var(--mono);font-size:14px;color:var(--ink);margin-top:2px}
+.sitecard .cell .v em{font-style:normal;color:var(--acid)}
+.sitecard .acts{display:flex;gap:8px;margin-top:15px}
+.sitecard .btn{
+  flex:1;font-family:var(--serif);font-size:13px;letter-spacing:.14em;
+  padding:9px 0;text-align:center;cursor:pointer;
+  border:1px solid rgba(195,232,76,.55);color:var(--acid);background:rgba(195,232,76,.08);
+  transition:background .18s,color .18s;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%);
+}
+.sitecard .btn:hover{background:var(--acid);color:#0A0B0C}
+.sitecard .btn.ghost{border-color:var(--line2);color:var(--ink2);background:transparent;flex:0 0 92px}
+.sitecard .btn.ghost:hover{background:rgba(210,211,207,.08);color:var(--ink)}
+
+/* 被选中的那栋：抬起来一点，其余的压暗 —— 配合镜头推进，
+   读起来是「聚焦到它身上」，而不是「它变了个颜色」 */
+/* ★★ 09-21 第四轮：这里**故意不给 opacity 加过渡**。
+   ── 用户报的"切换建筑 / 返回时画面崩坏"，根因就是下面第一行原来的
+      `transition: opacity .2s` ──
+   13 栋楼同时做 opacity 动画 = 13 个合成层在**动画中途被临时创建**，
+   而它们的更新时机和相机层的 transform 动画不同步。
+   实测抓到的那一帧里留着好几处**白色方块残影**（新旧两帧的建筑同时可见）。
+   两条一起改：① 去掉过渡 → 瞬间切换，没有中间帧，不给它不同步的机会
+             ② 加 will-change → 图层提前常驻，不在动画里临时创建 / 销毁
+
+   ⚠️ 09-21 第六轮：上面那条 ② 是**错的**，已经撤掉。
+      实测合成层审计（`.workbuddy-gen/diag-layers.cjs`）：整个页面 **287 个合成层、162 MB 显存**。
+      14 栋楼挂 `will-change:opacity` 等于**强制 14 个层常驻**，不但没解决问题，
+      反而把常驻层数推高。用户随后报「整个屏幕都崩坏」—— 因为总量已经过了合成器的承受线。
+      真正该做的是**减少层数**，不是让层更常驻。 */
+.bld{cursor:pointer}
+.bld .body{transition:transform .18s cubic-bezier(.22,.61,.36,1)}
+.bld:hover .body{transform:translateY(-5px)}
+.bld.dim{opacity:.28}
+.bld .selbox{opacity:0}
+.bld.sel .selbox{opacity:1}
+.bld .slot{opacity:.42;transition:opacity .18s}
+.bld:hover .slot,.bld.sel .slot{opacity:1}
+.bld.focus .body{transform:translateY(-6px)}
+
+/* ── 场景里的动态：只给关键元素，别让整张图都在动 ──
+   ★★ 全部动画共用 `animation-play-state:var(--play,running)`。
+   ────────────────────────────────────────────────────────────
+   拖动 / 缩放地图时，JS 把根元素上的 `--play` 改成 `paused`，
+   **一秒钟把全图上百个动画全部停住**；松手后再改回 `running`。
+   为什么用变量而不是给每个动画元素写两条规则？
+     ① 一次属性写入 vs 遍历 4000+ 元素匹配选择器；
+     ② 不依赖任何 class 命名约定，新加的动画元素只要抄这一句就自动被管住。 */
+@keyframes breathe{0%,100%{opacity:.28}50%{opacity:.85}}
+@keyframes ripple{0%{opacity:.06;transform:translateY(0)}50%{opacity:.3;transform:translateY(-1.6px)}100%{opacity:.06;transform:translateY(0)}}
+@keyframes cloud{0%{transform:translate(0,0)}50%{transform:translate(46px,20px)}100%{transform:translate(0,0)}}
+@keyframes pulse{0%{r:11;opacity:.75}100%{r:30;opacity:0}}
+/* 光柱：慢很多，9 秒一轮，读起来是"云在飘"而不是"灯在闪" */
+@keyframes beam{0%,100%{opacity:.45}50%{opacity:1}}
+.wave{animation:ripple 5.2s ease-in-out infinite;animation-play-state:var(--play,running)}
+.lamp{animation:breathe 3.4s ease-in-out infinite;animation-play-state:var(--play,running)}
+.cloudsh{animation:cloud 46s ease-in-out infinite;animation-play-state:var(--play,running)}
+.pulse{animation:pulse 2.8s ease-out infinite;animation-play-state:var(--play,running)}
+.ray{animation:beam 9s ease-in-out infinite;animation-play-state:var(--play,running)}
+/* ★★ 大气光层（09-21 第六轮从 SVG 里搬出来的）
+   ────────────────────────────────────────────────────────────
+   原来光柱和环境光是画在 `gBody` 里的 SVG 多边形，**跟着相机一起缩放**。
+   用户报「拖动时光源崩坏」——根因就在这：
+   它们是**铺满全画布的合成层**，每次 `scale()` 变化都要按新尺寸重新栅格化，
+   而铺满全屏的层重新栅格化的代价远高于一个小区块。
+   搬成 viewport 下的固定层之后：
+     ① 不再参与相机变换 —— 拖动 / 缩放时零重算，光源不可能再崩；
+     ② 物理上也更对：大气光相对观察者是固定的，本来就不该有视差
+        （地图平移时光柱跟着跑反而是错的）。 */
+.atmos{display:none}
+.atmos i.beam{
+  position:absolute;top:-45%;height:190%;width:300px;display:block;
+  background:radial-gradient(ellipse 44% 42% at 50% 34%,
+    rgba(255,248,220,.30),rgba(255,248,220,.10) 52%,rgba(255,248,220,0) 76%);
+  transform:rotate(17deg);
+  animation:beam 9s ease-in-out infinite;animation-play-state:var(--play,running);
+}
+.atmos .b1{left:4%}
+.atmos .b2{left:30%;opacity:.66;animation-delay:-3.1s}
+.atmos .b3{left:57%;opacity:.44;animation-delay:-6.2s}
+.atmos .amb{
+  position:absolute;inset:0;
+  background:linear-gradient(167deg,rgba(255,244,206,.15),rgba(255,244,206,0) 56%);
+}
+
+/* ============================================================
+   周边环境的动态（用户：「四周应该就是一个动态的场景，参考部落冲突那种」）
+   ────────────────────────────────────────────────────────────
+   部落冲突的村庄之所以"活"，靠的不是大动作，而是**一堆互不同步的小动作**：
+   水波、树摇、烟、云影、村民走动。
+   这里的纪律同样是两条：
+     ① **幅度必须小**（树只摆 ±1.5px）—— 大了就不是"活"，是"整张图在抖"；
+     ② **相位必须错开** —— 同相会整片一起动，读起来像故障，不像自然。
+
+   ★★ 09-21 第六轮重构：**从"逐元素动画"改成"分组动画"**
+   ────────────────────────────────────────────────────────────
+   原来每棵树各自一个 `<g class="sway">`（49 个）、每盏灯各自一个 circle
+   （53 个）、每条水纹各自一个 line（40 个）—— 目的是让每元素拿到独立的
+   `animation-delay` 和 `transform-origin`。
+   代价被合成器审计暴露了：**每个带动画的元素都是一个独立合成层**，
+   全页 287 层 / 162 MB 显存，拖动时每帧重新合成 → 整屏崩坏。
+
+   改法：**同一类动态合并成 6 个组，组内同步、组间用 6 个不同的 delay 错开。**
+   为什么这样不损失效果：
+     · 树冠是个**圆**，转它本来就几乎看不出来；改成组级的横向微摆，观感等价，
+       而且绕开了"组动画没法给每棵树单独 transform-origin"这个死结；
+     · 灯和波纹动的是 opacity / translateY，**在组上做和逐元素做完全等价**；
+     · 相位错开靠"组间 6 个 delay"，6 个相位在 0.8 倍缩放下已经看不出同步。
+
+   结果：170 个动画元素 → 约 30 个。视觉几乎不变，合成层掉一个数量级。 */
+@keyframes swayG{0%,100%{transform:translateX(-1.5px)}50%{transform:translateX(1.5px)}}
+@keyframes smokeUp{
+  0%{transform:translate(0,0) scale(.45);opacity:0}
+  16%{opacity:.4}
+  100%{transform:translate(34px,-104px) scale(2.2);opacity:0}}
+@keyframes driveX{0%{transform:translateX(-280px)}100%{transform:translateX(2420px)}}
+@keyframes driveY{0%{transform:translateY(-280px)}100%{transform:translateY(1880px)}}
+@keyframes flagWave{0%,100%{transform:scaleX(1) skewY(0deg)}50%{transform:scaleX(.84) skewY(-4deg)}}
+/* 窗户反光：只在很短的窗口里亮一下，然后长时间不动 —— 这才像"阳光扫过玻璃"；
+   均匀闪烁会像 LED 跑马灯 */
+@keyframes glint{0%,93%,100%{opacity:0}96%{opacity:.95}}
+@keyframes boat{0%{transform:translate(0,0)}100%{transform:translate(-134px,1520px)}}
+/* 树的组。注意用的是 swayG（只做横向微摆），不是绕自身旋转 ——
+   组动画的 transform-origin 是画布原点，用 rotate 会让整组绕原点甩出去。 */
+.sway{animation:swayG 6.4s ease-in-out infinite;animation-play-state:var(--play,running)}
+.smoke{animation:smokeUp 5.8s ease-out infinite;animation-play-state:var(--play,running)}
+.car{animation:driveX 22s linear infinite;animation-play-state:var(--play,running)}
+.car-v{animation:driveY 27s linear infinite;animation-play-state:var(--play,running)}
+.flag{animation:flagWave 3.4s ease-in-out infinite;animation-play-state:var(--play,running)}
+.glint{animation:glint 8s linear infinite;animation-play-state:var(--play,running)}
+.boat{animation:boat 72s linear infinite;animation-play-state:var(--play,running)}
+/* ════════════════════════════════════════════════════════════════
+   09-21 16:2x 决定性修复：场景动画**全部关掉（不是暂停）**。
+   ── 用户报「拖动一下屏幕就闪、连整个软件都闪」──
+   实测（真 GPU 审计）：上面这些逐元素 CSS 动画 = **47 个独立合成层**，
+   加上 `.cam` 的 `will-change` 巨型相机层，一共 **144 MB 显存 / 76 层**。
+   拖动时 `--play:paused` 只是**冻结**动画，**不释放合成层**（审计显示拖动时
+   仍有 72 层）—— 所以"暂停"这个思路从根上就挡不住合成器被压垮。
+   要"动"回来只有两条路：单一 rAF 驱动一个图层，或迁到 canvas。
+   逐元素 CSS 动画在 4000+ 元素的场景里就是合成层爆炸，不可再开。 */
+.wave,.lamp,.cloudsh,.pulse,.ray,.sway,.smoke,.car,.car-v,.flag,.glint,.boat,.atmos i.beam{
+  animation:none !important;
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="top">
+    <div class="l">
+      <h1>你的大学平行宇宙</h1>
+      <div class="en">CAMPUS&nbsp;OPERATION&nbsp;TERMINAL&nbsp;/&nbsp;ACT&nbsp;01</div>
+    </div>
+    <div class="m">
+      <div class="kv"><div class="k">ZONE</div><div class="v">校园全域</div></div>
+      <div class="kv"><div class="k">GRID</div><div class="v" id="kGrid">—</div></div>
+      <div class="kv"><div class="k">SITES</div><div class="v"><em id="kSite">—</em></div></div>
+      <div class="kv"><div class="k">VISITED</div><div class="v"><em id="kVisit">0</em></div></div>
+    </div>
+    <div class="r">
+      <div class="big">DAY <b>01</b> &nbsp;·&nbsp; SLOT <b>02</b>/04</div>
+      <div class="slots"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+    </div>
+  </div>
+
+  <main>
+    <div class="viewport" id="viewport">
+      <canvas id="scene"></canvas>
+      <!-- 大气光：**故意放在 cam 外面** —— 不参与相机变换，拖动/缩放时不重算。
+           放在这里的代价是"光不跟地图走"，而那正是物理上对的行为。 -->
+      <div class="atmos" id="atmos" aria-hidden="true">
+        <i class="beam b1"></i><i class="beam b2"></i><i class="beam b3"></i>
+        <div class="amb"></div>
+      </div>
+
+      <div class="scan"></div>
+      <div class="vig"></div>
+      <span class="corner tl"></span><span class="corner tr"></span>
+      <span class="corner bl"></span><span class="corner br"></span>
+
+      <div class="probe">GRID&nbsp;<b id="probe">—&nbsp;—</b>&nbsp;&nbsp;/&nbsp;&nbsp;悬停读坐标</div>
+      <div class="needle">
+        <span class="n">N</span><span class="ring"></span>
+        <span class="tri2"></span><span class="tri"></span>
+      </div>
+      <div class="ruler">
+        <div class="bar"></div>
+        <div class="t" id="rulT">≈ 25 M</div>
+      </div>
+      <div class="tips">
+        <b>左键拖动</b> 平移地图<br>
+        <b>滚轮</b> 缩放 · <b>点建筑</b> 进入<br>
+        <b>右键</b> 复位视角
+      </div>
+
+      <div class="minimap" id="minimap">
+        <canvas id="mini" width="360" height="268"></canvas>
+        <div class="cap">SECTOR&nbsp;MAP</div>
+        <div class="box" id="miniBox">—</div>
+      </div>
+
+      <div class="scrim" id="scrim"></div>
+      <div class="sitecard" id="sitecard">
+        <div class="sweep"></div>
+        <div class="head">
+          <div class="no" id="scNo">—</div>
+          <h4 id="scName">—</h4>
+          <div class="sub" id="scSub">—</div>
+        </div>
+        <div class="rule"></div>
+        <div class="body">
+          <div class="desc" id="scDesc">—</div>
+          <div class="grid2" id="scGrid"></div>
+          <div class="acts">
+            <div class="btn" id="scGo">进入此处</div>
+            <div class="btn ghost" id="scBack">返回</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="sec">所在地 <b>/ SITE</b></div>
+      <div class="para hi" id="info">
+        <h3 class="place">未选择地点</h3>
+        <div class="zt" style="color:var(--ink3)">NO SITE SELECTED</div>
+        <div class="desc">校园被当作一张<b>作战地图</b>来画：午后暖光下的地块，站点靠「抬升 + 细边线 + 指示点」区分，<b>34 处地点各有一套屋顶特征</b>，标志色只落在小面积的标记上。校园坐落于龙泉山麓，围墙外是连片的草地。</div>
+      </div>
+
+      <div class="sec">属性轨迹 <b>/ TRACE</b></div>
+      <div class="para off" id="bars"></div>
+
+      <div class="sec">地形图例 <b>/ TERRAIN</b></div>
+      <div class="para">
+        <div class="legend">
+          <div class="lg"><i style="background:#7FA05A"></i>草地</div>
+          <div class="lg"><i style="background:#6C7278"></i>道路</div>
+          <div class="lg"><i style="background:#BCB098"></i>铺装</div>
+          <div class="lg"><i style="background:#3A8FC4"></i>水面</div>
+          <div class="lg"><i style="background:#6E6656"></i>台地</div>
+          <div class="lg"><i style="background:#93A277;border:1px solid rgba(255,255,255,.25)"></i>校园外</div>
+          <div class="lg"><i style="border:1px solid rgba(195,232,76,.9)"></i>可进入</div>
+        </div>
+      </div>
+
+      <div class="sec">操作 <b>/ INPUT</b></div>
+      <div class="para">
+        <div class="hint">
+          <kbd>左键拖动</kbd> 平移地图<br>
+          <kbd>滚轮</kbd> 以光标为心缩放<br>
+          <kbd>悬停</kbd> 读格子坐标<br>
+          <kbd>点建筑</kbd> 镜头飞入 + 子界面<br>
+          <kbd>右键 / Esc</kbd> 复位
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <div class="bot">
+    <div class="node on"><span class="dot"></span><span class="t">开场</span><span class="n">P0</span></div>
+    <span class="link"></span>
+    <div class="node on"><span class="dot"></span><span class="t">行动</span><span class="n">P1</span></div>
+    <span class="link"></span>
+    <div class="node"><span class="dot"></span><span class="t">事件</span><span class="n">P2</span></div>
+    <span class="link"></span>
+    <div class="node"><span class="dot"></span><span class="t">档案</span><span class="n">P3</span></div>
+    <span class="tail">ORTHOGRAPHIC&nbsp;TOP-VIEW&nbsp;/&nbsp;DRAGGABLE&nbsp;CAMERA&nbsp;/&nbsp;NO&nbsp;DEPS</span>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   一、画布与投影
+   ────────────────────────────────────────────────────────────
+   ★ 投影是**正交俯视**，不是等距。
+     方舟官方早期试过斜角（等距），结论是「不利于方向摆放、
+     能显示格点太少」，最后选了俯视。所以格子保持正方形，
+     抬起的方块沿 z 向上、并向右侧轻微倾斜：
+         screenX = x + z * KX ;  screenY = y - z
+     这样地面是干净的正交网格，建筑却能看到顶面 / 正面 / 右侧面。
+   ★ 画布 2120×1580，校园只占中央 1232×840 —— 其余是校园外的世界。
+     这是 v3 与 v2 最大的结构差别（v2 的 SVG 只有 880×610，
+     整张图刚好能塞进一屏，于是四周什么都没画）。
+   ============================================================ */
+/* ★★ v9：外环收窄 —— 用户 09-22「把外环给缩一部分」。
+   原来的 3200×2292 是给"山 + 湖"留的：左右各 768、上下各 570。
+   山与校外的湖删掉后，这一圈只剩空草地，于是收掉一半：
+     · 左右 (3200−1664)/2 = 768 → (2500−1664)/2 = 418
+     · 上下 (2292−1152)/2 = 570 → (2000−1152)/2 = 424
+   校园本身大小不变（缩放由 minScale 与 resetView 系数决定），
+   少掉的只是画布四周的空白草地；底图位图也从 4320×3094 降到 3375×2700。 */
+var CW = 2500, CH = 2000;              // 画布
+var T = 64, GX = 26, GY = 18;          // 格子边长 / 格数
+var KX = 0.30, PAD = 62;               // 抬升侧移系数 / 刻度边距
+/* 校园居中：CX0 = (CW−GX*T)/2 = (2500−1664)/2 = 418、CY0 = (2000−1152)/2 = 424，
+   所以 OX = 418 − PAD = 356、OY = 424 − PAD = 362。 */
+var OX = 356, OY = 362;                // 校园在画布中的落位
+/* ────────────────────────────────────────────────────────────
+   ★★ v7：画布尺寸**保持 3200×2292 不变**，尽管山与湖都已经删掉。
+   ────────────────────────────────────────────────────────────
+   这个尺寸是两次扩容的产物：
+     · v4「学校做完整 + 四周清空」→ 收成"刚好装下校园"；
+     · v5「周围到处都是山」→ 再扩一圈，上侧特意留 570px 给耸起的山。
+   v7 把山与校外的湖整段删除后，这块余量变成了一圈纯草地。
+   **为什么不把画布收回去**：收画布要同步改 OX/OY/CX0/CY0、小地图视窗
+   与 `minScale` 四处引用；那条链路正是本工作区栽过的坑
+   （"改枚举值漏改引用点 → 白屏"）。收益只是省一点离屏位图内存，
+   不值得在交付前动。等真需要时再做。
+   ────────────────────────────────────────────────────────────
+   OX/OY 由「校园居中」反推：左右各留 (3200−1664)/2 = 768，
+   上下各留 (2292−1152)/2 = 570。
+   ★ 地理依据仍然成立、只是**不再画进图里**：武汉晴川学院坐落在
+     4A 级龙泉山风景区，「背靠龙泉山，面朝梧桐湖」（校方官网原文）。
+   ──────────────────────────────────────────────────────────── */
+function P(x, y, z) { z = z || 0; return { x: OX + PAD + x + z * KX, y: OY + PAD + y - z }; }
+function poly(a) { return a.map(function (p) { return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' '); }
+
+/* 校园格子在画布里的像素范围（画围墙、路网、小地图都要用） */
+var CX0 = OX + PAD, CY0 = OY + PAD;
+var CX1 = CX0 + GX * T, CY1 = CY0 + GY * T;
+
+/* ⚠️ SVG presentation attribute 不解析 CSS 变量（fill="var(--x)" 是无效值，
+   元素会静默退化成黑色）。SVG 这边一律用字面量，CSS 那边才用变量。 */
+/* ★ 改暖调后，校园里的文字从「浅色字压深底」翻转成「深色字压亮底」。
+   C_INK / C_INK3 这两个名字到处在用，所以保留名字、整体把值翻深 ——
+   它们代表的是「地图上的字」，底色变了，字色就得跟着翻，
+   否则 1.5:1 的对比等于字消失。 */
+var C_ACID = '#C3E84C', C_WARN = '#E8632C', C_INK = '#26301C', C_INK3 = '#46512F';
+var MONO = '"JetBrains Mono",Consolas,"Courier New",monospace';
+var SERIF = '"Songti SC","Noto Serif SC",Georgia,serif';
+var NS = 'http://www.w3.org/2000/svg';
+
+/* 确定性伪随机 —— 刷十次页面长一样，否则没法做视觉校对 */
+function rnd(i, salt) { var x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453; return x - Math.floor(x); }
+
+/* ============================================================
+   二、地形
+   ★ **全部去色**。方舟的地形几乎是单色的，颜色只留给标记。
+     但去色 ≠ 抹掉对比 —— v2 第一次调得太暗（#191D1A 之类），
+     结果糊成一片、路网读不出来。这里只拉明度、不动色相。
+   ============================================================ */
+/* ★ 09-21 第二轮改色：从「夜间深色」整体改成「午后暖光」。
+   用户原话：「地图太过深沉了」「地面上可以变得更鲜艳一点」。
+   方舟原版地图确实是深色的，但深色放在网页上整片压得慌 ——
+   改成午后直射光：草地橄榄绿、道路暖石灰、水面亮蓝，明度整体抬高一档半；
+   同时**保留「地形去色、颜色只给标记」这条纪律**，只是把明度基准提高。 */
+/* ★ 09-22 第二轮：地面整体提一档饱和。
+   用户早前说过「地面上可以变得更鲜艳一点」；
+   而建筑换成冷灰之后，地面如果不跟上，整片会一起闷掉。
+   原则不变：**地形只加饱和、不做高饱和大色块**（方舟纪律），
+   草地仍是橄榄绿、路面仍是暖石灰，只是各自离开"中性灰"远了一点。 */
+var TER = {
+  g: '#7FA05A',            /* 草地 */
+  /* ★★ v5：路面换色。用户原话「这个丑，这个颜色太丑了」。
+     诊断：v4 的 #A69C86 是**暖灰**，与铺装 #BCB098、围墙 #9A907C、
+     建筑冷灰基座 #A9B6C9 全在同一色系里 —— 整幅画的"人工物"糊成一片暖灰，
+     路在三者之间分不出来。所以问题不是"这个灰不好看"，是**它没有身份**。
+     解法：换成**冷调沥青** #6C7278 —— 明度比草地略低、色相偏冷，
+     于是它同时和草地（黄绿）、铺装（暖石）拉开，一眼可辨。
+     这也更真实：柏油路本来就是冷灰的。 */
+  r: '#6C7278',
+  '.': '#BCB098',
+  w: '#3A8FC4',
+  x: '#93A277'             /* 校园外的郊野地 */
+};
+
+/* ★★ v5：路网定义 —— **唯一来源**。
+   fill（格子语义）与绘制（真正的路带）都从这里取，改一处即可。
+   `w` = 路面宽度（格）。
+   ★ 尺度依据：校园 820m ÷ 26 格 ≈ 30m/格；真实校园主干道 10~12m、
+     次干道 8~9m。所以主干道 0.40 格、次干道 0.30 格。
+     ⚠️ v4 把**整格 30m** 都涂成路 —— 比真实粗了 3 倍。这是"比例不对"的主因：
+        三条 30m 宽的暖灰带占了画面主导，读起来像"方格纸的格线"而不是路。 */
+var ROADS = [
+  { d: 'v', c: 6,  w: .30 },   /* 西侧纵路 */
+  { d: 'v', c: 13, w: .40 },   /* 中轴纵路（主干） */
+  { d: 'v', c: 20, w: .30 },   /* 东侧纵路 */
+  { d: 'h', r: 6,  w: .30 },   /* 北横路 */
+  { d: 'h', r: 12, w: .40 }    /* 南横路（主干） */
+];
+
+var grid = [];
+(function () { for (var r = 0; r < GY; r++) { grid[r] = []; for (var c = 0; c < GX; c++) grid[r][c] = 'g'; } })();
+function fill(c0, r0, c1, r1, ch) {
+  for (var r = r0; r <= r1; r++) for (var c = c0; c <= c1; c++) { if (grid[r] && grid[r][c] !== undefined) grid[r][c] = ch; }
+}
+/* 路网：从 ROADS 生成（唯一来源）。'r' 这一格代表"这条路经过这里"——
+   它同时承担两件事：① 悬停时读出"道路" ② 建筑排布时避让。 */
+ROADS.forEach(function (rd) {
+  if (rd.d === 'v') fill(rd.c, 0, rd.c, GY - 1, 'r');
+  else fill(0, rd.r, GX - 1, rd.r, 'r');
+});
+/* 铺装：楼前场地。铺装不只是"装饰"，它是**尺度参照** ——
+   有了它，人才看得出这块地有多大。 */
+fill(1, 3, 5, 3, '.');           // 行政楼与实验楼之间的横广场
+fill(4, 10, 5, 11, '.');         // 中心广场（旗杆所在）
+fill(3, 14, 5, 14, '.');         // 食堂前
+fill(10, 13, 10, 14, '.');       // 校医院与综合服务楼之间
+fill(16, 13, 16, 13, '.');       // 快递中心与剧场之间
+fill(21, 14, 22, 14, '.');       // 宿舍组团前
+
+/* 晴缘湖：中心景观区中部、图书馆东侧（真实校园里的"亲水"关系） */
+fill(7, 7, 11, 11, 'w');
+
+/* ★★ 09-22：抬升平台跟着布局走 —— 田径运动场占 c14~c19 / r1~r5，
+   整块台地抬高一层（其上的跑道与内场都比校园地面高 16px）。 */
+var HIGH = [
+  { c0: 14, r0: 1, c1: 19, r1: 5, h: 16 },
+];
+
+/* ★★ 09-22：分区改成**真实的四个功能区**（原来那套"东西南北"是编的）。
+   来源：武汉晴川学院校园平面图 —— 行政教学区 / 中心景观区 /
+   体育运动区 / 生活服务区。 */
+var ZONES = {
+  north:  { label: '行政教学区', code: 'N-ACAD',  hue: '#7FA8D8' },
+  center: { label: '中心景观区', code: 'C-LAKE',  hue: '#8FC8B8' },
+  east:   { label: '体育运动区', code: 'E-SPORT', hue: '#D8B24C' },
+  south:  { label: '生活服务区', code: 'S-LIVE',  hue: '#D08A6C' },
+};
+var KEY = { academic: '学术', social: '社交', sport: '运动', night: '夜猫', plan: '计划', novelty: '尝鲜', resilience: '抗压', food: '美食' };
+
+/* 建筑三面要**明确亮于地形**。明度差不够，立体感就等于白做 ——
+   这是立体感的本质（面与面之间的明度差），不是靠透视。
+   改暖调后：建筑是"被午后直射光照亮的砂岩色"，地面是"被照亮但吸光的草绿"，
+   两者的差仍然由明度撑，不靠色彩。 */
+/* ★★ 09-22 第二轮：材质三系（终末地工业机能）
+   ── 用户原话「这些房子要修改一下，现在还是太灰白了」──
+   诊断：原来三面是同一个暖灰系（#A49A85 / #6E6555 / #8B8171），
+   **色相差几乎为零、只有明度差** —— 所以整片读起来是一片米灰。
+   解药**不是加饱和度**（终末地本体就是灰的，硬加就俗了），
+   而是**建立材质对比**：
+     冷灰混凝土（主体）× 暖褐锈铁（构件）× 柠檬黄涂装（功能件）
+   三系一撞，灰仍然是灰，但每一块灰都在说"我是什么材料"。
+
+   ⚠️ 明度基准**保持**在原来那一档（顶面 140 / 右侧 107 / 正面 78）——
+      换的是色相与材质信息，不是把画面压回深色。 */
+var MAT = {
+  /* ⚠️ 建筑的墙面配色**不在这里**，见下面的 SKINS（四套皮肤）。
+     这里只放"构件的颜色"：基座 / 金属 / 锈 / 黄 / 玻璃 / 阴影。 */
+  base:     '#A9B6C9',    /* 基座 / 裙房 —— 冷蓝灰，与墙面同源（原来是中性灰，会形成"灰边"） */
+  metal:    '#707F92',    /* 金属板（屋顶设备 / 空调外机 / 法兰） */
+  metalLit: '#98A7BA',    /* 金属亮面 */
+  rust:     '#9A4E24',    /* 锈 */
+  rustLit:  '#C4713C',
+  rustDark: '#573019',
+  lemon:    '#E4EE3A',    /* 柠檬黄 —— 功能色：栏杆 / 警示 / 门框 */
+  lemonDim: '#9EA82D',
+  glass:    'rgba(184,220,239,.86)',   /* 玻璃（冷） */
+  glassDark:'rgba(38,58,72,.9)',
+  shade:    'rgba(26,30,36,.42)',      /* 投影（光源偏暖 ⇒ 影子偏冷） */
+  shadeFar: 'rgba(26,30,36,.18)',
+};
+
+/* ★★ 09-22 第二轮修正：**建筑皮肤**（整栋涂装）
+   ────────────────────────────────────────────────────────────
+   第一版只给了 1~3px 的黄色细线，实测色彩统计反而更灰（18.2% → 26.9%）。
+   原因是终末地的柠檬黄**不是点缀、是成片涂装** ——
+   检索原文：「建筑以**柠檬黄与冷灰交相碰撞**，构建出兼具厚重感与动态张力的工业世界」。
+
+   所以这里按"整栋换肤"来做，让楼群里出现黄灰节奏：
+     · conc  —— 冷灰清水混凝土（多数）
+     · lemon —— 工业芥末黄涂装（运动设施 / 咖啡馆；不是纯亮黄，是压过灰的黄）
+   两套皮肤**明度结构完全相同**（顶面最亮 / 正面最暗）——
+   立体感的本质是面与面的明度差，这条不因换肤而变。 */
+var SKINS = {
+  /* ★ 冷**蓝**灰，不是中性灰。
+     中性灰（S≈0.08）在人眼里就是"灰白"；带一点冷蓝（S≈0.18）之后
+     它变成"蓝灰混凝土" —— 同样的明度，观感完全不同。
+     明度也从 0.70 压到 0.62：俯视图里顶面占建筑面积的绝对主导，
+     顶面偏亮等于整片偏白。 */
+  conc:  { top: '#C2D8EB', side: '#849AB3', dark: '#546A8A', lit: '#DCEDF9',
+           seam: 'rgba(24,34,46,.32)', wash: 'rgba(130,164,196,.15)' },
+  lemon: { top: '#F6EA6D', side: '#C3B937', dark: '#8C8322', lit: '#F8F2A0',
+           seam: 'rgba(64,58,10,.28)', wash: 'rgba(234,223,104,.12)' },
+  /* 南生活区：赭红（砖砌 / 生活区）。红砖是最古老的工业建材，
+     它给"生活"这个语义一个颜色，同时和北区的冷灰形成冷暖对峙。 */
+  brick: { top: '#E39F7B', side: '#B07251', dark: '#7E4D2F', lit: '#F0B48E',
+           seam: 'rgba(52,26,14,.32)', wash: 'rgba(214,150,116,.14)' },
+  /* 西自由区：铜绿（旧建筑的氧化铜 / 青铜）。
+     这区是"旧礼堂 / 天文台 / 湖心亭"—— 最多时间感的地方，
+     用铜绿比用灰更能说明"它比别的楼老"。 */
+  patina: { top: '#A1DAC1', side: '#6EA186', dark: '#4B765E', lit: '#BCE6D2',
+            seam: 'rgba(20,46,34,.30)', wash: 'rgba(152,206,182,.14)' },
+
+  /* ★★ 山地两套色（hill / rock）已于 v7 删除 —— 山体整段移除后无人引用。 */
+};
+/* 占地是格子单位，T 一变建筑跟着变大，所以这里只调高度。
+   v2 → v3：T 从 38 涨到 56（×1.47），高度只乘 1.35 ——
+   格子涨得比楼高多，是为了让"空地"变多，地图才透气。 */
+/* ★ 09-21 第二轮：每栋楼加一个 feat（识别特征）。
+   用户原话「每个房子的特色也要表现出来」——
+   在这之前 14 栋楼只差在高度和窗户数上，缩略视图里是一模一样的灰盒子。
+   特征必须满足两条：① 0.8 倍缩放下仍认得出（所以体积要大、轮廓要独特）
+   ② 从**俯视**看是对的（所以只能用屋顶形状 / 附楼 / 室外设施，
+   不能用立面装饰 —— 立面在俯视图里几乎看不见）。 */
+/* 只有这 4 栋楼有"反光窗"动画。理由见建筑渲染里那段注释：
+   反光是个偶尔闪一下的细节，铺满 14 栋反而像跑马灯，
+   而且每个反光窗都是一个独立合成层。 */
+var GLINT_SITES = ['lib', 'gym', 'exp2', 'dorm1'];
+/* ════════════════════════════════════════════════════════════════
+   ★★ v4：**一所完整的学校**（用户：「学校完整的做出来」）
+   ────────────────────────────────────────────────────────────
+   v3 是 21 栋，散在 22×15 的格子里，空地比楼多，读起来像"没做完"。
+   v4 是 **34 栋**，照真实高校的功能配置补齐：
+     行政教学区 8 —— 行政楼 / 教学楼一~四 / 实验楼一·二 / 艺术楼
+     中心景观区 4 —— 图书馆 / 学生活动中心 / 学术交流中心 / 湖心亭
+     体育运动区 6 —— 田径运动场 / 体育馆 / 游泳馆 / 训练馆 / 篮球场 / 网球场
+     生活服务区16 —— 学生食堂 / 教工食堂 / 校医院 / 综合服务楼 /
+                     快递中心 / 剧场 / 创新创业楼 / 公寓梅苑·桂苑 / 公寓 1~7 栋
+   ★ 排布规则（rebuild-v4.py 末尾逐条断言）：
+     · 每栋在 [1, GX-2] × [1, GY-2] 内（贴边会让标签与屋顶出界）
+     · 两两不重叠
+     · 不压道路格、不压湖面格（湖心亭除外，它本来就在水上）
+     · zone / shape / feat 三个名字必须真的存在 —— v3 在这里栽过：
+       写错的 shape 会**静默退回矩形**、写错的 feat 会**静默不画**
+       （v3 的图书馆写着 feat:'glass'，而 FEATS 里根本没有 glass）。
+   ════════════════════════════════════════════════════════════════ */
+var SITES = [
+  /* ── 行政教学区（北，r1~r5 / c1~c12） ── */
+  { id:'admin',  zone:'north',  name:'行政楼',   c:1,  r:1,  w:2, d:2, h:54, shape:'step',  feat:'steps',
+    line:'教务处的窗口只开到四点半，差一分钟都算明天。', vec:{ plan:3, social:1 } },
+  { id:'exp1',   zone:'north',  name:'实验楼一', c:4,  r:1,  w:2, d:2, h:62, shape:'L',     feat:'mast',
+    line:'焊接实训的第一天，谁都被烫过一下。', vec:{ academic:3, plan:2 } },
+  { id:'teach2', zone:'north',  name:'教学楼二', c:7,  r:1,  w:2, d:2, h:76, shape:'U',     feat:'court',
+    line:'三楼那间大教室的投影仪，每次都要拍一下才亮。', vec:{ academic:2, plan:1 } },
+  { id:'teach4', zone:'north',  name:'教学楼四', c:10, r:1,  w:2, d:2, h:70, shape:'oct', feat:'court', paint:'lemon',
+    line:'靠窗的座位永远抢手，理由谁都懂。', vec:{ academic:2, social:1 } },
+
+  { id:'teach1', zone:'north',  name:'教学楼一', c:1,  r:4,  w:2, d:2, h:74, shape:'U', feat:'steps',
+    line:'U 型回廊把几栋楼连在一起，课间像赶集。', vec:{ academic:2, social:1 } },
+  { id:'exp2',   zone:'north',  name:'实验楼二', c:4,  r:4,  w:2, d:2, h:58, shape:'cross', feat:'skylight',
+    line:'示波器上的波形一直在抖，老师说这是正常的。', vec:{ academic:3, night:-1 } },
+  { id:'teach3', zone:'north',  name:'教学楼三', c:7,  r:4,  w:2, d:2, h:68, shape:'L', feat:'court',
+    line:'早上第一节，楼梯上全是没睡醒的人。', vec:{ academic:1, night:-2 } },
+  { id:'arts',   zone:'north',  name:'艺术楼',   c:10, r:4,  w:2, d:2, h:50, shape:'wedge', feat:'spire', paint:'patina',
+    line:'琴房在四楼最里侧，练声的时候整层都能听见。', vec:{ novelty:3, social:1 } },
+
+  /* ── 中心景观区（中，r7~r11 / c1~c12） ── */
+  { id:'lib',    zone:'center', name:'图书馆',   c:1,  r:7,  w:3, d:3, h:82, shape:'step',  feat:'dome',
+    line:'晴缘湖畔的新馆，玻璃幕墙把整片湖面收进阅览室。', vec:{ academic:4, resilience:2 } },
+  { id:'act',    zone:'center', name:'学生活动中心', c:4, r:7, w:2, d:2, h:46, shape:'oct', feat:'awning', paint:'lemon',
+    line:'社团招新的那几天，一楼大厅摆满了易拉宝。', vec:{ social:4, novelty:2 } },
+  { id:'pav',    zone:'center', name:'湖心亭',   c:9,  r:9,  w:1, d:1, h:26, shape:'round', feat:'pavilion', paint:'patina', onWater:true,
+    line:'要去湖心亭得先绕过半个湖，但没人觉得远。', vec:{ resilience:2, social:2 } },
+  { id:'acad',   zone:'center', name:'学术交流中心', c:1, r:10, w:3, d:2, h:44, shape:'L', feat:'awning', paint:'brick',
+    line:'报告厅的空调总是太冷，来听讲座要带外套。', vec:{ academic:3, social:1 } },
+
+  /* ── 体育运动区（东，r1~r11 / c14~c24） ── */
+  { id:'field',  zone:'east',   name:'田径运动场', c:14, r:1, w:6, d:5, h:16, track:true, shape:'rect', paint:'brick',
+    line:'体测那一千米，跑完的人都在弯道后面扶着膝盖。', vec:{ sport:4, resilience:2 } },
+  { id:'pool',   zone:'east',   name:'游泳馆',   c:21, r:1,  w:4, d:2, h:44, shape:'round', feat:'skylight',
+    line:'第一次下水的人，都以为浅水区能站住。', vec:{ sport:3, novelty:2 } },
+  { id:'gym',    zone:'east',   name:'体育馆',   c:14, r:7,  w:4, d:3, h:52, shape:'oct',   feat:'vault', paint:'lemon',
+    line:'木地板擦得很亮，球鞋一急停就响。', vec:{ sport:3, social:1 } },
+  { id:'basket', zone:'east',   name:'篮球场',   c:18, r:7,  w:2, d:2, h:12, shape:'rect',  feat:'pallets',
+    line:'傍晚的场子要排队，赢的人不下场。', vec:{ sport:3, social:2 } },
+  { id:'train',  zone:'east',   name:'训练馆',   c:14, r:10, w:3, d:2, h:40, shape:'rect',  feat:'skylight', paint:'brick',
+    line:'力量区的杠铃片，永远归不了位。', vec:{ sport:3, resilience:2 } },
+  { id:'tennis', zone:'east',   name:'网球场',   c:18, r:10, w:2, d:2, h:12, shape:'rect',  feat:'awning',
+    line:'球打在网带上的声音，比打中拍面要闷。', vec:{ sport:2, novelty:1 } },
+
+  /* ── 生活服务区（南，r13~r16 / c1~c24） ── */
+  { id:'canteen',zone:'south',  name:'学生食堂', c:1,  r:13, w:2, d:2, h:42, shape:'U',     feat:'stack', paint:'brick',
+    line:'二楼靠里的窗口，阿姨手不会抖。', vec:{ food:4, social:2 } },
+  { id:'canteen2',zone:'south', name:'教工食堂', c:4,  r:13, w:2, d:2, h:38, shape:'rect', feat:'stack', paint:'brick',
+    line:'中午十二点，这里比学生食堂安静得多。', vec:{ food:3, plan:1 } },
+  { id:'health', zone:'south',  name:'校医院',   c:8,  r:13, w:2, d:2, h:36, shape:'rect',  feat:'awning',
+    line:'挂号在一楼，量血压的机器总说你的手太凉。', vec:{ resilience:3, plan:1 } },
+  { id:'complex',zone:'south',  name:'综合服务楼', c:11, r:13, w:2, d:2, h:46, shape:'L',   feat:'court',
+    line:'办事窗口的叫号机，永远叫不到你要的号。', vec:{ plan:3, social:1 } },
+  { id:'express',zone:'south',  name:'快递中心', c:14, r:13, w:2, d:2, h:32, shape:'rect',  feat:'pallets',
+    line:'开学那两天，取件的队伍排到了马路上。', vec:{ novelty:2, social:2 } },
+  { id:'theater',zone:'south',  name:'剧场',     c:17, r:13, w:2, d:2, h:48, shape:'wedge', feat:'stage', paint:'patina',
+    line:'彩排到十一点，台上的人还在为一个转身较劲。', vec:{ novelty:3, social:2 } },
+  { id:'innov',  zone:'south',  name:'创新创业楼', c:21, r:13, w:2, d:2, h:46, shape:'L',   feat:'court', paint:'lemon',
+    line:'路演的稿子改了七版，评委只问了成本。', vec:{ plan:3, novelty:1 } },
+  { id:'meiyuan',zone:'south',  name:'公寓梅苑', c:23, r:13, w:2, d:2, h:58, shape:'cross', feat:'balcony', paint:'brick',
+    line:'名字好听，隔音一般。', vec:{ night:2, resilience:1 } },
+
+  { id:'dorm1',  zone:'south',  name:'学生公寓 1 栋', c:1,  r:15, w:2, d:2, h:64, shape:'L', feat:'balcony', paint:'brick',
+    line:'一楼的风永远最大，晾衣服要夹两个夹子。', vec:{ night:2, social:2 } },
+  { id:'dorm2',  zone:'south',  name:'学生公寓 2 栋', c:4,  r:15, w:2, d:2, h:60, shape:'rect', feat:'balcony', paint:'brick',
+    line:'熄灯以后，走廊里总有几间还在聊天。', vec:{ night:3, social:2 } },
+  { id:'dorm3',  zone:'south',  name:'学生公寓 3 栋', c:8,  r:15, w:2, d:2, h:62, shape:'U', feat:'balcony', paint:'brick',
+    line:'楼下就是快递点和奶茶店，钱包安全性堪忧。', vec:{ novelty:2, food:1 } },
+  { id:'dorm4',  zone:'south',  name:'学生公寓 4 栋', c:11, r:15, w:2, d:2, h:58, shape:'oct', feat:'balcony', paint:'brick',
+    line:'离教学楼最远的一栋，早八是一种修行。', vec:{ night:3, resilience:2 } },
+  { id:'dorm5',  zone:'south',  name:'学生公寓 5 栋', c:14, r:15, w:2, d:2, h:66, shape:'rect', feat:'balcony', paint:'brick',
+    line:'阳台朝东，夏天的早上六点就亮得睡不着。', vec:{ night:2, plan:1 } },
+  { id:'dorm6',  zone:'south',  name:'学生公寓 6 栋', c:17, r:15, w:2, d:2, h:60, shape:'U', feat:'balcony', paint:'brick',
+    line:'每层第一个水房的水温，永远比别的低。', vec:{ night:2, resilience:1 } },
+  { id:'dorm7',  zone:'south',  name:'学生公寓 7 栋', c:21, r:15, w:2, d:2, h:62, shape:'L', feat:'balcony', paint:'brick',
+    line:'搬进来的那天，才知道六楼有多高。', vec:{ night:2, sport:1 } },
+  { id:'guiyuan',zone:'south',  name:'公寓桂苑', c:23, r:15, w:2, d:2, h:56, shape:'oct', feat:'balcony', paint:'brick',
+    line:'苑里的桂花只在九月香，其余时候很普通。', vec:{ night:1, social:2 } },
+];
+
+/* ════════════════════════════════════════════════════════════
+   建筑特色表
+   ────────────────────────────────────────────────────────────
+   每个函数拿到的是这栋楼的格子包围盒 + 高度，负责在顶面/旁边
+   画一个**从上方一眼可辨**的特征。
+   投影注意：z 抬高会让 x 右移 KX、y 上移 1 —— 所以"抬高一层"用
+   P(x, y, h + dz)，不是简单地在 y 上减。
+   ════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════
+   ★★ 09-22 新增：工业构件层 drawIndustrial()
+   ────────────────────────────────────────────────────────────
+   它回答的问题是「凭什么这一片看起来工业、而且有质感」。
+
+   五件东西，全部来自终末地的建筑语言：
+     ① **明缝** —— 清水混凝土的分块竖缝。一条缝就把"一整块灰"
+        拆成"若干块混凝土板"，尺度感立刻出来。
+     ② **锈流** —— 从女儿墙往下淌的氧化痕。★ 质感的主力 ★
+        新楼不会有，有年头的楼才有。它比任何高光都更能说明
+        "这东西在这里站了很久"。
+     ③ **管道** —— 沿立面上部走的工艺管线 + 法兰。工业建筑的签名。
+     ④ **栏杆** —— 屋顶边缘的柠檬黄细线。把功能色用在小面积上
+        （方舟纪律：大面积中性色 + 少量功能色）。
+     ⑤ **门框 / 警示条** —— 柠檬黄的第二次、第三次出现，都极小。
+
+   ★ 为什么这些小元素**必须画在立面上但仍用 polygon 而不是 rect**：
+     正交投影下 z 变化会引起 x 偏移（KX=0.30），立面实际是**平行四边形**。
+     10px 的小窗用 rect 近似没问题（偏差 3px 看不出来），
+     但一条 40px 长的锈流如果用 rect，横向会歪 12px —— 一眼就假。
+   ════════════════════════════════════════════════════════════ */
+function drawIndustrial(s, g, x0, y0, x1, y1, h) {
+  var W = x1 - x0, D = y1 - y0;
+  var seed = s.c * 13 + s.r * 7;
+  /* 这栋楼的皮肤（明缝颜色跟着涂装走 —— 黄色墙面上的深灰缝会很假） */
+  var SKD = SKINS[s.paint] || SKINS.conc;
+  var pa = s.paint === 'lemon';
+
+  /* ① 明缝：正面的竖向分块缝（立面是斜的，所以用 line 连接 z=0 与 z=h） */
+  if (h >= 26) {
+    for (var sx = x0 + 24; sx < x1 - 8; sx += 24) {
+      E('line', { x1: P(sx, y1, 1).x, y1: P(sx, y1, 1).y, x2: P(sx, y1, h - 3).x, y2: P(sx, y1, h - 3).y,
+        stroke: SKD.seam, 'stroke-width': .85 }, g);
+    }
+    /* 侧面也同样分块（右侧面在俯视图里露出一条，能看见缝） */
+    for (var sy = y0 + 24; sy < y1 - 8; sy += 24) {
+      E('line', { x1: P(x1, sy, 1).x, y1: P(x1, sy, 1).y, x2: P(x1, sy, h - 3).x, y2: P(x1, sy, h - 3).y,
+        stroke: SKD.seam, 'stroke-width': .7, 'stroke-opacity': .7 }, g);
+    }
+  }
+
+  /* ② 锈流：2~3 条，位置由楼的位置决定（不用随机数 —— 同一栋楼每次渲染必须一致） */
+  if (h >= 30) {
+    var rn = 3 + Math.floor(rnd(seed, 13) * 3);      /* 2~3 条 → 3~5 条 */
+    for (var i = 0; i < rn; i++) {
+      var rx = x0 + 12 + rnd(seed + i * 17, 21) * (W - 24);
+      var rl = h * (.28 + rnd(seed + i * 29, 31) * .5);
+      var rw = 2.6 + rnd(seed + i * 7, 41) * 2.6;   /* 1.8~3.4px → 2.6~5.2px */
+      /* 主痕（较实） */
+      E('polygon', { points: poly([P(rx, y1 - .5, h - 2), P(rx + rw, y1 - .5, h - 2),
+        P(rx + rw, y1 - .5, h - 2 - rl), P(rx, y1 - .5, h - 2 - rl)]),
+        fill: MAT.rust, 'fill-opacity': .5 }, g);
+      /* 淡尾（更长更淡）—— 两段叠出"越往下越淡"的淌痕 */
+      E('polygon', { points: poly([P(rx, y1 - .5, h - 2 - rl), P(rx + rw, y1 - .5, h - 2 - rl),
+        P(rx + rw, y1 - .5, h - 2 - rl * 1.7), P(rx, y1 - .5, h - 2 - rl * 1.7)]),
+        fill: MAT.rust, 'fill-opacity': .22 }, g);
+    }
+  }
+
+  /* ③ 管道：沿立面上部一条横向工艺管 + 两只法兰。
+        它给立面加了一条**水平方向的工业信息**，跟竖向的明缝正交。 */
+  if (h >= 36 && W >= 60) {
+    var pz = h - 16;
+    E('line', { x1: P(x0 + 5, y1 - .5, pz).x, y1: P(x0 + 5, y1 - .5, pz).y,
+      x2: P(x1 - 5, y1 - .5, pz).x, y2: P(x1 - 5, y1 - .5, pz).y,
+      stroke: MAT.rustDark, 'stroke-width': 3.4 }, g);
+    E('line', { x1: P(x0 + 5, y1 - .5, pz + 1).x, y1: P(x0 + 5, y1 - .5, pz + 1).y,
+      x2: P(x1 - 5, y1 - .5, pz + 1).x, y2: P(x1 - 5, y1 - .5, pz + 1).y,
+      stroke: MAT.rustLit, 'stroke-width': 1.2, 'stroke-opacity': .8 }, g);
+    [.28, .72].forEach(function (k) {
+      var fx = x0 + 5 + (W - 10) * k;
+      E('rect', { x: P(fx, y1 - 2.5, pz - 2).x, y: P(fx, y1 - 2.5, pz - 2).y, width: 3.4, height: 7,
+        fill: MAT.metal, stroke: 'rgba(20,24,28,.5)', 'stroke-width': .5 }, g);
+    });
+  }
+
+  /* ④ 栏杆：屋顶边缘的柠檬黄细线。★ 这是功能色的**主要**出现位置，
+        铺在所有楼上但压得很淡 —— 整片地图因此有一层统一的工业底色，
+        又不会各自抢戏。 */
+  var rl2 = h + 5;
+  E('line', { x1: P(x0 + 2, y1 - 2, rl2).x, y1: P(x0 + 2, y1 - 2, rl2).y,
+    x2: P(x1 - 2, y1 - 2, rl2).x, y2: P(x1 - 2, y1 - 2, rl2).y,
+    stroke: MAT.lemon, 'stroke-width': 1.9, 'stroke-opacity': .68 }, g);
+  E('line', { x1: P(x1 - 2, y0 + 2, rl2).x, y1: P(x1 - 2, y0 + 2, rl2).y,
+    x2: P(x1 - 2, y1 - 2, rl2).x, y2: P(x1 - 2, y1 - 2, rl2).y,
+    stroke: MAT.lemon, 'stroke-width': 1.5, 'stroke-opacity': .48 }, g);
+  /* 栏杆立柱：每 18px 一根，很短的竖线。没有立柱，亮线会读成"描边"。 */
+  for (var lx = x0 + 8; lx < x1 - 4; lx += 18) {
+    E('line', { x1: P(lx, y1 - 2, h + 5).x, y1: P(lx, y1 - 2, h + 5).y,
+      x2: P(lx, y1 - 2, h + 1).x, y2: P(lx, y1 - 2, h + 1).y,
+      stroke: MAT.lemonDim, 'stroke-width': 1.1, 'stroke-opacity': .6 }, g);
+  }
+
+  /* ⑤ 墙脚锈带：湿气从地面往上爬的痕迹 —— 比雨痕更宽、更平、更淡。
+        它压在整个墙脚，作用很具体：**让建筑"扎在地里"而不是"摆在地上"**。
+        与雨痕（竖直细条）正好成一横一纵，墙面的信息量就够读了。 */
+  var rb = 6 + h * .07;
+  E('polygon', { points: poly([P(x0, y1 - .6, 0), P(x1, y1 - .6, 0),
+    P(x1, y1 - .6, rb), P(x0, y1 - .6, rb)]),
+    fill: MAT.rust, 'fill-opacity': .3 }, g);
+  E('polygon', { points: poly([P(x1 - .6, y0, 0), P(x1 - .6, y1, 0),
+    P(x1 - .6, y1, rb * .8), P(x1 - .6, y0, rb * .8)]),
+    fill: MAT.rust, 'fill-opacity': .22 }, g);
+
+  /* ⑥ 空调外机：成对挂在立面上，每层一组。
+     为什么是它：工业建筑的立面之所以"有信息"，就是因为挂满了功能物。
+     一个 3×2px 的小方块阵列，比任何装饰线都更能说明"这楼在用"。
+     位置按楼层线走，和窗错开半格 —— 完全对齐会像贴纸。 */
+  if (h >= 44 && W >= 56) {
+    var rowsA = Math.max(1, Math.floor((h - 26) / 19));
+    var unit = (W - 20) / 5;
+    for (var ra = 0; ra < rowsA; ra++) {
+      var az = h - 22 - ra * 19;
+      for (var q = 0; q < 2; q++) {
+        var ax = x0 + 8 + unit * (0.35 + q * 2.6) + rnd(seed + ra * 5 + q, 61) * 6;
+        E('rect', { x: P(ax, y1 - 3, az).x, y: P(ax, y1 - 3, az).y, width: 5, height: 3.4,
+          fill: MAT.metal, stroke: 'rgba(12,16,20,.6)', 'stroke-width': .4 }, g);
+        E('rect', { x: P(ax, y1 - 3, az + 3.4).x, y: P(ax, y1 - 3, az + 3.4).y, width: 5, height: 1,
+          fill: MAT.metalLit }, g);
+      }
+    }
+  }
+
+  /* ⑦ 屋顶楼梯间：出屋面的小凸块（几乎所有多层建筑都有）。
+     它给顶面一个**非对称的体块** —— 没有它，屋顶是一块平板。 */
+  if (h >= 40) {
+    var stw = Math.min(W * .26, 46), std = Math.min(D * .3, 34);
+    var stx = x0 + W * .16, sty = y0 + D * .16;
+    E('polygon', { points: poly([P(stx, sty, h), P(stx + stw, sty, h),
+      P(stx + stw, sty + std, h), P(stx, sty + std, h)]),
+      fill: tint(SKD.side, .06), stroke: 'rgba(12,16,22,.6)', 'stroke-width': .8 }, g);
+    /* 楼梯间的顶（比主体再高 9px）—— 高度差就是"能看出来"的全部 */
+    E('polygon', { points: poly([P(stx, sty, h + 9), P(stx + stw, sty, h + 9),
+      P(stx + stw, sty + std, h + 9), P(stx, sty + std, h + 9)]),
+      fill: tint(SKD.top, .04), stroke: 'rgba(12,16,22,.5)', 'stroke-width': .7 }, g);
+    E('polygon', { points: poly([P(stx + stw, sty, h), P(stx + stw, sty + std, h),
+      P(stx + stw, sty + std, h + 9), P(stx + stw, sty, h + 9)]),
+      fill: tint(SKD.dark, .1) }, g);
+  }
+
+  /* ⑧ 门框：入口两侧的柠檬黄竖线（与下面的台阶配合） */
+  if (h >= 34) {
+    var mx0 = x0 + W / 2;
+    E('line', { x1: P(mx0 - 15, y1 - 1, 3).x, y1: P(mx0 - 15, y1 - 1, 3).y,
+      x2: P(mx0 - 15, y1 - 1, 15).x, y2: P(mx0 - 15, y1 - 1, 15).y,
+      stroke: MAT.lemon, 'stroke-width': 2.2, 'stroke-opacity': .9 }, g);
+    E('line', { x1: P(mx0 + 15, y1 - 1, 3).x, y1: P(mx0 + 15, y1 - 1, 3).y,
+      x2: P(mx0 + 15, y1 - 1, 15).x, y2: P(mx0 + 15, y1 - 1, 15).y,
+      stroke: MAT.lemon, 'stroke-width': 2.2, 'stroke-opacity': .9 }, g);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ★★ 09-22：轮廓挤出 —— 让建筑"奇形怪状"
+   ────────────────────────────────────────────────────────────
+   用户原话：「这个建筑也是一点特色都没有，就是感觉就像很正常的建筑，
+             可以让它变得像游戏一样那种奇形怪状的」。
+   原来 14 栋楼全是一个长方体，只差高度和特征 —— 所以"很正常"。
+
+   这里做两件事：
+     ① `OUTLINES` —— 一组 2D 轮廓（L / U / 十字 / 八边 / 契形 / 台阶 / 圆…），
+        每栋楼挑一个，楼群从此没有两栋是同一个形状。
+     ② `extrude()` —— 把任意 2D 轮廓"立起来"。
+
+   ★ 挤出的几何（这一步有推导，不是试出来的）：
+     本图用的是**斜投影**：P(x,y,z) = (X + x + z·KX, Y + y − z)。
+     也就是 z 轴在屏幕上指向 (KX, −1) —— 物体一抬升就朝**右上**跑。
+     相机方向（场景→相机）d = (−KX, 1, 1)。
+
+     一条边的外法线是 n = (e.y, −e.x)（e 是边的方向向量；这个式子对
+     [[0,0],[w,0],[w,d],[0,d]] 这样的点序成立，四条边全部验证过）。
+     面可见 ⟺ n·d > 0，即 **n.y > KX · n.x**。
+     对矩形推出：**可见的是「下边」与「左边」**。
+     ⚠️ 原代码画的却是「下边」与「右边」—— 右边的四边形其实画到了
+        底面投影之外的空白处。这是这轮顺带修掉的一个真实几何错误。
+   ════════════════════════════════════════════════════════════════ */
+var OUTLINES = {
+  /* 矩形：最普通的那个，只留给需要规矩的地方（操场 / 快递站） */
+  rect: function (w, d) { return [[0, 0], [w, 0], [w, d], [0, d]]; },
+  /* L 形：主体 + 一翼，拐角楼 */
+  L: function (w, d) {
+    return [[0, 0], [w, 0], [w, d * .44], [w * .44, d * .44], [w * .44, d], [0, d]];
+  },
+  /* U 形：三面围合，中间留一个院子 */
+  U: function (w, d) {
+    return [[0, 0], [w, 0], [w, d], [w * .68, d], [w * .68, d * .40],
+            [w * .32, d * .40], [w * .32, d], [0, d]];
+  },
+  /* 十字：四条翼，游戏里最"要塞"的形状 */
+  cross: function (w, d) {
+    return [[w * .34, 0], [w * .66, 0], [w * .66, d * .28], [w, d * .28],
+            [w, d * .72], [w * .66, d * .72], [w * .66, d], [w * .34, d],
+            [w * .34, d * .72], [0, d * .72], [0, d * .28], [w * .34, d * .28]];
+  },
+  /* 八边形：切掉四角 —— 一点改动，气质立刻不同 */
+  oct: function (w, d) {
+    var k = Math.min(w, d) * .3;
+    return [[k, 0], [w - k, 0], [w, k], [w, d - k], [w - k, d], [k, d], [0, d - k], [0, k]];
+  },
+  /* 契形：一边收窄，像被削过一刀 */
+  wedge: function (w, d) { return [[w * .34, 0], [w, 0], [w, d], [0, d]]; },
+  /* 台阶形：两级退台 */
+  step: function (w, d) {
+    return [[0, 0], [w, 0], [w, d * .58], [w * .62, d * .58], [w * .62, d], [0, d]];
+  },
+  /* 圆：多边形逼近（14 边在俯视图里已经看不出是"多边形"） */
+  round: function (w, d) {
+    var pts = [], N2 = 14;
+    for (var i = 0; i < N2; i++) {
+      var a = i / N2 * Math.PI * 2;
+      pts.push([w / 2 + Math.cos(a) * w * .5, d / 2 + Math.sin(a) * d * .5]);
+    }
+    return pts;
+  },
+};
+
+/* 取某栋楼的轮廓（像素坐标）
+   ★ 09-22：不再"静默退化"。
+   原来写的是 `OUTLINES[s.shape] || OUTLINES.rect` —— 如果 shape 名写错
+   （比如写成 `stepped` 而表里的键是 `step`），它会**悄悄按矩形画**，
+   不报错、不提示，只有断言才看得出来。现在未知名字直接记下来并报错。 */
+var BAD_SHAPES = [];
+function outlineOf(s, x0, y0, x1, y1) {
+  var f = OUTLINES[s.shape];
+  if (!f) {
+    if (BAD_SHAPES.indexOf(s.shape) < 0) {
+      BAD_SHAPES.push(s.shape);
+      console.error('未知的建筑轮廓名:', s.id, '→', s.shape, '（已退回矩形）');
+    }
+    f = OUTLINES.rect;
+  }
+  return f(x1 - x0, y1 - y0).map(function (p) { return [x0 + p[0], y0 + p[1]]; });
+}
+
+/* 求轮廓「前墙」的 x 范围 —— 也就是 y 最大的那一段边。
+   ★ 为什么需要它：改成 L / U / 十字这些轮廓之后，建筑的右下、左右两翼
+     之间都会出现**凹口**（那里没有墙）。窗和入口台阶如果还按包围盒
+     （x0+16 → x1-16、x0 + w/2）算位置，就会画到空中去。
+     对矩形它退化成 [x0, x1]，行为和以前完全一致。 */
+function frontSpan(pts) {
+  var i, ymax = -1e9;
+  for (i = 0; i < pts.length; i++) if (pts[i][1] > ymax) ymax = pts[i][1];
+  var lo = 1e9, hi = -1e9;
+  for (i = 0; i < pts.length; i++) {
+    if (Math.abs(pts[i][1] - ymax) < 1.5) {
+      if (pts[i][0] < lo) lo = pts[i][0];
+      if (pts[i][0] > hi) hi = pts[i][0];
+    }
+  }
+  return (hi - lo > 8) ? [lo, hi] : null;
+}
+
+/* 轮廓朝内偏移 dist 像素（做"女儿墙内凹屋面"和"顶面分块缝"用）
+   ── ★★ 09-22 修正 ──
+   原实现是"朝质心等比缩小"。它对**凸**多边形（矩形 / 八边形 / 圆）够用，
+   但对 **L 形 / U 形 / 十字形** 这类**凹多边形**是错的：
+   凹多边形的质心经常落在图形**外面**（L 形的质心就在缺角那块空地上），
+   于是"朝质心缩"会把凹口的两个顶点往**外**推 —— 女儿墙的线直接穿到墙外。
+
+   正确做法：按**边的内法线**偏移。每个顶点取相邻两边内法线的角平分线方向，
+   并且为了偏移后到两条边的距离都等于 dist，要除以 cos(半角)。
+   凸、凹多边形都成立。
+   （本图的点序是"顺时针"，外法线 = (e.y, −e.x)，所以内法线 = (−e.y, e.x)。） */
+function insetOf(pts, dist) {
+  var n = pts.length, out = [], i;
+  for (i = 0; i < n; i++) {
+    var A = pts[(i - 1 + n) % n], B = pts[i], C = pts[(i + 1) % n];
+    var e1x = B[0] - A[0], e1y = B[1] - A[1];
+    var e2x = C[0] - B[0], e2y = C[1] - B[1];
+    var l1 = Math.hypot(e1x, e1y) || 1, l2 = Math.hypot(e2x, e2y) || 1;
+    var n1x = -e1y / l1, n1y = e1x / l1;          /* 边 A→B 的内法线 */
+    var n2x = -e2y / l2, n2y = e2x / l2;          /* 边 B→C 的内法线 */
+    var mx = n1x + n2x, my = n1y + n2y;
+    var ml = Math.hypot(mx, my);
+    if (ml < 1e-6) { out.push([B[0], B[1]]); continue; }   /* 180° 折返，跳过 */
+    mx /= ml; my /= ml;
+    var cosHalf = n1x * mx + n1y * my;             /* cos(半角) */
+    var k = dist / Math.max(Math.abs(cosHalf), .34);
+    out.push([B[0] + mx * k, B[1] + my * k]);
+  }
+  return out;
+}
+
+/* ── 挤出：把 2D 轮廓立起来 ─────────────────────────────────────
+   绘制顺序：可见侧面（远的先）→ 顶面 → 顶面贴图 → 女儿墙内缩 → 分块缝 */
+function extrude(pts, h, sk, g, s) {
+  var n = pts.length, i;
+  /* 建筑外接尺寸 —— 女儿墙内缩量按它取，小楼缩得少、大楼缩得多 */
+  var bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9;
+  for (i = 0; i < n; i++) {
+    if (pts[i][0] < bx0) bx0 = pts[i][0];
+    if (pts[i][0] > bx1) bx1 = pts[i][0];
+    if (pts[i][1] < by0) by0 = pts[i][1];
+    if (pts[i][1] > by1) by1 = pts[i][1];
+  }
+  var sw = bx1 - bx0, sd = by1 - by0;
+  var faces = [];
+  for (i = 0; i < n; i++) {
+    var A = pts[i], B = pts[(i + 1) % n];
+    var ex = B[0] - A[0], ey = B[1] - A[1];
+    var nx = ey, ny = -ex;
+    var L = Math.hypot(nx, ny) || 1;
+    nx /= L; ny /= L;
+    if (ny > KX * nx) {                       /* 可见性判据：n·d > 0 */
+      faces.push({ i: i, lum: nx * -0.72 + ny * -0.69 });
+    }
+  }
+  /* 远的先画：用边的中点 (x+y) 排序 —— 和整栋楼的排序同一把尺子 */
+  faces.sort(function (p, q) {
+    var a = pts[p.i], b = pts[(p.i + 1) % n];
+    var c = pts[q.i], e = pts[(q.i + 1) % n];
+    return ((a[0] + a[1]) + (b[0] + b[1])) - ((c[0] + c[1]) + (e[0] + e[1]));
+  });
+  faces.forEach(function (f) {
+    var A = pts[f.i], B = pts[(f.i + 1) % n];
+    var col = f.lum > 0.25 ? sk.side : (f.lum < -0.25 ? sk.dark : tint(sk.side, -0.3));
+    E('polygon', { points: poly([P(A[0], A[1], 0), P(B[0], B[1], 0),
+      P(B[0], B[1], h), P(A[0], A[1], h)]),
+      fill: col, stroke: 'rgba(12,16,22,.85)', 'stroke-width': 1 }, g);
+    /* 踢脚：立面底部压一条暗带。没有它，墙直接撞到地面，读起来像贴纸。 */
+    E('polygon', { points: poly([P(A[0], A[1], 0), P(B[0], B[1], 0),
+      P(B[0], B[1], 4), P(A[0], A[1], 4)]),
+      fill: 'rgba(14,18,24,.5)' }, g);
+  });
+
+  /* 顶面 */
+  var topPts = pts.map(function (p) { return P(p[0], p[1], h); });
+  E('polygon', { points: poly(topPts), fill: sk.top,
+    stroke: sk.lit, 'stroke-width': 1.3 }, g);
+  E('polygon', { points: poly(pts.map(function (p) { return P(p[0], p[1], h + .05); })),
+    fill: TEX.roof }, g);
+  E('polygon', { points: poly(pts.map(function (p) { return P(p[0], p[1], h + .07); })),
+    fill: sk.wash }, g);
+
+  /* 女儿墙 + 内凹屋面（顶面拆两层 —— 只画一块平顶时读起来是"一个盒子"） */
+  var inner = insetOf(pts, Math.min(14, Math.min(sw, sd) * .2));
+  E('polygon', { points: poly(inner.map(function (p) { return P(p[0], p[1], h + .3); })),
+    fill: tint(sk.top, -.2), stroke: 'rgba(16,20,24,.42)', 'stroke-width': .8 }, g);
+  /* 分块缝：沿内缩后的轮廓再缩两圈，画两条细线 —— 顶面越大越需要它 */
+  [5, 9].forEach(function (k) {
+    E('polygon', { points: poly(insetOf(pts, k).map(function (p) { return P(p[0], p[1], h + .5); })),
+      fill: 'none', stroke: 'rgba(16,20,24,.16)', 'stroke-width': .8 }, g);
+  });
+  /* 区的颜色：只落在顶面靠前的那条边上（留给调用方，这里只描一圈极淡的边） */
+  E('polygon', { points: poly(pts.map(function (p) { return P(p[0], p[1], h + .6); })),
+    fill: 'none', stroke: 'rgba(255,255,255,.16)', 'stroke-width': .9 }, g);
+}
+
+var FEATS = {
+  /* 图书馆：同心椭圆叠出来的穹顶（越往上越小 = 越往上收） */
+  dome: function (s, g, x0, y0, x1, y1, h) {
+    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, r = Math.min(x1 - x0, y1 - y0) * .32;
+    for (var k = 3; k >= 0; k--) {
+      var rr = r * (1 - k * .17), zz = h + k * 8, p = P(cx, cy, zz);
+      E('ellipse', { cx: p.x, cy: p.y, rx: rr, ry: rr * .76,
+        fill: k === 3 ? '#EFE6D0' : '#C6BCA6', stroke: 'rgba(46,38,20,.42)', 'stroke-width': .9 }, g);
+    }
+    E('line', { x1: P(cx - r, cy, h).x, y1: P(cx - r, cy, h).y, x2: P(cx + r, cy, h).x, y2: P(cx + r, cy, h).y,
+      stroke: 'rgba(255,255,255,.5)', 'stroke-width': 1.6 }, g);
+  },
+  /* 实验楼：桅杆 + 两个天线盘 —— 最高的那栋，加桅杆最合理 */
+  mast: function (s, g, x0, y0, x1, y1, h) {
+    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    var base = P(cx, cy, h), top = P(cx, cy, h + 40);
+    E('line', { x1: base.x, y1: base.y, x2: top.x, y2: top.y, stroke: '#D8D0BC', 'stroke-width': 3 }, g);
+    E('circle', { cx: top.x, cy: top.y, r: 5, fill: '#E8632C' }, g);
+    [16, 28].forEach(function (dz, i) {
+      var p = P(cx, cy, h + dz);
+      E('ellipse', { cx: p.x, cy: p.y, rx: 12 - i * 3, ry: 5 - i * 1.2,
+        fill: 'none', stroke: '#CFC5AF', 'stroke-width': 1.8 }, g);
+    });
+  },
+  /* 教学楼：顶面开中庭（一个深色的洞 + 内墙） */
+  court: function (s, g, x0, y0, x1, y1, h) {
+    var m = Math.min(x1 - x0, y1 - y0) * .22;
+    E('polygon', { points: poly([P(x0 + m, y0 + m, h - 14), P(x1 - m, y0 + m, h - 14),
+      P(x1 - m, y1 - m, h - 14), P(x0 + m, y1 - m, h - 14)]),
+      fill: '#5A5445', stroke: 'rgba(46,38,20,.5)', 'stroke-width': 1 }, g);
+    E('polygon', { points: poly([P(x0 + m, y1 - m, h - 14), P(x1 - m, y1 - m, h - 14),
+      P(x1 - m, y1 - m, h), P(x0 + m, y1 - m, h)]),
+      fill: '#7E7565', stroke: 'rgba(46,38,20,.35)', 'stroke-width': .7 }, g);
+    E('ellipse', { cx: P((x0 + x1) / 2, (y0 + y1) / 2, h - 13).x,
+      cy: P((x0 + x1) / 2, (y0 + y1) / 2, h - 13).y, rx: 9, ry: 7,
+      fill: '#6E8A56', stroke: 'rgba(255,255,255,.35)', 'stroke-width': 1 }, g);
+  },
+  /* 阶梯教室：顶面四道台阶（一级比一级高、一级比一级窄） */
+  steps: function (s, g, x0, y0, x1, y1, h) {
+    for (var i = 0; i < 4; i++) {
+      var t = i / 4, t2 = (i + 1) / 4;
+      E('polygon', { points: poly([P(x0 + 6, y0 + (y1 - y0) * t, h + i * 7),
+        P(x1 - 6, y0 + (y1 - y0) * t, h + i * 7),
+        P(x1 - 6, y0 + (y1 - y0) * t2, h + i * 7),
+        P(x0 + 6, y0 + (y1 - y0) * t2, h + i * 7)]),
+        fill: i % 2 ? '#B8AE99' : '#C9BFAA', stroke: 'rgba(46,38,20,.35)', 'stroke-width': .7 }, g);
+    }
+  },
+  /* 体育馆：拱形屋顶（横向条带，中间抬得最高） */
+  vault: function (s, g, x0, y0, x1, y1, h) {
+    for (var i = 0; i <= 7; i++) {
+      var t = i / 7, yy = y0 + (y1 - y0) * t;
+      var lift = Math.sin(t * Math.PI) * (y1 - y0) * .3;
+      var a = P(x0 + 4, yy, h + lift), b = P(x1 - 4, yy, h + lift);
+      E('line', { x1: a.x, y1: a.y, x2: b.x, y2: b.y,
+        stroke: i === 0 || i === 7 ? 'rgba(46,38,20,.4)' : 'rgba(255,255,255,.42)', 'stroke-width': 2.2 }, g);
+    }
+  },
+  /* 游泳馆：顶面四条天窗（半透明蓝） */
+  skylight: function (s, g, x0, y0, x1, y1, h) {
+    for (var i = 0; i < 4; i++) {
+      var xx = x0 + (x1 - x0) * (i / 4 + .06);
+      var a = P(xx, y0 + 8, h + .6), b = P(xx, y1 - 8, h + .6);
+      E('line', { x1: a.x, y1: a.y, x2: b.x, y2: b.y,
+        stroke: 'rgba(126,196,232,.9)', 'stroke-width': 6, 'stroke-linecap': 'butt' }, g);
+    }
+  },
+  /* 食堂：三根排烟管（粗圆管 + 深色管口） */
+  stack: function (s, g, x0, y0, x1, y1, h) {
+    [[.3, .34], [.62, .28], [.46, .66]].forEach(function (u) {
+      var p = P(x0 + (x1 - x0) * u[0], y0 + (y1 - y0) * u[1], h);
+      E('circle', { cx: p.x, cy: p.y - 8, r: 8, fill: '#CFC5AF', stroke: 'rgba(46,38,20,.5)', 'stroke-width': 1 }, g);
+      E('circle', { cx: p.x, cy: p.y - 8, r: 4, fill: 'rgba(46,38,20,.42)' }, g);
+      E('line', { x1: p.x, y1: p.y, x2: p.x, y2: p.y - 8, stroke: 'rgba(46,38,20,.35)', 'stroke-width': 1 }, g);
+    });
+  },
+  /* 宿舍楼：正面挑出的连续阳台板（挑台 + 板下阴影 + 晾衣杆）。
+     ★ 从"三条 5px 细线"改成"三层挑台色块" ——
+       细线在缩略视图下只有 1px 宽，等于没画（这也是"宿舍都长一样"的帮凶）；
+       挑台色块才有"宿舍楼"的读数。 */
+  balcony: function (s, g, x0, y0, x1, y1, h) {
+    for (var j = 0; j < 3; j++) {
+      var zz = h - 15 - j * 18;
+      var a = P(x0 + 4, y1 + 4, zz), b = P(x1 - 4, y1 + 4, zz);
+      E('polygon', { points: poly([P(x0 + 4, y1 + 4, zz), P(x1 - 4, y1 + 4, zz),
+        P(x1 - 4, y1 + 11, zz), P(x0 + 4, y1 + 11, zz)]),
+        fill: '#C8BEA7', stroke: 'rgba(46,38,20,.42)', 'stroke-width': .8 }, g);
+      E('polygon', { points: poly([P(x0 + 4, y1 + 11, zz), P(x1 - 4, y1 + 11, zz),
+        P(x1 - 4, y1 + 11, zz - 4), P(x0 + 4, y1 + 11, zz - 4)]),
+        fill: 'rgba(22,18,12,.34)' }, g);
+      E('line', { x1: a.x, y1: a.y - 4, x2: b.x, y2: b.y - 4,
+        stroke: 'rgba(46,38,20,.5)', 'stroke-width': 1.2 }, g);
+    }
+  },
+  /* 快递站：楼下堆的货（几个大小不一的箱子） */
+  pallets: function (s, g, x0, y0, x1, y1, h) {
+    [[x0 + 10, y1 + 10, 20, 14], [x0 + 34, y1 + 12, 16, 12], [x0 + 20, y1 + 30, 24, 15],
+     [x0 + 50, y1 + 28, 14, 11]].forEach(function (b) {
+      var p = P(b[0], b[1], 0);
+      E('rect', { x: p.x, y: p.y - b[3], width: b[2], height: b[3],
+        fill: '#C4A87E', stroke: 'rgba(46,38,20,.5)', 'stroke-width': .9 }, g);
+      E('line', { x1: p.x, y1: p.y - b[3] * .55, x2: p.x + b[2], y2: p.y - b[3] * .55,
+        stroke: 'rgba(46,38,20,.3)', 'stroke-width': .8 }, g);
+    });
+  },
+  /* 咖啡角：一圈条纹遮阳篷（橙白相间） */
+  awning: function (s, g, x0, y0, x1, y1, h) {
+    var n = 8;
+    for (var i = 0; i < n; i++) {
+      var t = i / n, t2 = (i + 1) / n;
+      E('polygon', { points: poly([P(x0 + 4 + (x1 - x0 - 8) * t, y1 + 7, h + 2),
+        P(x0 + 4 + (x1 - x0 - 8) * t2, y1 + 7, h + 2),
+        P(x0 + 4 + (x1 - x0 - 8) * t2, y1 + 18, h + 2),
+        P(x0 + 4 + (x1 - x0 - 8) * t, y1 + 18, h + 2)]),
+        fill: i % 2 ? '#F2EDE0' : '#E8632C', stroke: 'rgba(46,38,20,.3)', 'stroke-width': .5 }, g);
+    }
+  },
+  /* 天文台：大穹顶 + 一道开缝（缝是"能转开"的唯一视觉证据） */
+  observatory: function (s, g, x0, y0, x1, y1, h) {
+    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, r = Math.min(x1 - x0, y1 - y0) * .3;
+    for (var k = 3; k >= 0; k--) {
+      var rr = r * (1 - k * .16), p = P(cx, cy, h + k * 9);
+      E('ellipse', { cx: p.x, cy: p.y, rx: rr, ry: rr * .8,
+        fill: k === 3 ? '#F2EADA' : '#CBC1AB', stroke: 'rgba(46,38,20,.45)', 'stroke-width': .9 }, g);
+    }
+    var tp = P(cx, cy, h + 27);
+    E('rect', { x: tp.x - r * .22, y: tp.y - r * .9, width: r * .44, height: r * 1.3,
+      fill: 'rgba(46,38,20,.62)', transform: 'rotate(24 ' + tp.x + ' ' + tp.y + ')' }, g);
+  },
+  /* 旧礼堂：钟塔 + 四坡尖顶（顶面四个三角） */
+  spire: function (s, g, x0, y0, x1, y1, h) {
+    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    E('polygon', { points: poly([P(x0 + 6, y0 + 6, h), P(x1 - 6, y0 + 6, h), P(cx, cy, h + 30)]),
+      fill: '#D2C8B2', stroke: 'rgba(46,38,20,.4)', 'stroke-width': .8 }, g);
+    E('polygon', { points: poly([P(x1 - 6, y0 + 6, h), P(x1 - 6, y1 - 6, h), P(cx, cy, h + 30)]),
+      fill: '#BDB39D', stroke: 'rgba(46,38,20,.4)', 'stroke-width': .8 }, g);
+    E('polygon', { points: poly([P(x1 - 6, y1 - 6, h), P(x0 + 6, y1 - 6, h), P(cx, cy, h + 30)]),
+      fill: '#A89E89', stroke: 'rgba(46,38,20,.4)', 'stroke-width': .8 }, g);
+    E('polygon', { points: poly([P(x0 + 6, y1 - 6, h), P(x0 + 6, y0 + 6, h), P(cx, cy, h + 30)]),
+      fill: '#C7BDA7', stroke: 'rgba(46,38,20,.4)', 'stroke-width': .8 }, g);
+    E('circle', { cx: P(cx, cy, h + 30).x, cy: P(cx, cy, h + 30).y - 6, r: 4.5, fill: '#E8632C' }, g);
+  },
+  /* 湖心亭：六角亭（六边形顶 + 六根柱影 + 飞檐上翘）
+     陶土色而不是正红 —— 正红在满屏暖绿里会跳成"画面里唯一的主角"，
+     而它只是西区一个小景点。 */
+  pavilion: function (s, g, x0, y0, x1, y1, h) {
+    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, r = Math.min(x1 - x0, y1 - y0) * .27;
+    var pts = [];
+    for (var i = 0; i < 6; i++) {
+      var a2 = i / 6 * Math.PI * 2 + Math.PI / 6;
+      pts.push(P(cx + Math.cos(a2) * r, cy + Math.sin(a2) * r, h + 12));
+    }
+    E('polygon', { points: poly(pts), fill: '#A8654A', stroke: 'rgba(46,38,20,.5)', 'stroke-width': 1.1 }, g);
+    var pts2 = [];
+    for (var j = 0; j < 6; j++) {
+      var a3 = j / 6 * Math.PI * 2 + Math.PI / 6;
+      pts2.push(P(cx + Math.cos(a3) * r * .46, cy + Math.sin(a3) * r * .46, h + 22));
+    }
+    E('polygon', { points: poly(pts2), fill: '#D8CFB9', stroke: 'rgba(46,38,20,.45)', 'stroke-width': .9 }, g);
+    E('circle', { cx: P(cx, cy, h + 26).x, cy: P(cx, cy, h + 26).y, r: 3.2, fill: '#F0E8D2' }, g);
+  },
+  /* 宿舍：屋顶成排的太阳能板（深蓝黑格栅 + 亮缝）。
+     这是宿舍楼在缩略视图下最能一眼认出的东西 —— 别的楼是混凝土顶，
+     宿舍是一片反光的蓝黑格栅。 */
+  solar: function (s, g, x0, y0, x1, y1, h) {
+    var w = x1 - x0, d = y1 - y0;
+    for (var i = 0; i < 3; i++) {
+      var px = x0 + w * (.14 + i * .27), py = y0 + d * .36, pw = w * .20, pd = d * .36;
+      var a = P(px, py, h + 1);
+      E('rect', { x: a.x + 2, y: a.y + 2, width: pw, height: pd, fill: 'rgba(12,16,22,.32)' }, g);
+      E('rect', { x: a.x, y: a.y, width: pw, height: pd, fill: '#2B3542',
+        stroke: 'rgba(140,190,230,.5)', 'stroke-width': .9 }, g);
+      [.34, .67].forEach(function (t) {
+        E('line', { x1: a.x, y1: a.y + pd * t, x2: a.x + pw, y2: a.y + pd * t,
+          stroke: 'rgba(150,205,245,.4)', 'stroke-width': .8 }, g);
+      });
+    }
+  },
+  /* 剧场：凸起的舞台塔（比主体高的方塔 + 顶部吊杆 + 灯）。
+     和艺术楼的 spire 区分开：spire 是四坡尖顶，stage 是平顶方塔。 */
+  stage: function (s, g, x0, y0, x1, y1, h) {
+    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    var w = (x1 - x0) * .34, d = (y1 - y0) * .32;
+    var a = P(cx - w / 2, cy - d / 2, h);
+    E('polygon', { points: poly([P(cx - w / 2, cy - d / 2, h), P(cx + w / 2, cy - d / 2, h),
+      P(cx + w / 2, cy - d / 2, h + 24), P(cx - w / 2, cy - d / 2, h + 24)]),
+      fill: '#8C8371', stroke: 'rgba(46,38,20,.5)', 'stroke-width': .9 }, g);
+    E('rect', { x: a.x, y: a.y - 24, width: w, height: d, fill: '#B6AC92',
+      stroke: 'rgba(46,38,20,.55)', 'stroke-width': 1 }, g);
+    E('circle', { cx: P(cx, cy, h + 24).x, cy: P(cx, cy, h + 24).y - 9, r: 3.6, fill: '#E8632C' }, g);
+    E('line', { x1: P(cx, cy, h + 24).x, y1: P(cx, cy, h + 24).y - 6,
+      x2: P(cx, cy, h + 24).x, y2: P(cx, cy, h + 24).y - 15,
+      stroke: '#D8D0BC', 'stroke-width': 2 }, g);
+  },
+};
+
+/* ════════════════════════════════════════════════════════════
+   三、渲染工具
+   ════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════
+   三 · 渲染引擎：Canvas 2D（取代 SVG）
+   ────────────────────────────────────────────────────────────
+   为什么换后端（这是全部改动的理由，不是顺手重构）：
+     SVG 要靠"每个动画元素一个合成层"才能在画面上动。实测全页
+     **287 个合成层 / 162 MB 显存 / 170 个动画元素**；拖动时相机每帧都在变，
+     合成器于是每帧重合成整棵子树 —— 用户报的"拖一下就闪、连整个软件都闪"
+     就是这个来源。
+     canvas 是**一张位图**：没有合成层、没有重栅格化。拖动 = 把这张位图平移
+     一下；要"动"就在自己的绘制循环里动，开销完全可控。
+
+   ★ 核心设计：**保留全部绘制代码，只换后端。**
+     `E(tag, attrs, parent)` 的签名与 200 处调用点**一行不改** —— 它从
+     "造一个 SVG 节点"变成"记一条绘制指令 + 返回一个状态令牌"。
+     于是地形网格 / SITES / FEATS / TEX / ZONES 与绘制顺序原样复用，
+     不存在"重做时把美术做丢"的风险。
+
+   三个绘制目标：
+     ① 底图（离屏 canvas，只画一次）：地形 / 环境 / 建筑 / 细节
+     ② 主画布（每帧）：底图位图 + 动态元素 + 选中态 + 标签
+     ③ 小地图（每帧或按需）
+   标签放在②画，所以**任何缩放下都清晰**（canvas 文字按当前变换重新光栅化），
+   这比 SVG 版反而更好。
+   ============================================================ */
+/* ★ v5：1.5 → 1.35。画布加宽到 3200 之后，1.5 倍会让底图位图涨到
+   4800×3438（约 66 MB）；降到 1.35 是 4320×3094（约 53 MB）。
+   有效精度 = 1.35 / 1.5 = 0.9 —— 放大到顶时仍有九成精度，肉眼无差。 */
+var BASE_K = 1.35;
+var baseCv = document.createElement('canvas');
+baseCv.width = Math.round(CW * BASE_K);
+baseCv.height = Math.round(CH * BASE_K);
+var baseCtx = baseCv.getContext('2d');
+baseCtx.__id = 'b';
+
+var CMDS = [];                    /* 全部绘制指令，按绘制顺序 */
+var DEFS = {};                    /* id → pattern / gradient 描述 */
+var TEXIMG = {};                  /* 贴图路径 → Image */
+var _patCache = {};
+
+function E(tag, a, p) {
+  a = a || {};
+  /* ── 定义类：不进指令流，建成 canvas 认识的对象 ── */
+  if (tag === 'defs') return { __defs: true };
+  if (tag === 'pattern' || tag === 'radialGradient' || tag === 'linearGradient') {
+    var d = { id: a.id, kind: tag, a: a, stops: [], rects: [], img: null };
+    DEFS[a.id] = d;
+    return { __def: d };
+  }
+  if (p && p.__def) {
+    if (tag === 'stop') {
+      p.__def.stops.push({
+        off: parseFloat(a.offset) / 100, col: a['stop-color'],
+        op: a['stop-opacity'] === undefined ? 1 : parseFloat(a['stop-opacity']),
+      });
+    } else if (tag === 'image') {
+      p.__def.img = a.href;
+    } else {
+      p.__def.rects.push({ tag: tag, a: a });
+    }
+    return { __defChild: true };
+  }
+  /* ── 分组：退化成"状态令牌"。canvas 的绘制顺序就是数组顺序，
+        分组只用来携带状态（建筑的 sel/dim），不再有 DOM 层 ── */
+  if (tag === 'g') {
+    /* ★ 建筑 id 要**从外层组继承下来**。
+       建筑的结构是「外层 g[data-id] → 内层 g.body → 一堆图元」，
+       图元只挂在**内层**上。不继承的话，图元的 `bld` 全是 null ——
+       于是"选中一栋楼就把它重画出来"这件事根本不成立
+       （现象是 counts().blds === 0，冒烟时抓到的）。 */
+    var inherit = (p && p.__group && p.bld) ? p.bld : null;
+    var g = { __group: true, cls: a.class || '', bld: a['data-id'] || inherit, state: {} };
+    g.classList = {
+      toggle: function (n, on) { g.state[n] = !!on; },
+      add: function (n) { g.state[n] = true; },
+      remove: function (n) { g.state[n] = false; },
+      contains: function (n) { return !!g.state[n]; },
+    };
+    if (g.bld) BLD[g.bld] = g;
+    return g;
+  }
+  /* ── 普通图元：记一条指令 ── */
+  var cmd = { tag: tag, a: a, bld: (p && p.__group && p.bld) ? p.bld : null };
+  if (tag === 'text') {
+    /* 文字内容是创建之后赋的（`E('text',…).textContent = '…'`），
+       所以给它一个 setter，把值收进指令里 —— 调用写法不用改。 */
+    Object.defineProperty(cmd, 'textContent', {
+      set: function (v) { a.__text = v; },
+      get: function () { return a.__text; },
+      configurable: true,
+    });
+  } else {
+    cmd.setAttribute = function (k, v) { a[k] = v; };
+    cmd.getAttribute = function (k) { return a[k]; };
+  }
+  if (p && p.__mini) { MINICMDS.push(cmd); return cmd; }
+  CMDS.push(cmd);
+  return cmd;
+}
+function G(cls, p) { return E('g', cls ? { class: cls } : {}, p); }
+
+/* ── 颜色工具：把 SVG 的 fill/stroke 值翻成 canvas 能用的 ── */
+function rgba(col, op) {
+  if (op >= 1 || !col) return col;
+  if (col.charAt(0) === '#') {
+    var n = parseInt(col.slice(1), 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + op + ')';
+  }
+  return col;                       /* rgb()/rgba() 自带 alpha，不叠加 */
+}
+/* ★★ 透明度的解析必须走这个函数，**不能**写成 `x === 0` 之类的判断。
+   SVG 的属性值全是**字符串**，而 `"0.000" === 0` 是 false。
+   这个坑真踩了，而且后果很大：地形那一层"每格随机压暗"的
+   `fill-opacity` 是 `toFixed(3)` 出来的字符串，约 **1/7 的格子**取到 "0.000"，
+   于是走了"没写透明度"的分支、按 1.0 画 —— 那几百个格子被整片涂成近黑。
+   （对照截图里满图的暗斑就是它：一条指令写错，几百个格子一起黑。） */
+function alphaOf(v) {
+  if (v === undefined || v === null || v === '') return 1;
+  var n = parseFloat(v);
+  return isFinite(n) ? Math.max(0, Math.min(1, n)) : 1;
+}
+function ptsOf(str) {
+  return String(str).trim().split(/\s+/).map(function (s) {
+    var q = s.split(','); return [parseFloat(q[0]), parseFloat(q[1])];
+  });
+}
+function bbOf(tag, a) {
+  if (tag === 'rect') return { x: +a.x, y: +a.y, w: +a.width, h: +a.height };
+  if (tag === 'circle') return { x: +a.cx - +a.r, y: +a.cy - +a.r, w: +a.r * 2, h: +a.r * 2 };
+  if (tag === 'ellipse') return { x: +a.cx - +a.rx, y: +a.cy - +a.ry, w: +a.rx * 2, h: +a.ry * 2 };
+  if (tag === 'polygon') {
+    var p = ptsOf(a.points), x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    p.forEach(function (q) {
+      if (q[0] < x0) x0 = q[0]; if (q[0] > x1) x1 = q[0];
+      if (q[1] < y0) y0 = q[1]; if (q[1] > y1) y1 = q[1];
+    });
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  }
+  if (tag === 'line') {
+    var xa = Math.min(+a.x1, +a.x2), ya = Math.min(+a.y1, +a.y2);
+    return { x: xa, y: ya, w: Math.abs(+a.x2 - +a.x1), h: Math.abs(+a.y2 - +a.y1) };
+  }
+  return { x: 0, y: 0, w: CW, h: CH };
+}
+/* 图案瓦片：把 pattern 的子图形光栅化成一张小 canvas，再交 createPattern。
+   两种来源都要支持：
+     ① 子元素是 <image> —— 贴图（6 张 webp）
+     ② 子元素是一串 <rect> —— 斜纹警戒线（hatch） */
+function patOf(ctx, d) {
+  var src;
+  if (d.img) {
+    src = TEXIMG[d.img];
+    if (!src || !src.__ok) return 'rgba(140,140,140,.5)';   /* 图未就绪 → 灰底顶上 */
+  } else if (d.rects.length) {
+    if (!d.__cv) {
+      var cv = document.createElement('canvas');
+      cv.width = +d.a.width || 8; cv.height = +d.a.height || 8;
+      var c2 = cv.getContext('2d');
+      c2.__id = 'p' + (d.a.id || '');
+      d.rects.forEach(function (r) { paintShape(c2, r.tag, r.a); });
+      d.__cv = cv;
+    }
+    src = d.__cv;
+  } else return 'rgba(140,140,140,.5)';
+
+  var key = ctx.__id + '|' + d.id;
+  if (!_patCache[key]) {
+    var pp = ctx.createPattern(src, 'repeat');
+    if (d.a.patternTransform === 'rotate(45)') {
+      pp.setTransform(new DOMMatrix().rotate(45));
+    } else if (d.img) {
+      /* SVG 的 pattern 宽高（256）小于贴图原始尺寸（512）——
+         等于把图缩到 256 再平铺。canvas 默认按原尺寸平铺，所以要补这个缩放。 */
+      var k = (+d.a.width || 256) / (src.naturalWidth || 256);
+      pp.setTransform(new DOMMatrix().scale(k, k));
+    }
+    _patCache[key] = pp;
+  }
+  return _patCache[key];
+}
+function gradOf(ctx, d, bb, tag) {
+  var a = d.a, g;
+  if (d.kind === 'linearGradient') {
+    /* 线性渐变是仿射的：把两个端点按 bbox 映射过去就**精确等价** */
+    g = ctx.createLinearGradient(
+      bb.x + (+a.x1 || 0) * bb.w, bb.y + (+a.y1 || 0) * bb.h,
+      bb.x + (+a.x2 || 0) * bb.w, bb.y + (+a.y2 || 0) * bb.h);
+  } else if (a.gradientUnits === 'userSpaceOnUse') {
+    /* userSpaceOnUse：圆心半径都是画布坐标，直接用 */
+    g = ctx.createRadialGradient(+a.cx, +a.cy, 0, +a.cx, +a.cy, +a.r);
+  } else {
+    /* objectBoundingBox 的径向渐变，被用在**非椭圆**形状上。
+       椭圆情形已在 circle/ellipse 分支里用"单位空间"精确还原了；
+       走到这里只能退回"圆形近似" —— 关键是**不能让它算出 NaN**
+       （a.cx/a.cy/a.r 在 objectBoundingBox 下本来就是 undefined，
+        直接取会抛 "The provided double value is non-finite"，整页白屏）。
+       顺手记一笔，便于发现"还有哪个形状在用这种渐变"。 */
+    var cx2 = bb.x + bb.w / 2, cy2 = bb.y + bb.h / 2;
+    var rr = Math.max(bb.w, bb.h) / 2;
+    g = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, (rr > 0 && isFinite(rr)) ? rr : 1);
+    OBBFALL.push(d.id + '/' + (tag || '?'));
+  }
+  (d.stops || []).forEach(function (s) {
+    g.addColorStop(Math.max(0, Math.min(1, s.off)), rgba(s.col, s.op));
+  });
+  return g;
+}
+var OBBFALL = [];      /* objectBoundingBox 径向渐变退化成圆形近似的记录 */
+/* ★★ 径向渐变的 objectBoundingBox 是一个**必须专门处理**的坑：
+     SVG 里 gradientUnits="objectBoundingBox" 的径向渐变定义在 bbox 的单位正方形上，
+     映射回去之后，在**非正方形**图形上它是个**椭圆**梯度。
+     而 canvas 的 createRadialGradient **永远只能画正圆** ——
+     直接拿 max(w,h)/2 当半径，衰减形状就错了。
+     实测后果：暗角（vign）与云影（cloudg）都画在巨大的椭圆上，
+     于是**画面外围一圈整体亮度不对**（对照截图里西侧 / 东南 / 北城区的差异就是它）。
+   解法：进一个"单位空间"——translate 到中心、scale(rx, ry)，
+     于是单位圆在这个空间里正好还原成那个椭圆，把半径取 1 即可。 */
+function isObbRadial(v) {
+  if (!v || v.slice(0, 5) !== 'url(#') return null;
+  var d = DEFS[v.slice(5, -1)];
+  if (!d || d.kind !== 'radialGradient') return null;
+  return d.a.gradientUnits === 'userSpaceOnUse' ? null : d;
+}
+function gradUnit(ctx, d) {
+  var g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  (d.stops || []).forEach(function (s) {
+    g.addColorStop(Math.max(0, Math.min(1, s.off)), rgba(s.col, s.op));
+  });
+  return g;
+}
+function styleOf(ctx, v, bb, tag) {
+  if (!v || v === 'none') return null;
+  if (v.slice(0, 5) === 'url(#') {
+    var d = DEFS[v.slice(5, -1)];
+    /* 缺定义时画品红：这是"我漏实现了某处"的可见信号，比静默不画好得多 */
+    if (!d) return 'rgba(255,0,255,.85)';
+    return d.kind === 'pattern' ? patOf(ctx, d) : gradOf(ctx, d, bb, tag);
+  }
+  return v;
+}
+/* ── 路径解析：只覆盖这份地图实际用到的命令
+      （M/m L/l H/h V/v C/c Q/q Z/z —— 统计过，没有弧线 A 与平滑曲线 S/T） ── */
+function tracePath(ctx, d) {
+  var re = /([MmLlHhVvCcQqZz])([^MmLlHhVvCcQqZz]*)/g, m, cx = 0, cy = 0, sx = 0, sy = 0;
+  ctx.beginPath();
+  while ((m = re.exec(d))) {
+    var c = m[1];
+    var n = (m[2].match(/-?\d*\.?\d+(?:e[-+]?\d+)?/gi) || []).map(Number);
+    var rel = c === c.toLowerCase();
+    switch (c.toUpperCase()) {
+      case 'M': cx = rel ? cx + n[0] : n[0]; cy = rel ? cy + n[1] : n[1];
+        ctx.moveTo(cx, cy); sx = cx; sy = cy; break;
+      case 'L': cx = rel ? cx + n[0] : n[0]; cy = rel ? cy + n[1] : n[1];
+        ctx.lineTo(cx, cy); break;
+      case 'H': cx = rel ? cx + n[0] : n[0]; ctx.lineTo(cx, cy); break;
+      case 'V': cy = rel ? cy + n[0] : n[0]; ctx.lineTo(cx, cy); break;
+      case 'C':
+        ctx.bezierCurveTo(rel ? cx + n[0] : n[0], rel ? cy + n[1] : n[1],
+          rel ? cx + n[2] : n[2], rel ? cy + n[3] : n[3],
+          rel ? cx + n[4] : n[4], rel ? cy + n[5] : n[5]);
+        cx = rel ? cx + n[4] : n[4]; cy = rel ? cy + n[5] : n[5]; break;
+      case 'Q':
+        ctx.quadraticCurveTo(rel ? cx + n[0] : n[0], rel ? cy + n[1] : n[1],
+          rel ? cx + n[2] : n[2], rel ? cy + n[3] : n[3]);
+        cx = rel ? cx + n[2] : n[2]; cy = rel ? cy + n[3] : n[3]; break;
+      case 'Z': ctx.closePath(); cx = sx; cy = sy; break;
+    }
+  }
+}
+function paintShape(ctx, tag, a) {
+  var bb = bbOf(tag, a);
+  var f = styleOf(ctx, a.fill, bb, tag), st = styleOf(ctx, a.stroke, bb, tag);
+  if (!f && !st) return;
+  ctx.save();
+  /* 覆盖全画布的装饰层在 canvas 里天然不接收指针事件，所以旧代码里
+     stroke-dasharray / fill-opacity / stroke-opacity 这三样要手动还原。 */
+  if (a['stroke-dasharray']) {
+    ctx.setLineDash(String(a['stroke-dasharray']).trim().split(/[\s,]+/).map(Number));
+  }
+  /* 端帽/拐角：道路是拿 path + stroke 画的，并且指定了 square 端帽。
+     不还原的话路的两端会短一截（只在 line 上处理是不够的）。 */
+  if (a['stroke-linecap']) ctx.lineCap = a['stroke-linecap'];
+  if (a['stroke-linejoin']) ctx.lineJoin = a['stroke-linejoin'];
+  if (tag === 'rect') {
+    var x = +a.x, y = +a.y, w = +a.width, h = +a.height;
+    if (f) { ctx.globalAlpha = alphaOf(a['fill-opacity']); ctx.fillStyle = f; ctx.fillRect(x, y, w, h); }
+    if (st) { ctx.globalAlpha = alphaOf(a['stroke-opacity']); ctx.strokeStyle = st; ctx.lineWidth = +a['stroke-width'] || 1; ctx.strokeRect(x, y, w, h); }
+  } else if (tag === 'circle' || tag === 'ellipse') {
+    var obb = isObbRadial(a.fill);
+    if (obb) {
+      /* 走"单位空间"还原椭圆梯度（原因见 gradUnit 上面的注释）。
+         ⚠️ 这里**不能 return** —— paintShape 开头 ctx.save() 过，
+            提前返回会把那次 save 漏掉，427 个椭圆全中招 → 状态栈一路泄漏。 */
+      var rx0 = tag === 'circle' ? +a.r : +a.rx, ry0 = tag === 'circle' ? +a.r : +a.ry;
+      ctx.save();
+      ctx.translate(+a.cx, +a.cy);
+      ctx.scale(Math.max(rx0, 1e-6), Math.max(ry0, 1e-6));
+      ctx.globalAlpha *= alphaOf(a['fill-opacity']);
+      ctx.fillStyle = gradUnit(ctx, obb);
+      ctx.beginPath(); ctx.arc(0, 0, 1, 0, 6.2832); ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      if (tag === 'circle') ctx.arc(+a.cx, +a.cy, +a.r, 0, 6.2832);
+      else ctx.ellipse(+a.cx, +a.cy, +a.rx, +a.ry, 0, 0, 6.2832);
+      if (f) { ctx.globalAlpha = alphaOf(a['fill-opacity']); ctx.fillStyle = f; ctx.fill(); }
+      if (st) { ctx.globalAlpha = alphaOf(a['stroke-opacity']); ctx.strokeStyle = st; ctx.lineWidth = +a['stroke-width'] || 1; ctx.stroke(); }
+    }
+  } else if (tag === 'polygon') {
+    var p = ptsOf(a.points);
+    ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]);
+    for (var i = 1; i < p.length; i++) ctx.lineTo(p[i][0], p[i][1]);
+    ctx.closePath();
+    if (f) { ctx.globalAlpha = alphaOf(a['fill-opacity']); ctx.fillStyle = f; ctx.fill(); }
+    if (st) { ctx.globalAlpha = alphaOf(a['stroke-opacity']); ctx.strokeStyle = st; ctx.lineWidth = +a['stroke-width'] || 1; ctx.stroke(); }
+  } else if (tag === 'line') {
+    ctx.globalAlpha = alphaOf(a['stroke-opacity']);
+    ctx.strokeStyle = st || '#000'; ctx.lineWidth = +a['stroke-width'] || 1;
+    ctx.lineCap = a['stroke-linecap'] || 'butt';
+    ctx.beginPath(); ctx.moveTo(+a.x1, +a.y1); ctx.lineTo(+a.x2, +a.y2); ctx.stroke();
+  } else if (tag === 'path') {
+    tracePath(ctx, a.d);
+    if (f) { ctx.globalAlpha = alphaOf(a['fill-opacity']); ctx.fillStyle = f; ctx.fill(); }
+    if (st) { ctx.globalAlpha = alphaOf(a['stroke-opacity']); ctx.strokeStyle = st; ctx.lineWidth = +a['stroke-width'] || 1; ctx.stroke(); }
+  }
+  ctx.restore();
+}
+function drawText(ctx, a) {
+  var txt = a.__text;
+  if (txt === undefined || txt === null || txt === '') return;
+  ctx.save();
+  ctx.font = (a['font-weight'] || 400) + ' ' + (+a['font-size'] || 12) + 'px ' + (a['font-family'] || 'sans-serif');
+  try { if (a['letter-spacing'] && 'letterSpacing' in ctx) ctx.letterSpacing = a['letter-spacing']; } catch (e) {}
+  ctx.textAlign = a['text-anchor'] === 'middle' ? 'center' : (a['text-anchor'] === 'end' ? 'right' : 'left');
+  ctx.textBaseline = 'alphabetic';
+  if (a.stroke && a.stroke !== 'none') {
+    ctx.strokeStyle = a.stroke; ctx.lineWidth = +a['stroke-width'] || 2; ctx.lineJoin = 'round';
+    ctx.strokeText(txt, +a.x, +a.y);
+  }
+  ctx.fillStyle = a.fill || '#000';
+  ctx.fillText(txt, +a.x, +a.y);
+  ctx.restore();
+}
+
+/* ── 底图：只画一次。文字与"按需显示"的两类不进底图 ── */
+function renderBase() {
+  baseCtx.setTransform(BASE_K, 0, 0, BASE_K, 0, 0);
+  baseCtx.clearRect(0, 0, CW, CH);
+  for (var i = 0; i < CMDS.length; i++) {
+    var c = CMDS[i], cls = c.a.class || '';
+    if (c.tag === 'text') continue;            /* 文字交给顶图层（清晰） */
+    if (cls === 'selbox') continue;            /* 选中框只在选中时画 */
+    if (cls === 'pulse' || cls === 'cloudsh') continue;  /* 这两个是动态元素 */
+    if (cls === 'slot') {                      /* 可进入标记平时压到 .42 */
+      baseCtx.save(); baseCtx.globalAlpha = .42;
+      paintShape(baseCtx, c.tag, c.a);
+      baseCtx.restore();
+      continue;
+    }
+    paintShape(baseCtx, c.tag, c.a);
+  }
+}
+
+var BLD = {};                     /* siteId → 该建筑的组令牌（供选中态重放） */
+var MINICMDS = [];                /* 小地图自己的指令流 */
+
+
+function isX(c, r) { return !grid[r] || grid[r][c] === 'x'; }
+function jitter(c, r) { return ((c * 73856093 ^ r * 19349663) % 7) * .006; }
+function tint(hex, d) {
+  var n = parseInt(hex.slice(1), 16);
+  var f = function (v) { return Math.max(0, Math.min(255, Math.round(v * (1 + d)))); };
+  return 'rgb(' + f((n >> 16) & 255) + ',' + f((n >> 8) & 255) + ',' + f(n & 255) + ')';
+}
+/* 一棵树。抽成函数是因为它原本要用两遍：校园里 35 棵 + 校外的林地几百棵。
+   ★ v7 起"校外的林地"整段删掉了（它原本撒在四周的山坡上），
+     现在 `dark=1` 这条分支只在校园内的景观树里用，**校外已无林地**。
+   dark=校外林地的树：比校园里的更暗（离得远、没灯），但仍然要能被看见。
+   ★ 只有**校园里的树**会摇：
+     ① 林地的树有几百棵，全加动画会实打实拖慢渲染；
+     ② 0.8 倍缩放下也看不出远处的树在动 —— "动"要花在看得见的地方。
+   ★ 影子不进 sway 组：影子是投在地上的，树在动而影子跟着动，
+     就等于"影子长在树上"了。
+
+   ★★ 09-21 第六轮：不再"每棵树一个组"，改为**所有树共用 6 个 sway 组**。
+      进来之前每棵树是 `<g class="sway">` 各自一个（49 个），
+      目的是拿到独立的 `animation-delay` 与 `transform-origin`。
+      合成器审计显示那直接造出 49 个合成层，全页 287 层 / 162 MB 显存，
+      拖动时每帧重新合成整个屏幕 —— 用户报的"整屏崩坏"就是这个。
+      现在按位置哈希把树散到 6 个组里，相位差 6 档，观感等价、层数掉到 6。 */
+var SWAY = [];
+function initSway(parent, n) {
+  for (var i = 0; i < n; i++) {
+    SWAY.push(E('g', { class: 'sway',
+      style: 'animation-delay:' + (-(i * 1.07)).toFixed(2) + 's' }, parent));
+  }
+}
+/* 水纹组：同一个思路。水面有几十格、每格两条波纹，逐条加动画就是
+   几十个合成层 —— 但它们动的是 opacity + 1.6px 的 translateY，
+   组级动画完全等价。6 个组，相位错开，看不出同步。 */
+var WAVE = [];
+function initWave(parent, n) {
+  for (var i = 0; i < n; i++) {
+    WAVE.push(E('g', { class: 'wave',
+      style: 'animation-delay:' + (-(i * 0.87)).toFixed(2) + 's' }, parent));
+  }
+}
+function tree(g, x, y, k, dark) {
+  /* ★★ v5：三种树。原来全世界只有一种（3 个圆叠的阔叶树冠），
+     于是"林地"看起来是一块块一样的圆点阵列。
+     种类由**位置哈希**决定 → 调用点一行都不用改，而校园里、
+     山林里、谷地里的树会自然混成一片有物种感的林子。 */
+  var kind = Math.abs(Math.round(x * 3.1 + y * 5.7)) % 3;
+  var C = dark ? ['#3C4E36', '#44573C', '#405238'] : ['#4A6040', '#556B49', '#4F6544'];
+  /* 影子不进 sway 组：影子是投在地上的，树动而影子跟着动 = 影子长在树上。
+     ★ 位置哈希选组：乘大质数再取模，保证相邻的树被拆到不同组
+       （只用 x+y 取模的话，一排等距的树会全部落进同一组，一起动 = 假）。 */
+  var t = (dark || !SWAY.length)
+    ? g
+    : SWAY[Math.abs(Math.round(x * 7 + y * 13)) % SWAY.length];
+
+  if (kind === 0) {
+    /* 阔叶：三团错位的树冠（原来那种） */
+    E('ellipse', { cx: x + 4 * k, cy: y + 4 * k, rx: 11 * k, ry: 5 * k, fill: 'rgba(28,38,20,.34)' }, g);
+    E('circle', { cx: x, cy: y - 10 * k, r: 9.5 * k, fill: C[0] }, t);
+    E('circle', { cx: x - 4 * k, cy: y - 15 * k, r: 6.8 * k, fill: C[1] }, t);
+    E('circle', { cx: x + 4 * k, cy: y - 12 * k, r: 5.5 * k, fill: C[2] }, t);
+  } else if (kind === 1) {
+    /* 针叶：一个细长的三角（俯视图里靠"窄而尖"与阔叶区分） */
+    E('ellipse', { cx: x + 3 * k, cy: y + 3.5 * k, rx: 8 * k, ry: 4 * k, fill: 'rgba(28,38,20,.32)' }, g);
+    E('polygon', { points: polyPts(x, y, k), fill: C[0] }, t);
+    E('polygon', { points: poly([{ x: x, y: y - 16 * k },
+      { x: x + 5.4 * k, y: y + 1 * k }, { x: x - 5.4 * k, y: y + 1 * k }]), fill: C[1] }, t);
+  } else {
+    /* 灌木丛：一簇小圆，低矮铺开（绿地边缘用得多） */
+    E('ellipse', { cx: x + 3 * k, cy: y + 2.5 * k, rx: 9 * k, ry: 4 * k, fill: 'rgba(28,38,20,.28)' }, g);
+    [[0, 0, 6.4], [-5.5, 2.0, 5.0], [5.5, 1.6, 4.6], [0, 4.2, 4.2]].forEach(function (q) {
+      E('circle', { cx: x + q[0] * k, cy: y - q[1] * k, r: q[2] * k, fill: C[0] }, t);
+    });
+    E('circle', { cx: x - 2 * k, cy: y - 4 * k, r: 3.6 * k, fill: C[1] }, t);
+  }
+}
+/* 针叶树冠的三角点串 */
+function polyPts(x, y, k) {
+  return poly([{ x: x, y: y - 22 * k }, { x: x + 7.5 * k, y: y + 2 * k }, { x: x - 7.5 * k, y: y + 2 * k }]);
+}
+
+var defs = E('defs', {});
+/* ⚠️ 这里**故意一个高斯模糊滤镜都没有**。
+   ── 用户报的「点建筑时四周画面崩坏、再恢复正常」查出来就是这个 ──
+   点一栋楼会同时触发两件事：
+     ① 镜头缩放（.cam.anim，0.79 → 1.42，0.34s）
+     ② 其余 13 栋楼的 opacity 变暗（.bld.dim）
+   而 feGaussianBlur 在这两种情况下都必须**按新尺寸重新栅格化整张模糊图**，
+   重算要花掉几帧；中间那几帧就是"糊掉 / 错位 / 崩坏"。
+   所以每次点建筑都必崩，且必然自己恢复。
+   现在：阴影用**两层偏移多边形**叠加模拟，选中光用**双层描边**模拟 ——
+   都是纯几何，缩放与透明度变化零成本，视觉上几乎无差别。
+
+   ★★ 但这只是**放大器，不是根因**（用户后来又报"切换 / 返回时也崩"，
+      说明没修干净）。真正的根因是下面这条，必须一并去掉：
+        `.bld{transition:opacity .2s}`
+      13 栋楼**同时**做 opacity 过渡 = 13 个合成层在动画**中途**被临时创建，
+      它们和相机层的变换更新时机对不上 → 旧内容没被擦掉 → 白色方块残影。
+      修法：去掉该过渡（瞬间切换，没有中间帧）+ 去掉当年为"预热图层"而加的
+      `will-change:opacity`（它让图层常驻，反而更容易残留）。
+      顺带把会随缩放重新合成的满画布氛围层**移出相机层**（见 .atmos）。
+
+   ★★★ 第三条（同一次排查里查出的）：**惯性的速度采样**。
+      `dt = Math.max(1, now - t)` 让两次间隔 1ms 的移动算出 640 px/帧的虚高速度，
+      rAF 滑行循环因此跑 1.7 秒 —— 不仅动画被暂停两秒，那个循环还会**跨到用户
+      下一个操作之后**继续写 CAM.tx。现在有采样下限、速度上限、时间上界（见
+      VEL_MIN_DT_MS / VEL_MAX / GLIDE_MAX_MS）。 */
+/* ★ 材质贴图（09-21 第五轮）：7 张程序化生成的无缝贴图，用 pattern 平铺。
+   `patternUnits="userSpaceOnUse"` 是关键 —— 它让图案坐标在**整个画布**上统一，
+   于是相邻地块上的纹理连成一片，而不是每格重新开始（那样一眼就看出格子）。
+   贴图是周期值噪声生成的，**无缝是数学保证的**，不需要任何后处理。
+   7 张 webp 合计 63 KB。 */
+/* ★ 贴图根目录 —— 加一个 URL 开关，用来 A/B 对比两套贴图。
+   默认 `map-assets/`（程序化生成的那套，无缝是数学保证的）；
+   加 `?tex=sd` 切到 `map-assets/sd/`（SD 生成、再镜像拼接做无缝的那套）。
+   两套文件名一一对应，所以"换一套"只是换一个前缀，不涉及任何其它改动 ——
+   这正是当初把贴图做成"独立文件 + pattern 引用"而不是内联进代码的收益。
+   缺文件不会崩：每块地下面都垫了纯色底，贴图加载失败就退回纯色。 */
+var TEX_BASE = /[?&]tex=sd(&|$)/.test(location.search) ? 'map-assets/sd/' : 'map-assets/';
+var TEX = {};
+[['g', 'grass'], ['r', 'asphalt'], ['.', 'pavement'], ['w', 'water'],
+ ['roof', 'roof'], ['wild', 'wild']].forEach(function (t) {
+  var p = E('pattern', { id: 'tex-' + t[0], width: 256, height: 256,
+    patternUnits: 'userSpaceOnUse' }, defs);
+  E('image', { href: TEX_BASE + 'tex-' + t[1] + '.webp', width: 256, height: 256 }, p);
+  TEX[t[0]] = 'url(#tex-' + t[0] + ')';
+});
+/* 切了贴图就标出来 —— 否则"现在看的是哪一套"只能靠记忆，对比时很容易看混 */
+if (TEX_BASE !== 'map-assets/') {
+  var texTag = document.createElement('div');
+  texTag.textContent = 'TEXTURE SET : SD';
+  texTag.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:6px;z-index:9;' +
+    'font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:#C3E84C;pointer-events:none';
+  document.body.appendChild(texTag);
+}
+/* 粗条纹（警戒线）：方舟用斜向粗条纹标「不可进入」 */
+var hat = E('pattern', { id: 'hatch', width: 9, height: 9, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, defs);
+E('rect', { width: 9, height: 9, fill: 'rgba(232,99,44,.07)' }, hat);
+E('rect', { width: 4, height: 9, fill: 'rgba(232,99,44,.22)' }, hat);
+/* 云影：一个很大的柔边暗斑，靠 CSS 慢慢挪 —— 游戏地图的"活的"感
+   有一半来自这种低频率的大范围明暗变化 */
+var cl = E('radialGradient', { id: 'cloudg' }, defs);
+E('stop', { offset: '0%', 'stop-color': '#2A2418', 'stop-opacity': '.22' }, cl);
+E('stop', { offset: '100%', 'stop-color': '#2A2418', 'stop-opacity': '0' }, cl);
+/* 聚光暗角：中心透明、四周压暗。作用是把**校园从周边环境里"择"出来** ——
+   没有它，校园和荒地是一整片同亮度的东西，读者不知道该看哪儿。
+   游戏地图几乎都会这么做（塔科夫、方舟的干员界面同理）。 */
+var vgn = E('radialGradient', { id: 'vign' }, defs);
+E('stop', { offset: '48%', 'stop-color': '#3A2E14', 'stop-opacity': '0' }, vgn);
+E('stop', { offset: '100%', 'stop-color': '#3A2E14', 'stop-opacity': '.09' }, vgn);
+/* 太阳光晕：从太阳位置散出的暖黄光。它和暗角是**一对** ——
+   一个加光、一个减光，画面上才同时有"被照到"和"背光"的地方。 */
+/* 日光是**从画布外**照进来的（光源在左上角外侧），所以渐变用 userSpaceOnUse
+   把中心定在画布外 —— 于是画面左上角最亮、往右下渐暗。
+   ★ 这是替代"画一个太阳圆盘"的做法：读者能感到光从哪儿来，但找不到"一个太阳"。 */
+var sunG = E('radialGradient', { id: 'sunglow', gradientUnits: 'userSpaceOnUse',
+  cx: -180, cy: -140, r: 1750 }, defs);
+/* ★ v5：画布从 1918×1400 涨到 2600×2292，同一个径向渐变在左上角
+   堆积的亮度比原来多（半径没变、画面变大）。实测左上角的山被提到 V=0.51、
+   而右下角的山只有 0.27 —— 差得太多，画面左上角整片泛白。
+   把最亮那两档各收一点。 */
+E('stop', { offset: '0%', 'stop-color': '#FFF8DC', 'stop-opacity': '.45' }, sunG);
+E('stop', { offset: '22%', 'stop-color': '#FFEDB4', 'stop-opacity': '.22' }, sunG);
+E('stop', { offset: '52%', 'stop-color': '#FFE9B4', 'stop-opacity': '.1' }, sunG);
+E('stop', { offset: '100%', 'stop-color': '#FFE9B4', 'stop-opacity': '0' }, sunG);
+/* 光柱：从太阳方向斜射下来的半透明条带 */
+var rayG = E('linearGradient', { id: 'rayg', x1: '0', y1: '0', x2: '0.4', y2: '1' }, defs);
+E('stop', { offset: '0%', 'stop-color': '#FFF6D0', 'stop-opacity': '.22' }, rayG);
+E('stop', { offset: '100%', 'stop-color': '#FFF6D0', 'stop-opacity': '0' }, rayG);
+
+/* ════════════════════════════════════════════════════════════
+   四、校园外的地（v4：**整节删空**）
+   ────────────────────────────────────────────────────────────
+   v3 在这里铺了四种环境（北城区 / 东源石工业区+大河 / 南农田 /
+   西林地）+ 公路网 + 车 + 船 + 烟囱 + 校外地名 —— 为的是回答
+   「学校在一片地方里」。用户看下来的三句判词：
+     「地面颜色得变一下，你这个太丑了」
+     「四周一片灰暗，也是挺丑的」
+     「四周那些东西全部删掉，我们得重做」
+   所以这一节现在只剩**三层光**，一件实体都不留：
+     ① 地表底色 —— 与校内草地**同源**的郊野色（不是荒地色）
+     ② 太阳光晕 —— 画布外的光源造成的明暗梯度
+     ③ 云影 —— 两块巨大的柔斑慢慢挪
+   校园之外只有一片被照亮的土地；"这是学校"由围墙与校门来交代。
+   ════════════════════════════════════════════════════════════ */
+var gWorld = G();
+
+/* ① 地表。
+   ★ 底色用 TER.x（郊野绿），与校内草地同色相、只降一点饱和 ——
+     比"荒地灰"干净，也不会把画面外围压成一条暗边。
+     再铺草地贴图：patternUnits=userSpaceOnUse，所以校内外纹理
+     是**连成一片**的，不会在校墙处出现接缝。 */
+E('rect', { x: -200, y: -200, width: CW + 400, height: CH + 400, fill: TER.x, 'pointer-events': 'none' }, gWorld);
+E('rect', { x: -200, y: -200, width: CW + 400, height: CH + 400, fill: TEX.g, 'pointer-events': 'none' }, gWorld);
+/* 极淡的等高线：让"没画东西的地方"也有走向，不至于是一张平纸。
+   v3 的 22 条降到 14 条、透明度降到 .05 —— 校外现在应该是安静的。 */
+(function () {
+  var gC = G('', gWorld);
+  for (var i = 0; i < 14; i++) {
+    var y0 = rnd(i, 3) * CH;
+    var d = 'M' + (-150) + ' ' + y0.toFixed(0);
+    for (var x = -150; x <= CW + 150; x += 110) {
+      d += ' Q' + (x + 55) + ' ' + (y0 + Math.sin(x / 260 + i) * 46).toFixed(0) + ' ' + (x + 110) + ' ' + y0.toFixed(0);
+    }
+    E('path', { d: d, fill: 'none', stroke: 'rgba(255,255,255,.05)', 'stroke-width': 1 }, gC);
+  }
+})();
+
+
+/* ════════════════════════════════════════════════════════════
+   ③b 环校园山地（已整段删除 —— 用户 09-22「现在把山有关的都删掉」）
+   ────────────────────────────────────────────────────────────
+   这一段前后迭代了 9 轮，路径是：
+     三层同心挤出 → 极坐标坡面网格 → 低多边形块面 → 加等高线 →
+     靠色相与草地分离 → 拉长山脊成带
+   每一版都放大 2.6 倍核对过，结论一致：**在正交俯视 + 这个画布尺寸下，
+   我做出来的山始终读成"一块有明暗的青绿色几何体"，不像山。**
+   原因不是参数没调对 —— 写实晕渲靠的是纹理密度（卫星图上能看出山，
+   是因为有树冠 / 岩石 / 沟壑的斑驳），这个尺寸补不出那种密度；
+   而按"高度"分层的另一条路（色带 / 等高线）在俯视图里又必然读成梯田。
+   ⚠️ 将来若要重做山，先解决"纹理密度"或换**风格化语言**
+      （剪影 / 纯色带 / 装饰性山形），不要回到坡面网格上调参 ——
+      那 9 轮已经证明调不出来。
+   ════════════════════════════════════════════════════════════ */
+
+/* ③c 下半区的湖（梧桐湖）—— 同样按用户指令删除：
+   「下半区那个水也没必要，直接全部删了算了」。
+   ⚠️ 校园**中心区**的晴缘湖不在此列，它在"五、校园本体"里，用户明确要保留。 */
+
+/* ② 日光 —— 光源在画布**左上角外侧**，画面里只留下它造成的后果：
+   全画面从左上到右下的明暗梯度。
+   ★ 为什么不画一个太阳圆盘：这是俯视地图，画面上没有"天"，
+     贴一个正圆天体读起来像表情符号。读者能感到光从哪儿来，
+     但找不到"一个太阳"——这才是日照在俯视图里该有的样子。 */
+var SUN = { x: -180, y: -140 };
+(function () {
+  var g = G('', gWorld);
+  E('rect', { x: -200, y: -200, width: CW + 400, height: CH + 400,
+    fill: 'url(#sunglow)', 'pointer-events': 'none' }, g);
+})();
+
+/* ③ 云影：两块巨大的柔斑慢慢挪。低频率、大范围的明暗变化，
+   是"这张图是活的"最省力的来源 —— 比加粒子有效得多。 */
+(function () {
+  var g = G('', gWorld);
+  E('ellipse', { cx: CW * .34, cy: CH * .40, rx: CW * .34, ry: CH * .30, fill: 'url(#cloudg)',
+    class: 'cloudsh', 'pointer-events': 'none' }, g);
+  E('ellipse', { cx: CW * .76, cy: CH * .76, rx: CW * .27, ry: CH * .23, fill: 'url(#cloudg)',
+    class: 'cloudsh', style: 'animation-duration:62s;animation-delay:-14s', 'pointer-events': 'none' }, g);
+})();
+
+/* ════════════════════════════════════════════════════════════
+   五、校园本体
+   ════════════════════════════════════════════════════════════ */
+var gBody = G();
+
+/* ⓪ 聚光暗角。压在环境的**上面**、校园的**下面** ——
+   这样"暗"只作用于校外，校园本体不受影响。
+   ★ 所有"覆盖全画面的装饰层"都必须 pointer-events:none。
+     SVG 里一个铺满的 polygon / rect 即使 fill 是半透明，**照样接收指针事件** ——
+     漏一个就会把下面所有元素的点击全部吃掉，而且不报错、只是"点了没反应"。 */
+E('ellipse', { cx: (CX0 + CX1) / 2, cy: (CY0 + CY1) / 2, rx: CW * .58, ry: CH * .58,
+  fill: 'url(#vign)', 'pointer-events': 'none' }, gBody);
+
+/* ① 地块 */
+var gTer = G('', gBody);
+initWave(gTer, 6);   /* 水纹组先建好，水面格子才会画进组里 */
+for (var r = 0; r < GY; r++) for (var c = 0; c < GX; c++) {
+  var ch = grid[r][c];
+  if (ch === 'x') continue;
+  /* ★★ 09-22：水面格子**不再画矩形**。
+     用户原话「那个水也是可以变成圆形水，而不是方块」——
+     整片湖改到循环外用一个有机多边形画（见下面"湖"那一段）。
+     这里直接跳过，湖周围就会自然露出草地，而不是一圈方块锯齿。 */
+  if (ch === 'w') continue;
+  var a = P(c * T, r * T, 0);
+  E('rect', { x: a.x, y: a.y, width: T, height: T,
+    fill: tint(TER[ch], jitter(c, r)), stroke: 'rgba(40,34,20,.24)', 'stroke-width': .5 }, gTer);
+  /* ★ 材质三层：
+     ① 上面那层纯色底（贴图万一没加载出来还有底色，不会露黑）
+     ② 无缝贴图 —— patternUnits 是 userSpaceOnUse，所以相邻格子的纹理是连着的
+     ③ 每格极轻的随机压暗 —— 贴图本身是均匀的，不加这层，整片草地平得像一张纸 */
+  if (TEX[ch]) E('rect', { x: a.x, y: a.y, width: T, height: T, fill: TEX[ch] }, gTer);
+  E('rect', { x: a.x, y: a.y, width: T, height: T, fill: '#1A1408',
+    'fill-opacity': (((c * 73856093 ^ r * 19349663) % 7) * .014).toFixed(3) }, gTer);
+  if (ch === 'w') {
+    /* ★ 两条波纹分别落到不同组：保留原来"上下两条不同相位"的错落感，
+       而不是让一格里两条线同起同落（那样会像整块水面在弹）。 */
+    var wg1 = WAVE[Math.abs(c * 7 + r * 13) % 3];
+    var wg2 = WAVE[3 + Math.abs(c * 5 + r * 11) % 3];
+    E('line', { x1: a.x + 5, y1: a.y + T * .32, x2: a.x + T - 5, y2: a.y + T * .32,
+      stroke: 'rgba(255,255,255,.36)', 'stroke-width': 1.1 }, wg1);
+    E('line', { x1: a.x + 9, y1: a.y + T * .62, x2: a.x + T - 9, y2: a.y + T * .62,
+      stroke: 'rgba(255,255,255,.24)', 'stroke-width': 1.1 }, wg2);
+  }
+  /* ★★ v5：草簇 —— 精细度的第一来源。
+     ── 草地占画面约三分之一，它"平不平"直接决定整张图是精细还是粗糙 ──
+     原来这里是"每 3 格点 2 个小圆"，在 0.5 倍缩放下看不见。
+     现在每格 2 簇、每簇 2 笔**草叶弧线**（比圆点像草），位置由格号决定
+     （确定性伪随机 —— 刷十次页面长一样，否则没法做视觉校对）。
+     ⚠️ 只加 2 簇不是省事：468 格里草地约占 175 格，每格 4 条 path 就是 700 条指令，
+        底图烘焙时间与内存都会跟着涨。精细度要花在**看得见**的地方。 */
+  if (ch === 'g') {
+    for (var ci = 0; ci < 2; ci++) {
+      var gx = a.x + T * (.14 + rnd(c * 7 + ci, 401) * .72);
+      var gy = a.y + T * (.16 + rnd(r * 11 + ci, 409) * .70);
+      var gs = .85 + rnd(c + r * 3 + ci, 419) * .6;
+      E('path', { d: 'M' + gx.toFixed(1) + ' ' + gy.toFixed(1) +
+        ' q' + (2.4 * gs).toFixed(1) + ' ' + (-3.6 * gs).toFixed(1) +
+        ' ' + (5.0 * gs).toFixed(1) + ' ' + (-4.4 * gs).toFixed(1),
+        fill: 'none', stroke: 'rgba(44,62,30,.32)', 'stroke-width': .95 }, gTer);
+      E('path', { d: 'M' + gx.toFixed(1) + ' ' + (gy + 1.8).toFixed(1) +
+        ' q' + (1.7 * gs).toFixed(1) + ' ' + (-2.8 * gs).toFixed(1) +
+        ' ' + (3.6 * gs).toFixed(1) + ' ' + (-3.6 * gs).toFixed(1),
+        fill: 'none', stroke: 'rgba(56,74,38,.24)', 'stroke-width': .8 }, gTer);
+    }
+    /* 被照到的一撮亮草：只有暗笔画的话，整片草地会读成一坨脏绿 */
+    if ((c * 3 + r * 7) % 2 === 0) {
+      E('ellipse', { cx: a.x + T * (.28 + rnd(c, 431) * .44), cy: a.y + T * (.28 + rnd(r, 433) * .44),
+        rx: T * .17, ry: T * .11, fill: 'rgba(196,220,148,.10)' }, gTer);
+    }
+    /* 极少数格子上一丛小野花：稀到几乎看不见，但扫过去会觉得"这里是真的草地" */
+    if ((c * 13 + r * 29) % 37 === 0) {
+      var fxp = a.x + T * (.3 + rnd(c, 437) * .4), fyp = a.y + T * (.3 + rnd(r, 439) * .4);
+      E('circle', { cx: fxp, cy: fyp, r: 1.5, fill: 'rgba(246,240,196,.72)' }, gTer);
+      E('circle', { cx: fxp + 3, cy: fyp - 2, r: 1.3, fill: 'rgba(240,206,214,.66)' }, gTer);
+      E('circle', { cx: fxp - 2, cy: fyp + 2.5, r: 1.2, fill: 'rgba(232,224,164,.6)' }, gTer);
+    }
+  }
+  /* ★★ v5：路格**不再整格涂成灰色**。
+     ── 用户说"把那个该死的马路换一下，这个丑，这个颜色太丑了" ──
+     v4 在这里把整格（= 30m）刷成路面灰，于是三条纵路 + 两条横路
+     成了画面里最粗、面积最大的人工物。而真实校园道路只有 10~12m。
+     现在这一格恢复成**路两侧的绿化带**（草地），
+     真正的那条路改到循环外用一条细带统一画（见下"路网"一节）。 */
+  if (ch === 'r') {
+    E('rect', { x: a.x, y: a.y, width: T, height: T,
+      fill: tint(TER.g, jitter(c, r) - .035),
+      stroke: 'rgba(40,34,20,.24)', 'stroke-width': .5 }, gTer);
+    if (TEX.g) E('rect', { x: a.x, y: a.y, width: T, height: T, fill: TEX.g }, gTer);
+    E('rect', { x: a.x, y: a.y, width: T, height: T, fill: '#1A1408',
+      'fill-opacity': (((c * 73856093 ^ r * 19349663) % 7) * .014).toFixed(3) }, gTer);
+    continue;
+  }
+  if (ch === '.') {
+    /* ★ 09-22：铺装格加**混凝土板缝**（两条正交细线，把每格再切成 2×2）。
+       作用很具体：铺装原本是一整块均匀灰面，人眼扫过去没有落点；
+       有了板缝就有了**尺度参照**——能看出"这块地有多大"。
+       缝的位置随格号微移，避免变成一张死网格。 */
+    var jo = 0.42 + ((c * 7 + r * 11) % 3) * 0.06;
+    E('line', { x1: a.x + 3, y1: a.y + T * jo, x2: a.x + T - 3, y2: a.y + T * jo,
+      stroke: 'rgba(58,50,38,.22)', 'stroke-width': 1 }, gTer);
+    E('line', { x1: a.x + T * jo, y1: a.y + 3, x2: a.x + T * jo, y2: a.y + T - 3,
+      stroke: 'rgba(58,50,38,.22)', 'stroke-width': 1 }, gTer);
+    E('rect', { x: a.x + 2, y: a.y + 2, width: T - 4, height: T - 4, fill: 'none',
+      stroke: 'rgba(58,50,38,.3)', 'stroke-width': 1 }, gTer);
+    /* 高光边：左上一条亮线 —— 让板块读成"有厚度的板"而不是"涂在地上的色块" */
+    E('line', { x1: a.x + 2, y1: a.y + 2, x2: a.x + T - 2, y2: a.y + 2,
+      stroke: 'rgba(255,250,238,.30)', 'stroke-width': 1.2 }, gTer);
+  }
+}
+
+
+/* ════════════════════════════════════════════════════════════
+   ①b 校园围墙 + 校门（v4：从"校园外"那层搬到这里）
+   ────────────────────────────────────────────────────────────
+   v3 里内外的区别由**四种环境色**交代（校园亮、校外暗），
+   那套删掉之后，这条围墙就成了内外之间**唯一**的分界线 ——
+   所以它必须画在校园地块的**上面**（以前在下面，被地块边缘压着）。
+   ★ v9：正门已从南墙改到**东墙**（见上面那段「东门（正门）」）。
+   ════════════════════════════════════════════════════════════ */
+(function () {
+  var g = G('', gBody);
+  var DX0 = CX0 + 12.6 * T, DX1 = CX0 + 14.4 * T;   /* 门洞 = 中轴纵路左右各留一点 */
+  [[CX0, CY0, CX1, CY0], [CX0, CY1, CX0 + 12.6 * T, CY1],
+   [CX0 + 14.4 * T, CY1, CX1, CY1], [CX0, CY0, CX0, CY1], [CX1, CY0, CX1, CY1]]
+    .forEach(function (s) {
+      var d = 'M' + s[0] + ' ' + s[1] + ' L' + s[2] + ' ' + s[3];
+      E('path', { d: d, fill: 'none', stroke: '#9A907C', 'stroke-width': 9, 'stroke-linecap': 'square' }, g);
+      E('path', { d: d, fill: 'none', stroke: 'rgba(255,255,255,.55)', 'stroke-width': 1.2 }, g);
+    });
+  /* 灯柱：沿围墙等距，分 6 组承载（组级 opacity 动画 = 逐元素动画的视觉等价，
+     合成层数 53 → 6。这条 v3 已验证，直接沿用）。 */
+  var LG = [];
+  for (var li = 0; li < 6; li++) {
+    LG.push(E('g', { class: 'lamp', style: 'animation-delay:' + (-(li * 0.57)).toFixed(2) + 's' }, g));
+  }
+  function placeLamp(q) {
+    E('circle', { cx: q[0], cy: q[1], r: 2.4, fill: 'rgba(255,247,220,.95)' },
+      LG[Math.abs(Math.round(q[0] * 3.7 + q[1] * 11.3)) % 6]);
+  }
+  for (var x = CX0; x <= CX1; x += T * 2) {
+    placeLamp([x, CY0]);
+    if (x < DX0 - T || x > DX1 + T) placeLamp([x, CY1]);
+  }
+  for (var y = CY0; y <= CY1; y += T * 2) { placeLamp([CX0, y]); placeLamp([CX1, y]); }
+  /* ★★ v5：墙垛 —— 每隔 1.5 格一个内凸的小方块 + 墙顶亮线。
+     ── 一条光板墙读起来是"画面上的一根线"；有垛口的墙才读成**工事**。
+        它也是"精细度"最便宜的一处：一共几十个小方块，成本可忽略。 ── */
+  var crew = function (x, y, w2, h2) {
+    E('rect', { x: x, y: y, width: w2, height: h2, fill: '#8B8170',
+      stroke: 'rgba(255,255,255,.34)', 'stroke-width': .7 }, g);
+  };
+  for (var cx2 = CX0; cx2 <= CX1 - 6; cx2 += T * 1.5) {
+    crew(cx2, CY0 - 2, 8, 11);
+    if (cx2 < DX0 - T * .5 || cx2 > DX1 + T * .5) crew(cx2, CY1 - 9, 8, 11);
+  }
+  for (var cy2 = CY0; cy2 <= CY1 - 6; cy2 += T * 1.5) {
+    crew(CX0 - 2, cy2, 11, 8);
+    crew(CX1 - 9, cy2, 11, 8);
+  }
+  /* ════════ 东门（正门）════════
+     ★★ v9：从"南门"改成**东门** —— 用户 09-22「大门的位置确定在这儿实在不行」。
+     依据（校方资料，不是猜的）：
+       · 迎新指南：「网约车直接抵达**校区东门**」→ 东门是主入口
+       · 平面图标注：「**东校门** / **东门** / 东门广场与樱花林夹道（道路6）」
+       · 新生指南：「从校门步入**晴樱广场**，此刻已是樱花的海洋」
+     所以门开在**东墙**（原来开在南墙）：门外是引道，门内是广场与樱花大道。
+     尺度照真实校门：门宽约 2.6 格（≈78m）、门柱高 26px（≈12m）。
+     ⚠️ 几何：把原来的"沿 x 排布"整体改成"**沿 y 排布**"。
+        斜投影 P(x,y,z) = (X + x + z·KX, Y + y − z) 对画面任何位置都一致，
+        所以柱顶的抬升方向**不变**（仍是右上）—— 不用改投影，只改排布轴。 */
+  /* ⚠️ 门定在 **r12 南横路主干道的东端**（不是校园正中的 r9）——
+     因为【门内必须接得上路】：r9 那一带校园里并没有横路，门会悬空；
+     r12 是现成主干道，进门即主干道，与真实校门「门对主路」一致。 */
+  var GNA = 10.7 * T, GNB = 13.3 * T, GNM = (GNA + GNB) / 2;
+  var GXE = GX * T;                       /* 校园东界的相对 x */
+  /* 门外引道：从东门向东延伸到画面外 */
+  var e0 = P(GXE - 4, GNM, 0), e1 = P(GXE + 6.4 * T, GNM, 0);
+  E('line', { x1: e0.x, y1: e0.y, x2: e1.x, y2: e1.y,
+    stroke: '#A9A394', 'stroke-width': T * .60, 'stroke-linecap': 'butt' }, g);
+  E('line', { x1: e0.x, y1: e0.y, x2: e1.x, y2: e1.y,
+    stroke: TER.r, 'stroke-width': T * .40, 'stroke-linecap': 'butt' }, g);
+  E('line', { x1: e0.x, y1: e0.y, x2: e1.x, y2: e1.y,
+    stroke: 'rgba(250,246,232,.42)', 'stroke-width': 1.4, 'stroke-dasharray': '7 9' }, g);
+  /* 4 根门柱：沿 y 轴排开，中间两根夹出门洞 */
+  [[GNA, 1], [GNA + .42 * T, 0], [GNB - .42 * T, 0], [GNB, 1]].forEach(function (pp) {
+    var pw = 22, pd = 15, ph = 26;
+    var pc = P(GXE, pp[0], 0);
+    var px2 = pc.x - pw / 2, py2 = pc.y - pd / 2;
+    E('rect', { x: px2, y: py2, width: pw, height: pd, fill: '#6F6656',
+      stroke: 'rgba(255,255,255,.4)', 'stroke-width': 1 }, g);
+    E('rect', { x: px2 + 2, y: py2 + 2, width: pw - 4, height: pd - 4, fill: '#8A8170' }, g);
+    E('polygon', { points: poly([[0, 0], [pw, 0], [pw, pd], [0, pd]].map(function (q2) {
+      return { x: px2 + q2.x + ph * KX, y: py2 + q2.y - ph };
+    })), fill: '#9A907C', stroke: 'rgba(255,255,255,.5)', 'stroke-width': 1 }, g);
+    E('line', { x1: px2 + pw + ph * KX, y1: py2 - ph, x2: px2 + pw + ph * KX, y2: py2 + pd - ph,
+      stroke: 'rgba(255,255,255,.35)', 'stroke-width': 1.4 }, g);
+  });
+  /* 横梁：连 4 根柱顶，沿 y 方向 */
+  var ba = P(GXE, GNA, 26), bb = P(GXE, GNB, 26);
+  E('line', { x1: ba.x, y1: ba.y, x2: bb.x, y2: bb.y,
+    stroke: '#9A907C', 'stroke-width': 8 }, g);
+  E('line', { x1: ba.x + 3, y1: ba.y, x2: bb.x + 3, y2: bb.y,
+    stroke: 'rgba(255,255,255,.45)', 'stroke-width': 2 }, g);
+  /* 校名牌：横梁外侧，字随门向**竖排**（rotate 90） */
+  var mcx = ba.x + 24, mcy = (ba.y + bb.y) / 2;
+  E('rect', { x: mcx - 13, y: mcy - 66, width: 26, height: 132,
+    fill: '#2E3A22', stroke: 'rgba(255,255,255,.5)', 'stroke-width': 1.1 }, g);
+  E('text', { x: mcx, y: mcy, 'text-anchor': 'middle', fill: '#E4EE3A',
+    'font-family': SERIF, 'font-size': 15, 'font-weight': 'bold', 'letter-spacing': '.22em',
+    transform: 'rotate(90 ' + mcx + ' ' + mcy + ')' }, g).textContent = '武汉晴川学院';
+  /* 左右门卫室：门洞两侧各一间 */
+  [GNA - .78 * T, GNB + .78 * T].forEach(function (sy2) {
+    var pc2 = P(GXE - .30 * T, sy2, 0);
+    E('rect', { x: pc2.x - 15, y: pc2.y - 17, width: 30, height: 34, fill: '#A9B6C9',
+      stroke: 'rgba(20,26,34,.7)', 'stroke-width': 1 }, g);
+    E('rect', { x: pc2.x - 11, y: pc2.y - 13, width: 22, height: 26, fill: '#C2D8EB',
+      stroke: 'rgba(20,26,34,.5)', 'stroke-width': .8 }, g);
+    E('rect', { x: pc2.x - 5, y: pc2.y - 5, width: 10, height: 10, fill: 'rgba(34,46,58,.75)' }, g);
+  });
+  /* 闸机：门洞里的两道横杆（沿 y 方向排） */
+  [[GNA + .55 * T, .30], [GNM, .46]].forEach(function (gt, gi) {
+    var g0 = P(GXE - 1, gt[0], 0);
+    E('rect', { x: g0.x - 3, y: g0.y - T * gt[1] / 2, width: 6, height: T * gt[1],
+      fill: gi === 0 ? '#E4EE3A' : '#C3E84C', 'fill-opacity': .9,
+      stroke: 'rgba(40,44,20,.5)', 'stroke-width': .7 }, g);
+  });
+  /* 校名石（门内一侧）：《晴川赋》刻石 ——
+     校方迎新报道里写「从校门口与《晴川赋》的初见」，所以门口这块石头刻的是它。 */
+  var st = P(GXE - 1.25 * T, GNB + .95 * T, 0);
+  E('rect', { x: st.x - 46, y: st.y - 15, width: 92, height: 30, rx: 3,
+    fill: '#8E8778', stroke: 'rgba(255,255,255,.45)', 'stroke-width': 1 }, g);
+  E('text', { x: st.x, y: st.y + 5, 'text-anchor': 'middle', fill: '#26301C',
+    'font-family': SERIF, 'font-size': 13, 'font-weight': 'bold', 'letter-spacing': '.2em',
+    stroke: 'rgba(255,255,255,.85)', 'stroke-width': 2.6, 'paint-order': 'stroke' }, g)
+    .textContent = '晴川赋';
+  /* 门名 */
+  var gt2 = P(GXE + 1.15 * T, GNM, 0);
+  E('text', { x: gt2.x, y: gt2.y, 'text-anchor': 'middle', fill: '#2A3618',
+    'font-family': SERIF, 'font-size': 15, 'font-weight': 'bold', 'letter-spacing': '.3em',
+    stroke: 'rgba(255,255,255,.85)', 'stroke-width': 3.6, 'paint-order': 'stroke' }, g)
+    .textContent = '东门';
+  /* 北门：对着中轴纵路 c13 的另一端 */
+  E('rect', { x: CX0 + 12.6 * T, y: CY0 - 22, width: 14, height: 32, fill: '#7A7060', stroke: 'rgba(255,255,255,.35)', 'stroke-width': .9 }, g);
+  E('rect', { x: CX0 + 14.2 * T, y: CY0 - 22, width: 14, height: 32, fill: '#7A7060', stroke: 'rgba(255,255,255,.35)', 'stroke-width': .9 }, g);
+  E('text', { x: CX0 + 13.5 * T, y: CY0 - 30, 'text-anchor': 'middle', fill: '#2A3618',
+    'font-family': SERIF, 'font-size': 12, 'letter-spacing': '.24em',
+    stroke: 'rgba(255,255,255,.8)', 'stroke-width': 3, 'paint-order': 'stroke' }, g).textContent = '北门';
+})();
+
+
+/* ════════════════════════════════════════════════════════════
+   ①c 路网（v5 重做：**细 + 冷色**）
+   ────────────────────────────────────────────────────────────
+   两个问题一起改：
+     · 宽度 —— v4 是"整格涂满"（30m），比真实校园道路粗 3 倍，
+       读起来像"方格纸的格线"；现在只占 0.30~0.40 格（9~12m）。
+     · 颜色 —— v4 的暖灰与铺装/围墙/基座同色系，整片糊在一起；
+       现在换成冷调沥青，靠**色相**（而不是明度）把路与草地、铺装分开。
+   层次（自下而上）：路肩 → 路面 → 交叉口补丁 → 路缘石 → 中线虚线。
+   ★ 路缘石与中线在**交叉口处断开** —— 真实路口是不画中线的，
+     不这么做会一眼看出"这是两条线段叠在一起"。
+   ════════════════════════════════════════════════════════════ */
+(function () {
+  var gR = G('', gTer);
+  var COL = { road: TER.r, shoulder: '#A9A394',
+    curb: 'rgba(252,250,242,.50)', line: 'rgba(250,246,232,.44)',
+    wear: 'rgba(30,34,38,.16)' };
+  var VC = ROADS.filter(function (q) { return q.d === 'v'; });
+  var HC = ROADS.filter(function (q) { return q.d === 'h'; });
+  var CROSS_C = HC.map(function (q) { return q.r; });   /* 纵路上的交叉口 */
+  var CROSS_R = VC.map(function (q) { return q.c; });   /* 横路上的交叉口 */
+  var CUT = .30;                                        /* 交叉口半径（格） */
+
+  /* 沿路方向的分段：跳过每个交叉口前后 0.30 格 */
+  function spans(dir) {
+    var cuts = (dir === 'v' ? CROSS_C : CROSS_R).slice().sort(function (a, b) { return a - b; });
+    var out = [], start = 0;
+    cuts.forEach(function (cc) { out.push([start, cc - CUT]); start = cc + CUT; });
+    out.push([start, dir === 'v' ? GY : GX]);
+    return out.filter(function (s) { return s[1] - s[0] > .1; });
+  }
+  function endPts(dir, k, from, to) {
+    return dir === 'v'
+      ? [P((k + .5) * T, from * T, 0), P((k + .5) * T, to * T, 0)]
+      : [P(from * T, (k + .5) * T, 0), P(to * T, (k + .5) * T, 0)];
+  }
+
+  /* ① 路肩（人行道）：比路面宽 1.5 倍的一条浅色带。
+        它是"路面之外还有一条走人的边" —— 没有它，路两侧直接咬草地，很生硬。 */
+  ROADS.forEach(function (rd) {
+    var k = rd.d === 'v' ? rd.c : rd.r;
+    var e = endPts(rd.d, k, 0, rd.d === 'v' ? GY : GX);
+    E('line', { x1: e[0].x, y1: e[0].y, x2: e[1].x, y2: e[1].y,
+      stroke: COL.shoulder, 'stroke-width': rd.w * T * 1.55, 'stroke-linecap': 'butt' }, gR);
+  });
+  /* ② 路面 */
+  ROADS.forEach(function (rd) {
+    var k = rd.d === 'v' ? rd.c : rd.r;
+    var e = endPts(rd.d, k, 0, rd.d === 'v' ? GY : GX);
+    E('line', { x1: e[0].x, y1: e[0].y, x2: e[1].x, y2: e[1].y,
+      stroke: COL.road, 'stroke-width': rd.w * T, 'stroke-linecap': 'butt' }, gR);
+  });
+  /* ③ 交叉口补丁：尺寸取相交两条路里更宽的那条。
+        不补的话，两条路的路缘石会在路口交叉穿过，一眼假。 */
+  VC.forEach(function (v) { HC.forEach(function (h) {
+    var W2 = Math.max(v.w, h.w) * T;
+    var p = P((v.c + .5) * T, (h.r + .5) * T, 0);
+    E('rect', { x: p.x - W2 / 2, y: p.y - W2 / 2, width: W2, height: W2, fill: COL.road }, gR);
+  }); });
+  /* ④ 路面磨损：几处深的斑 + 井盖。它们是"这条路真的被用过"的证据。 */
+  VC.forEach(function (v, vi) { HC.forEach(function (h, hi) {
+    var p = P((v.c + .5) * T + (vi - 1) * 9, (h.r + .5) * T + (hi - 1) * 9, 0);
+    E('circle', { cx: p.x, cy: p.y, r: 3.4, fill: COL.wear }, gR);
+    E('circle', { cx: p.x, cy: p.y, r: 3.4, fill: 'none',
+      stroke: 'rgba(255,255,255,.14)', 'stroke-width': .7 }, gR);
+    E('circle', { cx: p.x, cy: p.y, r: 1.1, fill: 'rgba(255,255,255,.10)' }, gR);
+  }); });
+  /* ⑤ 路缘石 + 中线（都按分段画，跳过交叉口） */
+  ROADS.forEach(function (rd) {
+    var dir = rd.d, k = dir === 'v' ? rd.c : rd.r, half = rd.w * T / 2;
+    spans(dir).forEach(function (sp) {
+      var e = endPts(dir, k, sp[0], sp[1]);
+      if (dir === 'v') {
+        E('line', { x1: e[0].x - half, y1: e[0].y, x2: e[1].x - half, y2: e[1].y,
+          stroke: COL.curb, 'stroke-width': 1.5 }, gR);
+        E('line', { x1: e[0].x + half, y1: e[0].y, x2: e[1].x + half, y2: e[1].y,
+          stroke: COL.curb, 'stroke-width': 1.5 }, gR);
+      } else {
+        E('line', { x1: e[0].x, y1: e[0].y - half, x2: e[1].x, y2: e[1].y - half,
+          stroke: COL.curb, 'stroke-width': 1.5 }, gR);
+        E('line', { x1: e[0].x, y1: e[0].y + half, x2: e[1].x, y2: e[1].y + half,
+          stroke: COL.curb, 'stroke-width': 1.5 }, gR);
+      }
+      /* 中线虚线：主干道才画（次干道一条窄路上再画线会糊成一团） */
+      if (rd.w >= .40) {
+        E('line', { x1: e[0].x, y1: e[0].y, x2: e[1].x, y2: e[1].y,
+          stroke: COL.line, 'stroke-width': 1.4, 'stroke-dasharray': '7 9' }, gR);
+      }
+    });
+  });
+  /* ⑥ 斑马线：每个交叉口的四角各一道（只有主干道交叉口画，
+        一共 6 个路口 —— 数量小、位置固定，不会变成噪音）。 */
+  VC.forEach(function (v) { HC.forEach(function (h) {
+    var half = Math.max(v.w, h.w) * T / 2;
+    [[0, -1], [0, 1], [-1, 0], [1, 0]].forEach(function (dd) {
+      var p = P((v.c + .5) * T + dd[0] * (half + 9), (h.r + .5) * T + dd[1] * (half + 9), 0);
+      var vertical = dd[0] === 0;                 /* 上下两侧的斑马线是横条 */
+      for (var i = -1; i <= 1; i++) {
+        var o = i * 5.5;
+        E('line', vertical
+          ? { x1: p.x - 9, y1: p.y + o, x2: p.x + 9, y2: p.y + o }
+          : { x1: p.x + o, y1: p.y - 9, x2: p.x + o, y2: p.y + 9 },
+          { stroke: 'rgba(252,250,242,.42)', 'stroke-width': 2.1 }, gR);
+      }
+    });
+  }); });
+})();
+
+/* ════════════════════════════════════════════════════════════
+   ★★ 09-22：湖 —— 从"一堆水色方格"改成**有机形状**
+   ────────────────────────────────────────────────────────────
+   水面格子在①里 `continue` 掉了（不画矩形），整片湖在这里一次画出：
+   一个**带正弦扰动的闭合多边形**。
+     · 两条不同频率的正弦叠加（3 倍频 + 5 倍频）——
+       只用一个频率会读成"偏心椭圆"，不像湖岸；两个才有天然的不规则感。
+     · 岸滩三层：浅滩 → 过渡 → 深水，再压一圈岸线亮边。
+   v4：湖挪到 c7~c11 / r7~r11（中心景观区正中），湖心亭落在湖心。
+   ════════════════════════════════════════════════════════════ */
+(function () {
+  var cx = 9.5 * T, cy = 9.5 * T;
+  var rx = 2.45 * T, ry = 2.45 * T;
+  var NN = 30;
+  function ring(k) {
+    var pts = [];
+    for (var i = 0; i < NN; i++) {
+      var ang = i / NN * Math.PI * 2;
+      var w = 1 + Math.sin(ang * 3 + 1.1) * .14 + Math.sin(ang * 5 + 2.7) * .08;
+      pts.push(P(cx + Math.cos(ang) * rx * w * k, cy + Math.sin(ang) * ry * w * k, 0));
+    }
+    return poly(pts);
+  }
+  E('polygon', { points: ring(1.15), fill: '#9FB894' }, gTer);      /* 岸滩 */
+  E('polygon', { points: ring(1.07), fill: '#7BA6BC' }, gTer);      /* 浅水 */
+  E('polygon', { points: ring(1), fill: TER.w }, gTer);             /* 湖面底色 */
+  E('polygon', { points: ring(1), fill: TEX.w }, gTer);             /* 水面贴图 */
+  E('polygon', { points: ring(.68), fill: 'rgba(255,255,255,.06)' }, gTer);
+  E('polygon', { points: ring(.36), fill: 'rgba(255,255,255,.08)' }, gTer);
+  E('polygon', { points: ring(1.005), fill: 'none',
+    stroke: 'rgba(255,255,255,.42)', 'stroke-width': 1.6 }, gTer);
+  for (var wi = 0; wi < 10; wi++) {
+    var wy = cy - ry * .58 + wi * ry * .13;
+    var hw = rx * Math.sqrt(Math.max(0, 1 - Math.pow((wy - cy) / (ry * 1.06), 2))) * .6;
+    if (hw < 12) continue;
+    E('line', { x1: P(cx - hw, wy, 0).x, y1: P(cx - hw, wy, 0).y,
+      x2: P(cx + hw, wy + 3, 0).x, y2: P(cx + hw, wy + 3, 0).y,
+      stroke: 'rgba(255,255,255,.20)', 'stroke-width': 1.2 }, gTer);
+  }
+})();
+
+/* ② 行进路线标线 —— 方舟地图最标志性的一笔。
+   它的地图之所以一眼是"地图"而不是"色块拼图"，很大程度靠这个：
+   路不是靠颜色涂出来的，是靠**一条压在路上的虚线**标出来的。
+   ★ 酸橙绿压在提亮后的橄榄绿上会"糊"，所以同一条虚线画两遍：
+     下面一层白粗线打底，上面一层酸橙绿 —— 读出来是"带白边的路线"。 */
+(function () {
+  var gR = G('', gBody);
+  function route(x1, y1, x2, y2, w) {
+    [['rgba(255,255,255,.46)', w + 1.8], ['#C3E84C', w]].forEach(function (st) {
+      E('line', { x1: x1, y1: y1, x2: x2, y2: y2,
+        stroke: st[0], 'stroke-width': st[1], 'stroke-dasharray': '10 12' }, gR);
+    });
+  }
+  var vA = P(13 * T + T / 2, -8, 0), vB = P(13 * T + T / 2, GY * T + 8, 0);
+  route(vA.x, vA.y, vB.x, vB.y, 2.6);                      /* 中轴纵路 */
+  var hA = P(-8, 12 * T + T / 2, 0), hB = P(GX * T + 8, 12 * T + T / 2, 0);
+  route(hA.x, hA.y, hB.x, hB.y, 2.6);                      /* 南横路 */
+  /* 图书馆的推荐范围框（方舟用虚框标"推荐部署位"） */
+  var q = P(1 * T - 4, 7 * T - 4, 1);
+  E('rect', { x: q.x - 3, y: q.y - 3, width: 3 * T + 14, height: 3 * T + 14, fill: 'none',
+    stroke: 'rgba(255,255,255,.34)', 'stroke-width': 3, 'stroke-dasharray': '6 8' }, gR);
+  E('rect', { x: q.x, y: q.y, width: 3 * T + 8, height: 3 * T + 8, fill: 'none',
+    stroke: '#C3E84C', 'stroke-width': 1.6, 'stroke-dasharray': '6 8' }, gR);
+})();
+
+/* ③ 绿化 */
+var TREES = [
+  /* 东门两侧（给入口一个门的仪式感）—— v9 门从南墙搬到东墙，树跟着走 */
+  [24.6, 9.9, 1.1], [24.6, 10.5, .95], [24.6, 13.5, .95], [24.6, 14.1, 1.1],
+  /* 沿北围墙内 */
+  [1.5, 0.4, 1.1], [4.5, 0.4, .95], [9.5, 0.4, 1.05], [12.4, 0.4, .95],
+  [17.5, 0.4, 1.05], [23.5, 0.4, 1.0],
+  /* 沿西围墙内 */
+  [0.4, 2.5, 1.05], [0.4, 5.5, .95], [0.4, 8.5, 1.1], [0.4, 11.5, .95], [0.4, 14.5, 1.05],
+  /* 沿东围墙内 */
+  [25.4, 2.5, 1.0], [25.4, 5.5, 1.05], [25.4, 9.5, .95], [25.4, 14.5, 1.05],
+  /* 北区楼与楼之间的空列 */
+  [3.5, 1.4, 1.0], [3.5, 4.4, .95], [9.5, 1.4, 1.05], [9.5, 4.4, 1.0],
+  [12.4, 1.4, .95], [12.4, 4.4, 1.05],
+  /* 中心景观区周边 */
+  [12.4, 8.4, 1.0], [12.4, 10.6, .95],
+  /* 运动区空当 */
+  [22.5, 3.5, .95], [24.4, 4.5, 1.0], [23.5, 7.5, 1.05], [23.5, 10.5, .95],
+  [17.4, 11.6, 1.0],
+  /* 生活区空列 */
+  [3.5, 15.5, 1.0], [7.4, 13.4, 1.05], [7.5, 16.6, .95], [16.4, 15.4, 1.0],
+  [19.5, 16.6, 1.05], [25.4, 15.5, .95],
+];
+(function () {
+  var gT = G('', gBody);
+  initSway(gT, 6);   /* 6 个 sway 组必须先建好，后面的树才会画进组里 */
+  TREES.forEach(function (t) { var b = P(t[0] * T, t[1] * T, 0); tree(gT, b.x, b.y, t[2], false); });
+  /* ★ 再按规则撒一批。手写坐标铺不满 22×15 的空地，而且一定会漏 ——
+     "空草地"正是最需要被填的地方（它是画面里最没信息的部分）。
+     规则：是草格 + 离任何建筑至少留 1 格 + 确定性伪随机命中。
+     留 1 格是必须的：树不能压到建筑，也不能压到建筑前方的标签。 */
+  var n = 0;
+  for (var r = 0; r < GY; r++) for (var c = 0; c < GX; c++) {
+    if (grid[r][c] !== 'g') continue;
+    var blocked = false;
+    for (var i = 0; i < SITES.length; i++) {
+      var s = SITES[i];
+      if (c >= s.c - 1 && c <= s.c + s.w && r >= s.r - 1 && r <= s.r + s.d) { blocked = true; break; }
+    }
+    if (blocked) continue;
+    if (rnd(c * 31 + r, 211) > .40) continue;
+    var a = P(c * T + T * (.28 + rnd(c + r, 223) * .52), r * T + T * (.3 + rnd(c * 7 + r, 227) * .45), 0);
+    tree(gT, a.x, a.y, .8 + rnd(c * 3 + r, 229) * .7, false);
+    n++;
+  }
+  window.__autoTrees = n;   // 供验证脚本读
+})();
+
+/* ④ 场景细节 —— 不加任何功能，纯粹是"地图活了"所需的碎信息。
+   没有它，整片草地是均匀色块，人眼扫过去没有落点，读起来像"还没做完"。
+   v4：全部按 26×18 的新网格重排。
+   ⚠️ 这一层里每个坐标都是"塞在建筑缝里"的，改动时必须跟着建筑走 ——
+      rebuild-v4.py 末尾有一段断言，逐个检查它们没压到建筑与道路。 */
+(function () {
+  var gD = G('', gBody);
+  /* 校园内的路灯：6 个组承载（组级 opacity 动画与逐元素等价，层数 6）。 */
+  var DG = [];
+  for (var di = 0; di < 6; di++) {
+    DG.push(E('g', { class: 'lamp', style: 'animation-delay:' + (-(di * 0.63)).toFixed(2) + 's' }, gD));
+  }
+  function placeInnerLamp(x, y) {
+    E('circle', { cx: x, cy: y - 5.5, r: 2.6, fill: 'rgba(255,247,220,.95)' },
+      DG[Math.abs(Math.round(x * 5.1 + y * 2.3)) % 6]);
+  }
+  /* ★★ v5：路灯从"只沿两条路"改成**沿全部路网**（ROADS 是唯一来源）。
+     路灯是尺度参照 —— 有灯，人才知道这条路多长、这段多远。
+     分 6 组承载（组级 opacity 动画与逐元素等价，层数恒为 6）。 */
+  ROADS.forEach(function (rd) {
+    if (rd.d === 'v') {
+      for (var r = 1; r < GY - 1; r += 2) {
+        var p = P(rd.c * T + 5, r * T + T / 2, 0);
+        E('circle', { cx: p.x, cy: p.y, r: 1.9, fill: 'rgba(56,48,28,.35)' }, gD);
+        placeInnerLamp(p.x, p.y);
+        var p2 = P(rd.c * T + T - 5, r * T + T / 2 + T / 2, 0);
+        E('circle', { cx: p2.x, cy: p2.y, r: 1.7, fill: 'rgba(56,48,28,.3)' }, gD);
+        placeInnerLamp(p2.x, p2.y);
+      }
+    } else {
+      for (var c = 2; c < GX - 1; c += 3) {
+        var q = P(c * T + T / 2, rd.r * T + 5, 0);
+        E('circle', { cx: q.x, cy: q.y, r: 1.9, fill: 'rgba(56,48,28,.35)' }, gD);
+        placeInnerLamp(q.x, q.y);
+        var q2 = P(c * T + T / 2 + T, rd.r * T + T - 5, 0);
+        E('circle', { cx: q2.x, cy: q2.y, r: 1.7, fill: 'rgba(56,48,28,.3)' }, gD);
+        placeInnerLamp(q2.x, q2.y);
+      }
+    }
+  });
+  /* 花坛：塞在建筑之间的空列里 */
+  [[3.5, 2.5], [9.5, 2.5], [12.5, 2.5], [5.5, 9.5], [17.5, 10.5],
+   [3.5, 13.5], [10.5, 16.5], [19.5, 15.5]].forEach(function (b) {
+    var a = P(b[0] * T + 12, b[1] * T + 12, 1);
+    E('rect', { x: a.x, y: a.y, width: T - 24, height: T - 24,
+      fill: 'rgba(96,120,78,.9)', stroke: 'rgba(255,255,255,.28)', 'stroke-width': .8 }, gD);
+  });
+  /* 自行车棚（宿舍区与宿舍区之间，一排细斜线） */
+  [[19.5, 13.5], [10.5, 15.5]].forEach(function (sa0) {
+    var sa = P(sa0[0] * T, sa0[1] * T, 1);
+    E('rect', { x: sa.x, y: sa.y, width: T - 16, height: T - 16, fill: '#8A8478',
+      stroke: 'rgba(255,255,255,.3)', 'stroke-width': .8 }, gD);
+    for (var i = 0; i < 6; i++)
+      E('line', { x1: sa.x + 4 + i * 8, y1: sa.y + 4, x2: sa.x + 2 + i * 8, y2: sa.y + T - 20,
+        stroke: 'rgba(255,255,255,.34)', 'stroke-width': 1.1 }, gD);
+  });
+  /* 自行车道：沿围墙内侧一圈虚线。围墙只说"这里有边界"，
+     这条线说"边界内侧是可以走的一圈路" —— 路网才完整。 */
+  E('rect', { x: CX0 + 30, y: CY0 + 30, width: GX * T - 60, height: GY * T - 60, fill: 'none',
+    stroke: 'rgba(255,255,255,.3)', 'stroke-width': 2, 'stroke-dasharray': '10 13' }, gD);
+  /* 旗杆：立在中心广场（c4~c5 / r10~r11 的铺装上）。
+     它是画面的"垂直坐标" —— 一堆方盒子中间有根细高杆，观者才量得出这片地有多大。 */
+  var fp = P(4.5 * T, 10.9 * T, 0);
+  E('circle', { cx: fp.x, cy: fp.y, r: 5, fill: 'rgba(255,255,255,.5)' }, gD);
+  E('line', { x1: fp.x, y1: fp.y, x2: fp.x, y2: fp.y - 48, stroke: '#D6CFBB', 'stroke-width': 2.2 }, gD);
+  E('path', { d: 'M' + fp.x + ' ' + (fp.y - 48) + ' l26 8.5 l-26 8.5 z', fill: 'rgba(232,99,44,.92)',
+    class: 'flag',
+    style: 'transform-origin:' + fp.x.toFixed(1) + 'px ' + (fp.y - 48).toFixed(1) + 'px' }, gD);
+  /* 四个区的淡虚线框 + 区名（26×18 的新范围）。
+     ⚠️ 这里引用 ZONES 的 key；改了 key 忘了改这里 = 整个脚本挂掉，
+        v3 栽过一次（ZONES['west'] 已不存在）。 */
+  [['north', 1, 1, 12, 5],     /* 行政教学区 */
+   ['center', 1, 7, 12, 11],   /* 中心景观区 */
+   ['east', 14, 1, 24, 11],    /* 体育运动区 */
+   ['south', 1, 13, 24, 16]    /* 生活服务区 */
+  ].forEach(function (z) {
+    var q = P(z[1] * T, z[2] * T, 0);
+    var hue = ZONES[z[0]].hue;
+    var W2 = (z[3] - z[1] + 1) * T, H2 = (z[4] - z[2] + 1) * T;
+    E('rect', { x: q.x, y: q.y, width: W2, height: H2, fill: 'none',
+      stroke: 'rgba(255,255,255,.5)', 'stroke-width': 3.8, 'stroke-dasharray': '11 13' }, gD);
+    E('rect', { x: q.x, y: q.y, width: W2, height: H2, fill: 'none',
+      stroke: hue, 'stroke-opacity': .95, 'stroke-width': 1.9, 'stroke-dasharray': '11 13' }, gD);
+    E('text', { x: q.x + 8, y: q.y + 19, fill: hue, 'font-family': MONO,
+      'font-size': 12.5, 'letter-spacing': '.24em', 'font-weight': 'bold',
+      stroke: 'rgba(255,255,255,.92)', 'stroke-width': 3.6, 'paint-order': 'stroke' }, gD)
+      .textContent = ZONES[z[0]].code;
+  });
+})();
+
+/* ⑤ 高台 */
+HIGH.forEach(function (H) {
+  var x0 = H.c0 * T, y0 = H.r0 * T, x1 = (H.c1 + 1) * T, y1 = (H.r1 + 1) * T, h = H.h;
+  /* ★ v4：台地色从 #6E6656 提到 #8C7B58 —— 原来的 S 只有 .14，
+     在画面里读作「中性灰」；这个台有 6×5 格，是最大的一块无彩色区。 */
+  var top = '#8C7B58';
+  /* 阴影 = 两层同形偏移多边形（内层深 + 外层淡），模拟软边。
+     见文件顶部 defs 区那段注释：不用高斯模糊是为了根治"点击崩坏"。 */
+  [[3, 'rgba(52,44,26,.32)'], [9, 'rgba(52,44,26,.15)']].forEach(function (sh) {
+    E('polygon', { points: poly([P(x0 + sh[0], y1 + 6, 0),
+      P(x1 + sh[0] + h * KX, y1 + 6, h), P(x1 + sh[0] + h * KX, y0 + 6, h), P(x0 + sh[0], y0 + 6, 0)]),
+      fill: sh[1] }, gBody);
+  });
+  E('polygon', { points: poly([P(x0, y1, 0), P(x1, y1, 0), P(x1, y1, h), P(x0, y1, h)]),
+    fill: tint(top, -.3), stroke: 'rgba(40,34,20,.4)', 'stroke-width': .5 }, gBody);
+  E('polygon', { points: poly([P(x1, y0, 0), P(x1, y1, 0), P(x1, y1, h), P(x1, y0, h)]),
+    fill: tint(top, -.14), stroke: 'rgba(40,34,20,.4)', 'stroke-width': .5 }, gBody);
+  E('polygon', { points: poly([P(x0, y0, h), P(x1, y0, h), P(x1, y1, h), P(x0, y1, h)]),
+    fill: tint(top, .08), stroke: 'rgba(255,255,255,.32)', 'stroke-width': .6 }, gBody);
+  for (var cc = H.c0; cc <= H.c1 + 1; cc++)
+    E('line', { x1: P(cc * T, y0, h).x, y1: P(cc * T, y0, h).y, x2: P(cc * T, y1, h).x, y2: P(cc * T, y1, h).y, stroke: 'rgba(40,34,20,.16)', 'stroke-width': .5 }, gBody);
+  for (var rr = H.r0; rr <= H.r1 + 1; rr++)
+    E('line', { x1: P(x0, rr * T, h).x, y1: P(x0, rr * T, h).y, x2: P(x1, rr * T, h).x, y2: P(x1, rr * T, h).y, stroke: 'rgba(40,34,20,.16)', 'stroke-width': .5 }, gBody);
+  /* 中央广场的铺装图案：同心矩形 + 一圈酸橙绿。
+     这一块是画面正中最显眼的位置，如果只是"一块颜色"，整张图会显得没中心；
+     有了图案它才读成"广场"，而不是"没画完的地方"。 */
+  if (H.plaza) {
+    var pc = P((x0 + x1) / 2, (y0 + y1) / 2, h + .5);
+    [44, 76, 108].forEach(function (rr2, ii) {
+      E('rect', { x: pc.x - rr2, y: pc.y - rr2 * .8, width: rr2 * 2, height: rr2 * 1.6, fill: 'none',
+        stroke: 'rgba(44,38,24,' + (0.3 - ii * 0.07).toFixed(2) + ')', 'stroke-width': 1.7 }, gBody);
+    });
+    E('circle', { cx: pc.x, cy: pc.y, r: 27, fill: 'none', stroke: 'rgba(195,232,76,.7)', 'stroke-width': 1.7 }, gBody);
+  }
+});
+
+/* ⑥ 坐标刻度 */
+var gA = G('', gBody);
+for (var c2 = 0; c2 < GX; c2++) {
+  if (isX(c2, 0) && isX(c2, GY - 1)) continue;
+  var xa = P(c2 * T + T / 2, 0, 0).x;
+  E('text', { x: xa, y: CY0 - 16, 'text-anchor': 'middle', fill: C_INK3, 'font-family': MONO, 'font-size': 10 }, gA).textContent = String.fromCharCode(65 + c2);
+  E('line', { x1: xa, y1: CY0 - 9, x2: xa, y2: CY0 - 4, stroke: 'rgba(255,255,255,.45)', 'stroke-width': .8 }, gA);
+}
+for (var r3 = 0; r3 < GY; r3++) {
+  if (isX(0, r3) && isX(GX - 1, r3)) continue;
+  var ya = P(0, r3 * T + T / 2, 0).y;
+  E('text', { x: CX0 - 14, y: ya + 3.5, 'text-anchor': 'end', fill: C_INK3, 'font-family': MONO, 'font-size': 10 }, gA).textContent = ('0' + (r3 + 1)).slice(-2);
+  E('line', { x1: CX0 - 8, y1: ya, x2: CX0 - 3, y2: ya, stroke: 'rgba(255,255,255,.45)', 'stroke-width': .8 }, gA);
+}
+E('rect', { x: CX0 - 2, y: CY0 - 2, width: GX * T + 4, height: GY * T + 4, fill: 'none',
+  stroke: 'rgba(255,255,255,.32)', 'stroke-width': 1.2 }, gA);
+
+/* ⑦ 建筑 */
+var gB = G('', gBody);
+SITES.slice().sort(function (a, b) { return (a.r + a.c + a.d + a.w) - (b.r + b.c + b.d + b.w); }).forEach(function (s) {
+  var hue = ZONES[s.zone].hue;
+  var x0 = s.c * T, y0 = s.r * T, x1 = (s.c + s.w) * T, y1 = (s.r + s.d) * T, h = s.h;
+  var g = E('g', { class: 'bld', 'data-id': s.id }, gB);
+  var body = E('g', { class: 'body' }, g);
+  /* 这栋楼用哪套皮肤（默认冷灰混凝土） */
+  var SK = SKINS[s.paint] || SKINS.conc;
+
+  /* 建筑投影：两层同形偏移多边形。第 2 层偏得更远、更淡，
+     叠起来就有"越远离建筑越淡"的软边观感（等价于高斯模糊，但没有重算成本）。 */
+  [[4, MAT.shade], [13, MAT.shadeFar]].forEach(function (sh) {
+    E('polygon', {
+      points: poly([P(x0 + sh[0], y1 + 8, 0), P(x1 + sh[0] + h * KX, y1 + 8, h),
+        P(x1 + sh[0] + h * KX, y0 + 8, h), P(x0 + sh[0], y0 + 8, 0)]),
+      fill: sh[1],
+    }, body);
+  });
+
+  /* ★ 地基（裙房）：比主体外扩 7px 的一圈矮台。
+     ── 用户说"太假了，参考方舟那个房屋的设计"，这是差距最大的一处 ──
+     方舟的建筑几乎都有这一层，作用很具体：**让建筑"落在地上"而不是"插在地上"**。
+     没有它，一个盒子漂在草地上，光影怎么调都还是贴纸感。 */
+  E('polygon', { points: poly([P(x0 - 7, y1 + 7, 0), P(x1 + 7, y1 + 7, 0),
+    P(x1 + 7, y1 + 7, 3), P(x0 - 7, y1 + 7, 3)]),
+    fill: MAT.shade, 'fill-opacity': .3 }, body);
+  E('polygon', { points: poly([P(x0 - 7, y0 - 7, 3), P(x1 + 7, y0 - 7, 3),
+    P(x1 + 7, y1 + 7, 3), P(x0 - 7, y1 + 7, 3)]),
+    fill: MAT.base, stroke: 'rgba(12,16,22,.8)', 'stroke-width': 1.1 }, body);
+
+  /* 选中框：先前是"细线 + 高斯模糊发光"。改成**双层描边** ——
+     外层粗而淡（模拟光晕）、内层细而实。纯描边，零重算成本。 */
+  E('polygon', { class: 'selbox',
+    points: poly([P(x0 - 10, y0 - 10, h + 3), P(x1 + 10, y0 - 10, h + 3), P(x1 + 10, y1 + 10, h + 3), P(x0 - 10, y1 + 10, h + 3)]),
+    fill: 'none', stroke: 'rgba(195,232,76,.3)', 'stroke-width': 7 }, body);
+  E('polygon', { class: 'selbox',
+    points: poly([P(x0 - 10, y0 - 10, h + 3), P(x1 + 10, y0 - 10, h + 3), P(x1 + 10, y1 + 10, h + 3), P(x0 - 10, y1 + 10, h + 3)]),
+    fill: 'none', stroke: C_ACID, 'stroke-width': 2.2 }, body);
+
+  /* ★★ 09-22：这栋楼由**轮廓挤出**生成（形状见 SITES 的 shape 字段）。
+     原来这里是"固定画三个矩形面"，所以 14 栋楼长得一模一样；
+     现在任意轮廓都能立起来，楼群才有"奇形怪状"的可能。 */
+  var OUT = outlineOf(s, x0, y0, x1, y1);
+  extrude(OUT, h, SK, body, s);
+
+  /* 窗：没有窗，"方块"永远读不成"楼" */
+  if (h >= 34) {
+    var rows = Math.max(1, Math.floor((h - 24) / 19));
+    /* ★ 09-22：窗与楼层线都限制在"真正有前墙"的那一段里（见 frontSpan） */
+    var SP = frontSpan(OUT) || [x0, x1];
+    var spanW = SP[1] - SP[0];
+    var cols = Math.max(2, Math.round(spanW / T * 1.4));
+    var colsD = Math.max(2, Math.round((y1 - y0) / T * 1.4));
+    /* 楼层横线：正面上的等距细线。它比开窗更省，却更快让人读出"这是一栋
+       多层的楼" —— 只有窗没有楼层线，正面读起来是"打了洞的板"。 */
+    for (var fz = h - 26; fz > 10; fz -= 19)
+      E('line', { x1: P(SP[0] + 4, y1, fz).x, y1: P(SP[0] + 4, y1, fz).y,
+        x2: P(SP[1] - 4, y1, fz).x, y2: P(SP[1] - 4, y1, fz).y,
+        stroke: 'rgba(12,16,20,.34)', 'stroke-width': .9 }, body);
+    for (var i = 0; i < cols; i++) for (var j = 0; j < rows; j++) {
+      var wx = SP[0] + 12 + i * ((spanW - 24) / (cols - 1 || 1)) - 5;
+      var wz = h - 14 - j * 19;
+      /* 窗光用**暖白**，不用标志色。
+         酸橙绿是方舟的功能色（标记 / 路线 / 选中），
+         一铺到建筑上就变成"满屏黄点"，标志色也就不标志了。
+         ★ 挑一扇窗当"反光窗"（短促地亮一下再灭）——
+           这是全图最便宜的一处"活"：它让玻璃读成玻璃，而不是白漆。
+         ★★ 09-21 第六轮：反光窗从"每栋楼一个"（14 个合成层）缩到
+             **只有 4 栋楼有**。它本来就是个"偶尔闪一下"的细节，
+             14 栋同时闪反而像跑马灯；4 栋散开闪更自然，层数 14 → 4。 */
+      var gl = (i === 1 && j === 0) && GLINT_SITES.indexOf(s.id) >= 0;
+      /* ★ 09-22：窗从"暖白"改成**冷蓝玻璃**。
+         原来是暖白，跟暖灰墙面同色系 → 整面墙糊成一片。
+         改成冷蓝之后，墙面（暖→冷灰）与玻璃（冷蓝）之间有了色相差，
+         玻璃才读成玻璃；亮的那扇（反光）保持高亮作为点缀。
+         ⚠️ 窗框那根竖线是必要的：没有它，10×8 的蓝矩形像贴纸；
+         有了中缝，它才读成"一扇双开窗"。 */
+      var at = { x: P(wx, y1, wz).x, y: P(wx, y1, wz).y, width: 10, height: 8,
+        /* 玻璃跟着皮肤走：冷灰混凝土配冷蓝玻璃（通透、像幕墙）；
+           三套涂装色（黄 / 赭红 / 铜绿）都配深色玻璃 ——
+           亮色墙面 + 亮色玻璃会把窗"吃掉"，深玻璃才让窗读得出来。 */
+        fill: gl ? '#EAF2F7'
+          : (s.paint ? (s.paint === 'lemon' ? 'rgba(56,50,18,.66)' : 'rgba(30,26,22,.6)') : MAT.glass) };
+      E('rect', at, body);
+      E('line', { x1: at.x + 5, y1: at.y, x2: at.x + 5, y2: at.y + 8,
+        stroke: 'rgba(28,34,40,.5)', 'stroke-width': .7 }, body);
+    }
+    var cols2 = colsD;
+    for (var i2 = 0; i2 < cols2; i2++) for (var j2 = 0; j2 < rows; j2++) {
+      var wy2 = y0 + 16 + i2 * ((s.d * T - 32) / (cols2 - 1 || 1)) - 5;
+      var wz2 = h - 14 - j2 * 19;
+      E('rect', { x: P(x1, wy2, wz2).x, y: P(x1, wy2, wz2).y, width: 9, height: 8,
+        fill: MAT.glassDark }, body);
+    }
+    /* 屋顶设备（水箱 / 机组）：v3 新加，让顶面不是一块纯色 */
+    /* ★ 09-22：屋顶设备从"等距排开的同款方块"改成**成组的机组阵列**：
+       2~4 台，**大小交替**（有大小才有"一组设备"的读法），
+       并且落在屋顶**右半侧** —— 左侧已经给了楼梯间，
+       两个体块分居两侧，顶面才有构图。
+       投影方向统一朝右下，和全图光源一致。 */
+    var seed2 = s.c * 13 + s.r * 7;     /* 与 drawIndustrial 同源的稳定种子 */
+    var bw2 = x1 - x0, bd2 = y1 - y0;   /* 建筑循环里没有 W/D，得自己算 */
+    /* ★★ v8：宿舍楼的屋顶走**类型专属语言** —— 不放通用机组，
+       改铺成排太阳能板（蓝黑格栅）。方舟的原则是"类型要有统一读数、
+       个体靠轮廓与高度区分"：宿舍这片如果屋顶还是通用机组，
+       10 栋又退回同一个配方。个体差异由轮廓（L/U/oct/cross）与高度承担。 */
+    var isDorm = /^dorm/.test(s.id) || s.id === 'meiyuan' || s.id === 'guiyuan';
+    var eq = isDorm ? 0 : 2 + Math.floor(rnd(seed2, 71) * 3);
+    var exBase = x0 + bw2 * .46;
+    if (isDorm) {
+      for (var si2 = 0; si2 < 3; si2++) {
+        var px2 = x0 + bw2 * (.48 + si2 * .17), py2 = y0 + bd2 * .30,
+            pw2 = bw2 * .15, pd2 = bd2 * .36;
+        var a2 = P(px2, py2, h + 1);
+        E('rect', { x: a2.x + 2, y: a2.y + 2, width: pw2, height: pd2, fill: 'rgba(12,16,22,.32)' }, body);
+        E('rect', { x: a2.x, y: a2.y, width: pw2, height: pd2, fill: '#2B3542',
+          stroke: 'rgba(140,190,230,.5)', 'stroke-width': .9 }, body);
+        [.34, .67].forEach(function (t2) {
+          E('line', { x1: a2.x, y1: a2.y + pd2 * t2, x2: a2.x + pw2, y2: a2.y + pd2 * t2,
+            stroke: 'rgba(150,205,245,.4)', 'stroke-width': .8 }, body);
+        });
+      }
+    }
+    for (var e2 = 0; e2 < eq; e2++) {
+      var ew = 11 + rnd(seed2 + e2, 81) * 8;
+      var eh = 8 + rnd(seed2 + e2, 91) * 6;
+      var ex = exBase + (e2 % 2) * (ew + 3);
+      var ey = y0 + bd2 * .22 + Math.floor(e2 / 2) * (eh + 4);
+      if (ex + ew > x1 - 6 || ey + eh > y1 - 6) continue;
+      E('rect', { x: P(ex + 2, ey + 2, h).x, y: P(ex + 2, ey + 2, h).y,
+        width: ew, height: eh, fill: 'rgba(16,20,26,.34)' }, body);
+      E('rect', { x: P(ex, ey, h).x, y: P(ex, ey, h).y, width: ew, height: eh,
+        fill: MAT.metalLit, stroke: 'rgba(12,16,22,.72)', 'stroke-width': .7 }, body);
+      E('rect', { x: P(ex + 1.5, ey + 1.5, h + .5).x, y: P(ex + 1.5, ey + 1.5, h + .5).y,
+        width: ew - 3, height: 2, fill: 'rgba(255,255,255,.22)' }, body);
+    }
+    /* ★★ v5：屋顶再加三件 —— 楼梯间 / 水箱 / 通风管。
+       俯视图里屋顶占建筑面积的绝对主导，**屋顶有多细，建筑就有多细**。
+       楼梯间与屋顶设备分居两侧（设备在右、楼梯间在左），顶面才有构图。 */
+    var rw = x1 - x0, rd = y1 - y0;
+    var stW = Math.min(26, rw * .30), stD = Math.min(20, rd * .34);
+    var stX = x0 + rw * .10, stY = y0 + rd * .16;
+    if (h >= 46) {
+      /* 楼梯间：顶面一块凸起（先画它投在屋面/墙上的影子，再画块体） */
+      E('rect', { x: P(stX + 3, stY + 3, h).x, y: P(stX + 3, stY + 3, h).y,
+        width: stW, height: stD, fill: 'rgba(16,20,26,.34)' }, body);
+      E('polygon', { points: poly([P(stX, stY, h + 9), P(stX + stW, stY, h + 9),
+        P(stX + stW, stY, h), P(stX, stY, h)]), fill: tint(MAT.base, -.12) }, body);
+      E('rect', { x: P(stX, stY, h + 9).x, y: P(stX, stY, h + 9).y, width: stW, height: stD,
+        fill: tint(MAT.base, .10), stroke: 'rgba(12,16,22,.7)', 'stroke-width': .8 }, body);
+      E('rect', { x: P(stX + 3, stY + 3, h + 9.4).x, y: P(stX + 3, stY + 3, h + 9.4).y,
+        width: stW - 6, height: stD - 6, fill: 'none', stroke: 'rgba(255,255,255,.16)', 'stroke-width': .7 }, body);
+    }
+    if (h >= 60) {
+      /* 水箱：屋顶另一侧的一个圆（颜色用金属亮面，与方形的机组区分开） */
+      var wt = P(x0 + rw * .82, y0 + rd * .70, h);
+      E('ellipse', { cx: wt.x + 2, cy: wt.y + 2, rx: 9, ry: 6, fill: 'rgba(16,20,26,.30)' }, body);
+      E('ellipse', { cx: wt.x, cy: wt.y, rx: 9, ry: 6, fill: MAT.metalLit,
+        stroke: 'rgba(12,16,22,.72)', 'stroke-width': .8 }, body);
+      E('ellipse', { cx: wt.x, cy: wt.y - 1.5, rx: 5.4, ry: 3.4, fill: 'rgba(255,255,255,.22)' }, body);
+      /* 通风管：两根细圆柱，沿着屋顶边缘排 */
+      [.34, .48].forEach(function (fx2, fi) {
+        var vp2 = P(x0 + rw * fx2, y0 + rd * .84, h);
+        E('circle', { cx: vp2.x, cy: vp2.y, r: 3.0, fill: MAT.metal,
+          stroke: 'rgba(12,16,22,.7)', 'stroke-width': .7 }, body);
+        E('circle', { cx: vp2.x, cy: vp2.y - .8, r: 1.7, fill: 'rgba(255,255,255,.20)' }, body);
+      });
+    }
+    /* 入口台阶 */
+    var dx = (SP[0] + SP[1]) / 2;   /* ★ 放在真正有前墙的那段中点，不是包围盒中点 */
+    E('rect', { x: P(dx - 13, y1 - 2, 0).x, y: P(dx - 13, y1 - 2, 0).y, width: 26, height: 9,
+      fill: MAT.metal, stroke: 'rgba(255,255,255,.3)', 'stroke-width': .6 }, body);
+    E('rect', { x: P(dx - 13, y1 - 2, 0).x, y: P(dx - 13, y1 - 2, 0).y, width: 26, height: 3, fill: MAT.metalLit }, body);
+  }
+
+  if (s.track) {
+    /* ★★ v4：跑道从"3 圈细描边"改成**填充式**。
+       上一版是"草地上画几个圈"，在 0.67 倍缩放下那 1.8px 的线几乎看不见；
+       而真实跑道是**一整片塑胶面**——它必须占用面积，才读得出"这是跑道"。
+       层次（自下而上）：
+         场地外沿 → 砖红跑道面 → 内圈白线 → 绿色内场 → 两道分道线 → 外压边 */
+    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    var RX = (x1 - x0) * .47, RY = (y1 - y0) * .44;
+    function ell(k, dz) {
+      var r = [];
+      for (var a = 0; a < 60; a++) {
+        var t = a / 60 * Math.PI * 2;
+        r.push(P(cx + Math.cos(t) * RX * k, cy + Math.sin(t) * RY * k, h + dz));
+      }
+      return poly(r);
+    }
+    E('polygon', { points: ell(1, .6), fill: '#5E5A52' }, body);                    /* 场地外沿 */
+    E('polygon', { points: ell(.975, .7), fill: '#C2704A' }, body);                 /* 跑道面（砖红） */
+    E('polygon', { points: ell(.78, .8), fill: 'rgba(255,255,255,.45)' }, body);    /* 内圈白线 */
+    E('polygon', { points: ell(.755, .9), fill: '#6E8C4E' }, body);                 /* 内场草坪 */
+    E('polygon', { points: ell(.36, 1.0), fill: 'rgba(255,255,255,.05)' }, body);   /* 内场中心淡斑 */
+    [.845, .915].forEach(function (k) {                                             /* 分道线 */
+      E('polygon', { points: ell(k, 1.1), fill: 'none',
+        stroke: 'rgba(255,255,255,.42)', 'stroke-width': 1.3 }, body);
+    });
+    E('polygon', { points: ell(1, 1.2), fill: 'none',
+      stroke: 'rgba(40,34,24,.45)', 'stroke-width': 1.4 }, body);                   /* 外压边 */
+    /* 起跑线 + 终点线：直道两端的短横线（细节虽小，但它是"跑道"的语义标志） */
+    [[-.985, 0], [.985, 0]].forEach(function (q) {
+      E('line', { x1: P(cx + q[0] * RX, cy - RY * .28, h + 1.3).x, y1: P(cx + q[0] * RX, cy - RY * .28, h + 1.3).y,
+        x2: P(cx + q[0] * RX, cy + RY * .28, h + 1.3).x, y2: P(cx + q[0] * RX, cy + RY * .28, h + 1.3).y,
+        stroke: 'rgba(255,255,255,.55)', 'stroke-width': 2 }, body);
+    });
+  }
+  if (s.onWater) {
+    for (var k2 = 1; k2 <= 3; k2++) {
+      E('rect', { x: P(x0 - k2 * 5, y0 - k2 * 5, 0).x, y: P(x0 - k2 * 5, y0 - k2 * 5, 0).y,
+        width: (x1 - x0) + k2 * 10, height: (y1 - y0) + k2 * 10,
+        fill: 'none', stroke: 'rgba(255,255,255,' + (0.5 - k2 * 0.11).toFixed(2) + ')', 'stroke-width': 1 }, body);
+    }
+  }
+
+  /* ★ 这栋楼的识别特征（见上面的 FEATS 表）。
+     放在 slot 标记之前 —— slot 是"可进入"的交互提示，语义上属于交互层，
+     要压在最上面，不能被屋顶装饰盖住。 */
+  /* ★ 09-22：工业构件层（明缝 / 锈流 / 管道 / 栏杆 / 门框）。
+     放在 FEATS 之前 —— 屋顶特征（穹顶、桅杆）应该盖在栏杆之上。 */
+  drawIndustrial(s, body, x0, y0, x1, y1, h);
+
+  if (s.feat && FEATS[s.feat]) FEATS[s.feat](s, body, x0, y0, x1, y1, h);
+
+  /* 可进入标记：地面上的小方框（方舟的部署格就是这个位置与量级）。
+     加一层白色外框 —— 酸橙绿压在提亮后的草地上会糊，白框把它拎起来。 */
+  var mx = P(x0 + s.w * T / 2, y1 - 5, 0);
+  E('rect', { class: 'slot', x: mx.x - 7.5, y: mx.y - 7.5, width: 15, height: 15,
+    fill: 'none', stroke: 'rgba(255,255,255,.8)', 'stroke-width': 2.8 }, body);
+  E('rect', { class: 'slot', x: mx.x - 6, y: mx.y - 6, width: 12, height: 12,
+    fill: 'none', stroke: C_ACID, 'stroke-width': 1.6 }, body);
+  E('circle', { class: 'slot', cx: mx.x, cy: mx.y, r: 1.9, fill: C_ACID }, body);
+
+  s._g = g; s._box = { x0: x0, y0: y0, x1: x1, y1: y1, h: h };
+});
+
+/* ⑧ 标签
+   放在"建筑正前方地面上"，不是"建筑顶上方" ——
+   放顶上时标签会压到后一排建筑的立面上（v2 实测截图里
+   "图书馆"直接盖在"实验楼"上）。方舟的标签也是贴在地图上，
+   不是浮在城市上空。 */
+var gL = G('', gBody);
+SITES.forEach(function (s) {
+  var b = s._box;
+  var mid = (b.x0 + b.x1) / 2;
+  /* 标签默认贴**建筑正前方的地面**（v2 的教训：贴建筑顶上会压住后一排的立面）。
+     但紧贴校园南边界的几栋（快递站 / 咖啡角 / 旧礼堂）前方已经在围墙外了 ——
+     扫描时发现它们的标签跑出校园、压在围墙上。这几栋改贴到**建筑上方**。 */
+  var up = (b.y1 + T * .5) > CY1;
+  var anc = up ? P(mid, b.y0, b.h) : P(mid, b.y1, 0);
+  var ly = up ? anc.y - 26 : anc.y + 17;
+  var dir = up ? -1 : 1;
+  E('line', { x1: anc.x, y1: anc.y + 3 * dir, x2: anc.x, y2: ly - 11 * dir,
+    stroke: 'rgba(210,211,207,.3)', 'stroke-width': .8 }, gL);
+  E('circle', { cx: anc.x, cy: anc.y + 3 * dir, r: 1.7, fill: C_ACID }, gL);
+  E('text', { class: 'site-label', x: anc.x, y: ly, 'text-anchor': 'middle', fill: C_INK,
+    'font-family': SERIF, 'font-size': 14, 'font-weight': 'bold', 'letter-spacing': '.08em',
+    stroke: 'rgba(255,255,255,.9)', 'stroke-width': 3.4, 'paint-order': 'stroke' }, gL).textContent = s.name;
+  E('text', { x: anc.x, y: ly + 12, 'text-anchor': 'middle', fill: C_INK3,
+    'font-family': MONO, 'font-size': 9, 'letter-spacing': '.14em',
+    stroke: 'rgba(255,255,255,.85)', 'stroke-width': 2.8, 'paint-order': 'stroke' }, gL).textContent = ZONES[s.zone].code;
+});
+
+/* ⑨ 玩家标记 —— 游戏地图必备的「你在这里」。
+   v9：门从南墙搬到东墙，起点跟着挪到**东门内侧的南横路主干道上**。 */
+var gU = G('', gBody);
+(function () {
+  var u = P(23.4 * T, 12.5 * T, 0);
+  E('circle', { cx: u.x, cy: u.y, r: 11, fill: 'none', stroke: 'rgba(255,255,255,.8)',
+    'stroke-width': 2.6, class: 'pulse' }, gU);
+  E('circle', { cx: u.x, cy: u.y, r: 11, fill: 'none', stroke: '#C3E84C', 'stroke-width': 1.5 }, gU);
+  E('polygon', { points: poly([
+    { x: u.x, y: u.y - 9 }, { x: u.x + 8, y: u.y }, { x: u.x, y: u.y + 9 }, { x: u.x - 8, y: u.y }]),
+    fill: '#C3E84C', stroke: 'rgba(255,255,255,.92)', 'stroke-width': 1.8 }, gU);
+  E('text', { x: u.x, y: u.y + 30, 'text-anchor': 'middle', fill: '#26301C',
+    'font-family': MONO, 'font-size': 10, 'font-weight': 'bold', 'letter-spacing': '.2em',
+    stroke: 'rgba(255,255,255,.92)', 'stroke-width': 3.4, 'paint-order': 'stroke' }, gU).textContent = 'YOU ARE HERE';
+})();
+
+/* ⑩ 光 + 空气 —— ★★ 09-21 第六轮：**整段搬出 SVG 了**。
+   ────────────────────────────────────────────────────────────
+   原来这里是 3 条光柱多边形 + 1 个铺满画布的暖色矩形，画在 `gBody` 里，
+   于是**跟着相机一起缩放**。用户报「拖动时光源崩坏」的根因就是它：
+   铺满全画布的合成层，每次 `scale()` 变化都要按新尺寸重新栅格化，
+   而全屏层的重栅格化代价远高于一个小区块。
+   现在改为 `#atmos`（viewport 下的固定层，见 index 里的 CSS 与 HTML 注释）：
+   不参与相机变换 → 拖动/缩放时零重算 → 光源不可能再崩。
+   顺带在物理上也更对：大气光相对观察者是固定的，本来就不该有视差。 */
+
+/* ════════════════════════════════════════════════════════════
+   ★★ 09-22：全局暖光层（把"阴天冷灰"改成"有光的下午"）
+   ────────────────────────────────────────────────────────────
+   用户原话：「整体色彩太过于灰暗了」。
+
+   我先按常规做法逐个色值提亮（16 项），结果明度中位只从 0.502 到 0.510
+   —— **提不动**。原因是问题不在某个色值：整套配色
+   （冷蓝灰混凝土 + 冷绿草地 + 冷蓝水）本身读起来就是"阴天的工地"。
+
+   真正要做的是**给整个画面上一层光**：
+   真实的日照会把每一个面都染上光源的颜色，而不是只把某个物体变亮。
+   所以这里在所有静态内容之上叠一层极淡的暖色 ——
+   因为它是**叠加**而不是替换，原有的明暗关系全部保留，
+   同时整张图被统一到"同一个下午"里。
+
+   ★ 为什么放在**底图**而不是动态层：
+     动态层在拖动时会被跳过（busy）。如果暖光画在动态层，
+     一按住鼠标拖动，整个画面的色温就会跳一下 —— 那是个很明显的瑕疵。
+     底图只烘一次，所以色温永远稳定。
+   ★ 只加 8.5%：再多就会把对比度洗掉（画面会变成"蒙了一层灰"，
+     那正是我们要解决的问题，不能反过来制造它）。
+   ════════════════════════════════════════════════════════════ */
+E('rect', { x: -200, y: -200, width: CW + 400, height: CH + 400,
+  fill: 'rgba(255,242,210,.03)', 'pointer-events': 'none' }, gBody);
+
+/* ════════════════════════════════════════════════════════════
+   六、相机 —— v3 的核心
+   ────────────────────────────────────────────────────────────
+   状态只有三个：tx / ty（画布左上角落在视窗的哪个位置）+ s（缩放）。
+   因为 transform-origin 是 0 0，坐标换算是单向的：
+       屏幕 = tx + 画布坐标 × s     ⟺     画布 = (屏幕 - tx) / s
+   没有中间层，所以"拖动""缩放""飞到某点""小地图反查"全是同一个式子。
+   ────────────────────────────────────────────────────────────
+   clamp 的意义：不能让用户把地图拖到视窗外只剩黑边。
+   如果缩放后地图比视窗小，就居中；否则把 tx 限在
+   [视窗宽 - 地图宽, 0] 这个区间里（注意右边是 0）。
+   ════════════════════════════════════════════════════════════ */
+/* 坐标读数的输出口与地形名。提前声明 ——
+   相机那边的 pointermove 一注册就会用到它们，
+   放在后面的话，万一在解析完成前就有指针事件进来会读到 undefined。 */
+var probe = document.getElementById('probe');
+var TERNAME = { g: '草地', r: '道路', '.': '铺装', w: '水面', x: '校外' };
+
+var viewport = document.getElementById('viewport');
+/* canvas 版没有 DOM 相机层。这里放一个**桩**：
+   旧代码里所有 `cam.style.setProperty('--tx', …)` 与
+   `cam.classList.remove('anim')` 的调用点因此一行不用改 ——
+   前者变成"标记需要重画一帧"，后者变成"取消相机缓动"。
+   多写几次属性也只会多设几次标记，rAF 循环一帧只重画一次。 */
+var tween = null;
+var cam = {
+  style: { setProperty: function () { needFrame = true; } },
+  classList: {
+    add: function () {}, remove: function (n) { if (n === 'anim') tween = null; },
+    toggle: function () {},
+  },
+};
+var CAM = { tx: 0, ty: 0, s: 1 };
+var VW = 0, VH = 0, VPX = 0, VPY = 0;
+var S_MAX = 1.5;   /* 09-21 16:2x 从 2.0 降到 1.5：封顶的栅格化尺寸是 3180×2370，别再往上撑 GPU */
+/* 惯性速度采样的两个界（推导见 pointermove 里那段注释）。
+   VEL_MIN_DT_MS：比这更密的样本不含有效速度信息，只当位置更新用。
+   VEL_MAX：单帧速度上限（px/帧），防采样异常造出虚高十几倍的惯性。 */
+var VEL_MIN_DT_MS = 8, VEL_MAX = 48;
+/* 惯性滑行的上界。**必须按时间而不是按帧数** ——
+   帧数上界在低帧率环境下会失效：软件光栅时 rAF 可能只有 20fps，
+   40 帧就是整整 2 秒，动画照样被暂停两秒。
+   时间上界才真正等于"用户看到地图不动的时长"。 */
+var GLIDE_MAX_MS = 700;
+/* 帧数上限作为第二道保险（防止极端情况下 rAF 被打成高频） */
+var GLIDE_MAX_FRAMES = 60;
+/* 松手前最后一段没有指针输入的时长上限。
+   超过它就算"手停住了再松开"—— 这时不该再有惯性，
+   否则"按住不动一会儿再松手"也会突然滑出去。 */
+var VEL_STALE_MS = 90;
+/* ★★ 缩放下限**不是常数**，是"地图刚好铺满视窗"的那个比例。
+   ── 这是扫描出来的真 bug ──────────────────────────────
+   原来写死 S_MIN = 0.45，缩到最小时地图只有 954×711，
+   而视窗是 1292×786 —— **地图比视窗还小**，
+   于是左右露出 338px、上下露出 75px 的视窗底色。
+   拖起来就是"画面缺了一块"（用户说的"视角上的缺失"）。
+   下限必须跟着视窗尺寸走，任何比例下地图都铺满。 */
+function minScale() { return Math.max(VW / CW, VH / CH); }
+/* measure 是**唯一**读 getBoundingClientRect 的地方。
+   以前 pointermove 里每帧读一次 —— 那会强制样式重算，
+   拖动时白白掉帧（实测 52fps）。viewport 在布局变化时才动，
+   缓存到 resize 时更新就够了。 */
+function measure() {
+  VW = viewport.clientWidth; VH = viewport.clientHeight;
+  var r = viewport.getBoundingClientRect();
+  VPX = r.left; VPY = r.top;
+  /* canvas 的**显示尺寸**由 CSS(100%) 决定，**像素尺寸**在这里设。
+     乘 DPR 是为了在高分屏上不糊；上限 2 免得 4K 屏上白白多算两倍像素。 */
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  if (mainCv) {
+    mainCv.width = Math.max(1, Math.round(VW * DPR));
+    mainCv.height = Math.max(1, Math.round(VH * DPR));
+    _patCache = {};               /* 换了像素尺寸，图案缓存作废 */
+  }
+  needFrame = true;
+}
+function clampCam() {
+  var sw = CW * CAM.s, sh = CH * CAM.s;
+  CAM.tx = (sw <= VW) ? (VW - sw) / 2 : Math.min(0, Math.max(VW - sw, CAM.tx));
+  CAM.ty = (sh <= VH) ? (VH - sh) / 2 : Math.min(0, Math.max(VH - sh, CAM.ty));
+}
+function paint() {
+  needFrame = true;               /* 真正的重画在 rAF 里，一次事件只画一帧 */
+  updateHud(true);
+}
+/* 相机缓动：原来是 CSS transition(.34s cubic-bezier(.16,.84,.32,1))。
+   canvas 版没有可过渡的 DOM 属性，于是**自己插值** —— 且必须用同一条缓动曲线，
+   否则"飞行"的手感会变，而且我之前用"时间轴参考图族"做残影判据时，
+   正是靠这条曲线去复现"过渡中某一刻画面应该是什么样"。 */
+var CAM_MS = 340;
+function bezCam(t) {
+  if (t <= 0) return 0; if (t >= 1) return 1;
+  var x1 = .16, y1 = .84, x2 = .32, y2 = 1;
+  var bx = function (u) { return 3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u * u * u; };
+  var by = function (u) { return 3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u * u * u; };
+  var lo = 0, hi = 1, u = t;
+  for (var i = 0; i < 24; i++) { u = (lo + hi) / 2; if (bx(u) < t) lo = u; else hi = u; }
+  return by(u);
+}
+function apply(anim) {
+  clampCam();
+  if (anim) {
+    /* 从"当前画面上的位置"起算，而不是从 CAM 的目标值起算 ——
+       否则连续两次飞行会从上一个目标跳过去。 */
+    tween = { f: { tx: disp.tx, ty: disp.ty, s: disp.s },
+      t: { tx: CAM.tx, ty: CAM.ty, s: CAM.s }, t0: performance.now() };
+    needFrame = true;
+  } else {
+    tween = null; disp.tx = CAM.tx; disp.ty = CAM.ty; disp.s = CAM.s;
+    paint();
+  }
+}
+/* disp = 画面上**实际**的相机状态。拖动时它与 CAM 同步；
+   飞行时 CAM 是目标值、disp 是被缓动插值出来的当前值。
+   分开两者，是为了让"缓动中再拖一下"这种操作不会跳。 */
+var disp = { tx: 0, ty: 0, s: 1 };
+function stepTween(now) {
+  if (!tween) { disp.tx = CAM.tx; disp.ty = CAM.ty; disp.s = CAM.s; return false; }
+  var p = bezCam((now - tween.t0) / CAM_MS);
+  disp.tx = tween.f.tx + (tween.t.tx - tween.f.tx) * p;
+  disp.ty = tween.f.ty + (tween.t.ty - tween.f.ty) * p;
+  disp.s = tween.f.s + (tween.t.s - tween.f.s) * p;
+  if ((now - tween.t0) >= CAM_MS) {
+    tween = null;
+    disp.tx = CAM.tx; disp.ty = CAM.ty; disp.s = CAM.s;
+  }
+  return true;
+}
+/* 画布坐标 → 屏幕坐标（视窗内） */
+function toScreen(cx, cy) { return { x: CAM.tx + cx * CAM.s, y: CAM.ty + cy * CAM.s }; }
+/* 屏幕坐标（视窗内）→ 画布坐标 */
+function toCanvas(sx, sy) { return { x: (sx - CAM.tx) / CAM.s, y: (sy - CAM.ty) / CAM.s }; }
+
+/* 把画布上的某点放到视窗的指定位置 */
+function lookAt(cx, cy, sx, sy, anim) {
+  CAM.tx = sx - cx * CAM.s;
+  CAM.ty = sy - cy * CAM.s;
+  apply(anim);
+}
+
+/* 初始视角：**校园铺满可视区**
+   ────────────────────────────────────────────────────────────
+   v7：山与校外的湖删掉之后，构图约束只剩一条 ——
+   别让校园北侧那排建筑的标签被顶栏压住。所以让校园尽量占满可视区、
+   上下各留一点余量。
+   ★ 实测可视区（**不含右侧 308px 面板**）**VW=1262、VH=691**；
+     校园 1664×1152 比可视区更"方"，所以**竖向才是瓶颈**、不是宽度。
+     这一点反过来定死了缩放：s 由 `VH/(GY*T*k)` 决定。
+   ★ 系数不能太小：算出的比例低于 `minScale` 就会被 `Math.max` 取走、
+     扩画布白做（v5 踩过一次）。现在 1.12 —— 校园显示约 892×617，完整可见。 */
+function resetView(anim) {
+  var mid = P(GX * T / 2, GY * T / 2, 0);
+  /* ★ v7：系数 1.75 → 1.10。原来要 1.75 是为了给北侧的山脉、南侧的湖
+     留出画面（那时校园只占视窗宽的 52%）；山与湖删掉之后这个余量成了
+     一片空草地，于是收回来把校园放大（用户一直说"地图可以扩大一点"）。 */
+  CAM.s = Math.max(minScale(), Math.min(1.05, Math.min(VW / (GX * T * 1.12), VH / (GY * T * 1.12))));
+  /* ★★ v7：山与校外的湖删掉之后，构图约束只剩一条 ——
+     **别让校园北侧那排建筑的标签被顶栏压住**。
+     原来偏下 40 是为了给南北的山与水各让出 150px 画面，
+     现在没有要让的东西了，改偏下 80：校园整体下移约 25px（屏幕），
+     北侧"图书馆 / 教学楼一 / 行政楼"那排标签就完整露在顶栏之下。 */
+  lookAt(mid.x, mid.y + 80, VW / 2, VH / 2, anim);
+}
+/* 飞行到某个地点：目标点落在"视窗去掉右面板后的中心"，
+   否则被点的那栋楼会藏在详情面板底下。 */
+var FLY_SCALE = 1.42;
+function flyTo(s) {
+  var b = s._box;
+  var f = P((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, b.h * .55);
+  CAM.s = FLY_SCALE;
+  lookAt(f.x, f.y, (VW - 318) / 2, VH * .46, true);
+}
+
+/* ── 拖动 ────────────────────────────────────────────────────
+   用 pointer 事件而不是 mouse：一套代码同时覆盖鼠标/触屏/笔。
+   两个细节：
+   ① setPointerCapture —— 不捕获的话，鼠标拖出视窗后 pointermove
+      就断了，手感像"拖着拖着掉了"。
+   ② 位移阈值 —— 拖完松手浏览器**仍然会派发 click**，
+      不拦的话每次拖完都会顺带选中一栋楼。用 5px 阈值区分
+      "这是一次点击"还是"这是一次拖动"。 */
+/* 单栋建筑的命中测试：底面矩形 ∪ 抬升后的顶面矩形。
+   ⚠️ `s._box` 存的是**格坐标**（`s.c * T` 那一套），不是画布坐标 ——
+      直接拿画布坐标去比永远不匹配（第一版就是这么写的，点击全无反应）。
+      一律先用 P() 换算到画布坐标再比。 */
+function hitSite(s, cx, cy) {
+  var b = s._box;
+  if (!b) return false;
+  var p0 = P(b.x0, b.y0, 0), p1 = P(b.x1, b.y1, 0);          /* 底面 */
+  if (cx >= p0.x && cx <= p1.x && cy >= p0.y && cy <= p1.y) return true;
+  var q0 = P(b.x0, b.y0, b.h), q1 = P(b.x1, b.y1, b.h);      /* 抬升后的顶面 */
+  return cx >= q0.x && cx <= q1.x && cy >= q0.y && cy <= q1.y;
+}
+var drag = { on: false, moved: false, x: 0, y: 0, lx: 0, ly: 0, vx: 0, vy: 0, t: 0, id: -1 };
+var inertia = null;
+
+/* ★★ 09-21 第六轮：拖动 / 缩放期间**暂停全图动画**
+   ────────────────────────────────────────────────────────────
+   实测（`.workbuddy-gen/diag-layers.cjs`）：全页 **287 个合成层 / 162 MB 显存**，
+   其中 170 个来自 CSS 动画。拖动地图时相机 `transform` 一直在变，
+   这些动画层每帧都要跟着重新合成 → 掉帧（实测 p95 18.5ms、最长 54.7ms）、
+   残影，严重时整屏崩坏。
+
+   做法：动画期间把根元素上的 `--play` 置为 `paused`。所有场景动画在 CSS 里
+   都写了 `animation-play-state:var(--play,running)`，所以**一次属性写入全停**，
+   不用遍历 4000+ 元素去匹配选择器。
+   松手后延迟 160ms 再恢复 —— 留余量给惯性滑行，否则刚松手动画就跳出来，
+   看着像"抖了一下"。
+
+   为什么这样不亏：拖动时用户的注意力在**位置**上，周围的小动效在快速平移里
+   本来就看不出来；停掉它换来的流畅是净赚。 */
+var busyTimer = null;
+function busyStart() {
+  if (busyTimer) { clearTimeout(busyTimer); busyTimer = null; }
+  document.documentElement.style.setProperty('--play', 'paused');
+  viewport.classList.add('busy');          // 同进同出：关抗锯齿 + 关动画
+  busy = true;                             /* canvas 版：拖动时跳过动态层 */
+}
+function busyEnd(delay) {
+  if (busyTimer) clearTimeout(busyTimer);
+  busyTimer = setTimeout(function () {
+    document.documentElement.style.setProperty('--play', 'running');
+    viewport.classList.remove('busy');
+    busy = false;
+    needFrame = true;
+    busyTimer = null;
+  }, delay == null ? 160 : delay);
+}
+
+viewport.addEventListener('pointerdown', function (e) {
+  if (e.button !== 0) return;                       // 只有左键才拖
+  if (e.target.closest && e.target.closest('.sitecard, .minimap')) return;
+  viewport.classList.add('dragging');
+  busyStart();                       /* 拖动期间全图动画暂停，松手后自动恢复 */
+  drag.on = true; drag.moved = false; drag.id = e.pointerId;
+  /* ★ 必须在这里把 target 记下来。
+     因为下面调了 setPointerCapture —— 一旦捕获，**后续所有 pointer
+     事件（含 pointerup）的 target 都会变成被捕获的那个元素**（视窗），
+     不再是最初按下的那栋楼。等到 pointerup 里再读 e.target.closest('.bld')
+     永远是 null，于是"点击进入"整个功能静默失效（不报错，只是没反应）。
+     这是实测验证脚本抓出来的坑，肉眼绝对看不出。 */
+  drag.target = e.target;
+  drag.x = drag.lx = e.clientX; drag.y = drag.ly = e.clientY;
+  drag.vx = drag.vy = 0; drag.t = performance.now();
+  if (inertia) { cancelAnimationFrame(inertia); inertia = null; }
+  try { viewport.setPointerCapture(e.pointerId); } catch (err) {}
+});
+
+viewport.addEventListener('pointermove', function (e) {
+  /* 坐标读数（不管拖没拖都要更新）。VPX/VPY 是缓存的视窗位置 ——
+     不再每帧 getBoundingClientRect，那是拖动掉帧的主因。 */
+  var c = toCanvas(e.clientX - VPX, e.clientY - VPY);
+  var gc = Math.floor((c.x - CX0) / T), gr = Math.floor((c.y - CY0) / T);
+  if (gc >= 0 && gc < GX && gr >= 0 && gr < GY) {
+    probe.textContent = String.fromCharCode(65 + gc) + '-' + ('0' + (gr + 1)).slice(-2) + '  ' + (TERNAME[grid[gr][gc]] || '—');
+  } else probe.textContent = '外环 / OFF-CAMPUS';
+
+  if (!drag.on) return;
+  var dx = e.clientX - drag.lx, dy = e.clientY - drag.ly;
+  if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 5) drag.moved = true;
+  /* ── 速度采样：给惯性用的"松手瞬间速度" ──────────────────────────
+     ★ 这里曾经是一个真缺陷：`dt = Math.max(1, now - drag.t)` + 直接
+       `dx / dt * 16`。pointermove 的间隔并不稳定 —— 快速拖动时可能只隔
+       1~2ms，于是 40px 的一次移动被算成 640 px/帧（≈38400 px/s）。
+       人的快速拖拽实际只有 2000~3000 px/s，所以那个速度是虚高十几倍。
+       后果不是"滑得久一点"：惯性期间**全图动画是暂停的**（见 busyStart），
+       虚高的速度意味着松手后地图还要滑 1.7 秒、动画也跟着停 1.7 秒 ——
+       用户看到的是"拖完松手，地图死了两秒"。
+     两条一起修：
+       ① **忽略间隔过短的采样**（< 8ms）。真实指针硬件的上报率上限大约
+          就是 120Hz，比这更密的样本不含有效速度信息，只有噪声。
+       ② **给速度设上限**。上限不是"防手速快"，是防采样异常；定在
+          48 px/帧（≈2900 px/s @60fps），比常人最快拖拽略高一点。 */
+  var now = performance.now(), dt = now - drag.t;
+  if (dt >= VEL_MIN_DT_MS) {
+    var vx = dx / dt * 16, vy = dy / dt * 16;
+    var sp = Math.hypot(vx, vy);
+    if (sp > VEL_MAX) { vx = vx / sp * VEL_MAX; vy = vy / sp * VEL_MAX; }
+    drag.vx = vx; drag.vy = vy; drag.t = now;
+  }
+  drag.lx = e.clientX; drag.ly = e.clientY;
+  CAM.tx += dx; CAM.ty += dy;
+  cam.classList.remove('anim');
+  clampCam();
+  cam.style.setProperty('--tx', CAM.tx.toFixed(2) + 'px');
+  cam.style.setProperty('--ty', CAM.ty.toFixed(2) + 'px');
+  updateHud(false);          // 拖动路上走节流（小地图/比例尺不需要 60fps）
+});
+
+function endDrag(e) {
+  if (!drag.on) return;
+  drag.on = false;
+  try { viewport.releasePointerCapture(drag.id); } catch (err) {}
+  viewport.classList.remove('dragging');
+  /* 惯性：松手时若还有速度，让它滑一小段再停 —— 这是"重"的手感来源。
+     ★ 但要先判两件事，否则"惯性"会变成"失控"：
+       ① **速度是否已经过期**。如果最后一次移动离松手超过 VEL_STALE_MS，
+          说明手已经停住了 —— 这时不该再滑（不然"按住不动一会儿再松开"
+          会突然弹出去）。判据用 drag.t，它是最后一次**有效速度采样**的时刻。
+       ② **滑行必须有上界**。惯性期间全图动画是暂停的（busyStart），
+          所以滑行时长直接等于"地图看起来不动"的时长。GLIDE_MAX_MS 保证
+          它不超过 0.7 秒 —— 用户松手后最多 0.86 秒（+ busyEnd 的 160ms）
+          地图就恢复"活着"。 */
+  var speed = Math.hypot(drag.vx, drag.vy);
+  if (performance.now() - drag.t > VEL_STALE_MS) { speed = 0; drag.vx = drag.vy = 0; }
+  if (speed > 1.2) {
+    var vx = drag.vx, vy = drag.vy, frames = 0, tGlide0 = performance.now();
+    (function tick() {
+      frames++;
+      vx *= .93; vy *= .93;
+      var px = CAM.tx, py = CAM.ty;
+      CAM.tx += vx; CAM.ty += vy;
+      clampCam();
+      /* 撞到边界就把该轴速度清零 —— 否则镜头会"贴着墙磨"，
+         看着像卡住，实际是速度还在衰减。 */
+      if (CAM.tx === px) vx = 0;
+      if (CAM.ty === py) vy = 0;
+      cam.style.setProperty('--tx', CAM.tx.toFixed(2) + 'px');
+      cam.style.setProperty('--ty', CAM.ty.toFixed(2) + 'px');
+      updateHud(false);
+      var moving = Math.hypot(vx, vy) > .35;
+      var inBudget = frames < GLIDE_MAX_FRAMES && (performance.now() - tGlide0) < GLIDE_MAX_MS;
+      if (moving && inBudget) {
+        inertia = requestAnimationFrame(tick);
+      } else {
+        /* 惯性滑完才恢复动画 —— 滑行期间相机仍在动，这时候恢复会立刻掉帧 */
+        inertia = null; busyEnd();
+      }
+    })();
+  } else {
+    busyEnd();   /* 没触发惯性：松手就开始恢复（160ms 后真正恢复） */
+  }
+  /* 没怎么动 = 点击：这时才处理选楼。
+     ★ canvas 版这里必须重写：SVG 版靠 `e.target.closest('.bld')` 问浏览器
+       "我点到了哪个元素"，而 canvas **只有一个元素**，没有子节点可问 ——
+       所以命中测试得自己算。这也是"从 DOM 换成 canvas"最实质的一处代价。
+     判据：建筑在屏幕上的轮廓 = **底面矩形 ∪ 抬升后的顶面矩形**
+       （顶面是底面沿 (h*KX, -h) 平移过去的一块，两者之间的墙由它们夹出来）。
+     同一点可能落在多栋的轮廓里（z 重叠），取**最后画的那栋** —— 
+       绘制顺序是"由远及近"，后画的盖住先画的，所以最后命中的就是看得见的那栋。 */
+  if (!drag.moved) {
+    var hc = toCanvas(drag.x - VPX, drag.y - VPY);
+    var hs = null;
+    SITES.slice().sort(function (a, b) { return (a.r + a.c + a.d + a.w) - (b.r + b.c + b.d + b.w); })
+      .forEach(function (s) { if (hitSite(s, hc.x, hc.y)) hs = s; });
+    select(hs ? hs.id : null);
+  }
+}
+viewport.addEventListener('pointerup', endDrag);
+viewport.addEventListener('pointercancel', endDrag);
+
+/* ── 滚轮缩放：以光标为中心 ──────────────────────────────────
+   如果只是改 s 而不动 tx/ty，地图会朝左上角"缩过去"。
+   要让它以光标为不动点，得先记住光标下的**画布坐标**，
+   缩放后再把它拉回原来的屏幕位置：
+       tx' = sx - cx * s' */
+viewport.addEventListener('wheel', function (e) {
+  e.preventDefault();
+  /* 缩放期间同样暂停动画。busyEnd 是防抖的：连续滚动时会不断推迟恢复，
+     最后一次滚动之后 160ms 才真正恢复。 */
+  busyStart(); busyEnd();
+  var sx = e.clientX - VPX, sy = e.clientY - VPY;
+  var before = toCanvas(sx, sy);
+  var k = Math.pow(1.0016, -e.deltaY);
+  CAM.s = Math.min(S_MAX, Math.max(minScale(), CAM.s * k));   // 下限跟视窗走，不会露底
+  CAM.tx = sx - before.x * CAM.s;
+  CAM.ty = sy - before.y * CAM.s;
+  cam.classList.remove('anim');
+  clampCam(); paint();
+}, { passive: false });
+
+window.addEventListener('contextmenu', function (e) { e.preventDefault(); resetView(true); });
+window.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') select(null);
+});
+window.addEventListener('resize', function () { measure(); apply(false); updateRuler(); });
+
+/* ════════════════════════════════════════════════════════════
+   七、小地图
+   ────────────────────────────────────────────────────────────
+   用户明确说了「界面显示不完整，让它左右移动显示」。
+   一旦视窗只看得到地图的一部分，就**必须**告诉他"现在看的是哪一块"，
+   否则拖久了会彻底失去方位感。小地图就是干这个的。
+   它同时兼作跳转：点哪儿，相机就去哪儿。
+   ════════════════════════════════════════════════════════════ */
+var miniCv = document.getElementById('mini'), miniBox = document.getElementById('miniBox');
+/* 小地图也换 canvas。给它一个"令牌"当父节点，指令就流进 MINICMDS，
+   不会混进主地图的指令流。 */
+var mini = { __mini: true };
+var miniCtx = null;
+var miniFrame = null;
+(function () {
+  E('rect', { x: 0, y: 0, width: CW, height: CH, fill: '#0D1013' }, mini);
+  /* 环境块（示意，不用画细节 —— 小地图只要"不同区块可区分"） */
+  E('rect', { x: 180, y: 40, width: 1120, height: 300, fill: '#161B1F' }, mini);
+  E('rect', { x: 1330, y: 70, width: 340, height: 350, fill: '#1C2024' }, mini);
+  E('path', { d: 'M1866 -40 L1982 -40 L1742 1620 L1600 1620 Z', fill: '#132030' }, mini);
+  E('rect', { x: -100, y: 180, width: 520, height: 1420, fill: '#141C17' }, mini);
+  E('rect', { x: 430, y: 1290, width: 1180, height: 320, fill: '#151A1D' }, mini);
+  /* 校园本体 + 四个区的色块（这是小地图上唯一该有颜色的地方） */
+  E('rect', { x: CX0, y: CY0, width: GX * T, height: GY * T, fill: '#242B30',
+    stroke: 'rgba(195,232,76,.55)', 'stroke-width': 8 }, mini);
+  SITES.forEach(function (s) {
+    E('rect', { x: CX0 + s.c * T, y: CY0 + s.r * T, width: s.w * T, height: s.d * T,
+      fill: ZONES[s.zone].hue, 'fill-opacity': .78 }, mini);
+  });
+  /* 当前视窗框 —— 每帧更新 */
+  miniFrame = E('rect', { x: 0, y: 0, width: 100, height: 100, fill: 'rgba(195,232,76,.1)',
+    stroke: '#C3E84C', 'stroke-width': 9 }, mini);
+})();
+/* ── HUD（小地图 + 比例尺）的更新节流 ──
+   拖动时每帧重画这两样没有意义：小地图框挪 1px 看不出来，
+   比例尺数字也不会变，但每帧 5 次 DOM 写是实打实的开销。
+   48ms ≈ 20fps，视觉上完全够。force=true 用于跳变（复位/飞行/缩放）。 */
+var lastHudMs = 0;
+function updateHud(force) {
+  var now = performance.now();
+  if (!force && now - lastHudMs < 48) return;
+  lastHudMs = now;
+  updateMini();
+  updateRuler();
+}
+
+function ifFalse_removed() {}
+function updateMini() {
+  if (!miniFrame) return;
+  var a = toCanvas(0, 0), b = toCanvas(VW, VH);
+  miniFrame.setAttribute('x', a.x); miniFrame.setAttribute('y', a.y);
+  miniFrame.setAttribute('width', Math.max(1, b.x - a.x));
+  miniFrame.setAttribute('height', Math.max(1, b.y - a.y));
+  renderMini();
+  miniBox.textContent = 'X' + Math.round(a.x) + '–' + Math.round(b.x) + ' / Y' + Math.round(a.y) + '–' + Math.round(b.y);
+}
+document.getElementById('minimap').addEventListener('pointerdown', function (e) {
+  e.stopPropagation();
+  var r = this.getBoundingClientRect();
+  var p = toCanvasMini((e.clientX - r.left) / r.width * CW, (e.clientY - r.top) / r.height * CH);
+  lookAt(p.x, p.y, VW / 2, VH / 2, true);
+});
+function toCanvasMini(x, y) { return { x: x, y: y }; }
+
+/* 比例尺：120px 的尺代表多少米。定 1 格 = 8 米（操场 6×4 格 ≈ 48×32 米，合理）。
+   元素缓存在外面 —— paint() 每帧都会调到它，别每帧查一次 DOM。 */
+/* ★★ v5：8 → 30。校园 1000 余亩（≈67 万㎡）≈ 820m 见方，26 格 → 每格约 30m。
+   原来的 8m/格 让比例尺上的数字全是假的（一屏显示"120m"实际有 450m）。 */
+var M_PER_CELL = 30;
+var rulT = document.getElementById('rulT'), lastRulTxt = '';
+function updateRuler() {
+  var m = 120 / (T * CAM.s) * M_PER_CELL;
+  var txt = '≈ ' + (m >= 10 ? Math.round(m / 5) * 5 : m.toFixed(1)) + ' M';
+  if (txt === lastRulTxt) return;      // 值没变就跳过，省掉一次文本重排
+  lastRulTxt = txt; rulT.textContent = txt;
+}
+
+/* ════════════════════════════════════════════════════════════
+   八、子界面与选中
+   ════════════════════════════════════════════════════════════ */
+var probe = document.getElementById('probe');
+var TERNAME = { g: '草地', r: '道路', '.': '铺装', w: '水面', x: '校外' };
+var scrim = document.getElementById('scrim'), sitecard = document.getElementById('sitecard');
+var hasSel = false;
+
+function renderInfo(id) {
+  var box = document.getElementById('info');
+  if (!id) {
+    box.innerHTML = '<h3 class="place">未选择地点</h3><div class="zt" style="color:var(--ink3)">NO SITE SELECTED</div>' +
+      '<div class="desc">校园被当作一张<b>作战地图</b>来画：午后暖光下的地块，站点靠「抬升 + 细边线 + 指示点」区分，<b>34 处地点各有一套屋顶特征</b>，标志色只落在小面积的标记上。校园坐落于龙泉山麓，围墙外是连片的草地。</div>';
+    return;
+  }
+  var s = SITES.filter(function (q) { return q.id === id; })[0], z = ZONES[s.zone];
+  var tags = Object.keys(s.vec).map(function (k) {
+    var v = s.vec[k];
+    return '<span class="' + (v > 0 ? 'up' : 'dn') + '">' + KEY[k] + ' ' + (v > 0 ? '+' : '') + v + '</span>';
+  }).join('');
+  box.innerHTML = '<h3 class="place">' + s.name + '</h3>' +
+    '<div class="zt" style="color:' + z.hue + '">' + z.code + '&nbsp;/&nbsp;' + z.label + '</div>' +
+    '<div class="desc">' + s.line + '</div><div class="tags">' + tags + '</div>';
+}
+/* 重放动画要把 .on 摘掉、强制重排、再加回来，
+   否则同一个元素连续选中两次时动画不会重跑（CSS 动画只在类名变化时触发）。 */
+function showCard(s) {
+  var z = ZONES[s.zone];
+  document.getElementById('scNo').textContent = z.code;
+  document.getElementById('scName').textContent = s.name;
+  document.getElementById('scSub').textContent = z.label + ' / ' + ('0' + (s.r + 1)).slice(-2) + '-' + String.fromCharCode(65 + s.c);
+  document.getElementById('scDesc').textContent = s.line;
+  document.getElementById('scGrid').innerHTML =
+    Object.keys(s.vec).map(function (k) {
+      var v = s.vec[k];
+      return '<div class="cell"><div class="k">' + KEY[k] + '</div><div class="v"><em>' + (v > 0 ? '+' : '') + v + '</em></div></div>';
+    }).join('') +
+    '<div class="cell"><div class="k">HEIGHT</div><div class="v">' + s.h + '<em>px</em></div></div>';
+  sitecard.classList.remove('on'); scrim.classList.remove('on');
+  void sitecard.offsetWidth;
+  sitecard.classList.add('on'); scrim.classList.add('on');
+}
+function hideCard() { sitecard.classList.remove('on'); scrim.classList.remove('on'); }
+
+function select(id) {
+  var was = hasSel;              // 读旧值要在赋值之前，否则判断永远为假
+  var hit = null;
+  SITES.forEach(function (s) {
+    var on = s.id === id;
+    if (on) hit = s;
+    s._g.classList.toggle('sel', on);
+    s._g.classList.toggle('focus', on);
+    s._g.classList.toggle('dim', !!id && !on);
+  });
+  document.getElementById('kVisit').textContent = id ? '1' : '0';
+  hasSel = !!id;
+  if (hit) { flyTo(hit); showCard(hit); renderInfo(id); }
+  else {
+    hideCard(); renderInfo(null);
+    /* 只有"刚才有选中"才复位视角。
+       否则用户拖到地图另一头、随手点一下空白，视角会被拽回原处 ——
+       而他的意图只是"取消选择"，不是"回到起点"。 */
+    if (was) resetView(true);
+    else needFrame = true;      /* 取消选择也要重画一次，否则压暗层留在画面上 */
+  }
+}
+scrim.addEventListener('click', function () { select(null); });
+document.getElementById('scBack').addEventListener('click', function () { select(null); });
+document.getElementById('scGo').addEventListener('click', function () {
+  var el = document.getElementById('scGo');
+  el.textContent = '已进入 · 状态已写入账本';
+  el.style.background = 'var(--acid)'; el.style.color = '#0A0B0C';
+  setTimeout(function () { el.textContent = '进入此处'; el.style.background = ''; el.style.color = ''; }, 1400);
+});
+
+/* ════════════════════════════════════════════════════════════
+   九、启动
+   ════════════════════════════════════════════════════════════ */
+(function () {
+  var d = [{ k: 'academic', v: 62 }, { k: 'social', v: 41 }, { k: 'sport', v: 28 }, { k: 'night', v: 55 }, { k: 'resilience', v: 47 }];
+  document.getElementById('bars').innerHTML = d.map(function (x) {
+    return '<div class="bl"><span>' + KEY[x.k] + '</span><b>' + x.v + '</b></div><div class="bar"><i style="width:' + x.v + '%"></i></div>';
+  }).join('');
+  document.getElementById('kGrid').textContent = GX + ' × ' + GY;
+  document.getElementById('kSite').textContent = SITES.length;
+})();
+measure(); resetView(false); updateRuler();
+
+/* 供自动化验证读取（浏览器里打开时它们没副作用） */
+
+/* ════════════════════════════════════════════════════════════
+   九 · 启动与每帧绘制
+   ════════════════════════════════════════════════════════════ */
+function renderMini() {
+  if (!miniCtx || !miniFrame) return;
+  var w = miniCv.width, h = miniCv.height;
+  miniCtx.setTransform(w / CW, 0, 0, h / CH, 0, 0);
+  miniCtx.clearRect(0, 0, CW, CH);
+  for (var i = 0; i < MINICMDS.length; i++) {
+    if (MINICMDS[i] === miniFrame) continue;
+    paintShape(miniCtx, MINICMDS[i].tag, MINICMDS[i].a);
+  }
+  paintShape(miniCtx, 'rect', miniFrame.a);          /* 当前视窗框 */
+}
+/* 重放一栋楼的指令。用途：选中时先把全图压暗，再把这一栋原样重画一遍，
+   于是它从压暗里"浮"出来 —— 等价于旧版的 `.bld.dim{opacity:.28}`，
+   但不需要给每栋楼开一个合成层。 */
+function replayBld(ctx, id, only) {
+  for (var i = 0; i < CMDS.length; i++) {
+    var c = CMDS[i];
+    if (c.bld !== id) continue;
+    var cls = c.a.class || '';
+    if (only === 'selbox') { if (cls !== 'selbox') continue; }
+    else if (cls === 'selbox') continue;
+    paintShape(ctx, c.tag, c.a);
+  }
+}
+/* ── 动态层：只在"非拖动"时画。
+   全部是**本来就该压在最上面**的元素（云影 / 光柱 / 浮尘 / 你的位置环），
+   所以直接画在底图之上不会有遮挡错误。 ── */
+var PET = (function () {
+  var a = [], i;
+  for (i = 0; i < 26; i++) {
+    a.push({
+      x: (i * 977) % CW, y: (i * 1583) % CH,
+      r: 1.6 + (i % 5) * .55, sp: .16 + (i % 7) * .045,
+      ph: i * 1.7, amp: 14 + (i % 6) * 9, sw: (i % 3) - 1,
+    });
+  }
+  return a;
+})();
+function drawDynamic(ctx, ms) {
+  if (window.__noDyn) return;      /* 对照实验用：关掉动态层再截图 */
+  var t = ms / 1000;
+
+  /* ════════════════════════════════════════════════════════════
+     ★★ 09-22 新增：终末地式的两条动态
+     用户要求「目前是需要做一个动态效果」；终末地的规范是
+     **克制为基、秩序为纲**，位移走**直线 / 折线**，
+     视觉符号是**黄色线条 / 网格扫描 / glitch**。
+     所以这里不做"更花的效果"，只做两条直线运动：
+     ════════════════════════════════════════════════════════════ */
+  ctx.save();
+  /* ① 网格扫描：一条柠檬黄细线自上而下缓慢扫过，身后拖一段渐隐尾迹。
+        它给画面一个**纵向的时间轴** —— 别的小动效都是原地呼吸或横向漂移，
+        只有它一直在"前进"，整张图"系统在运行"的感觉主要靠它。
+        26 秒一轮：够慢，不会把注意力从地图上拉走。 */
+  var sPh = (ms % 26000) / 26000;
+  var sY = -140 + sPh * (CH + 280);
+  var sg = ctx.createLinearGradient(0, sY - 120, 0, sY);
+  sg.addColorStop(0, 'rgba(216,226,62,0)');
+  sg.addColorStop(1, 'rgba(216,226,62,.085)');
+  ctx.fillStyle = sg;
+  ctx.fillRect(0, sY - 120, CW, 120);
+  ctx.fillStyle = 'rgba(216,226,62,.30)';
+  ctx.fillRect(0, sY, CW, 1.5);
+
+  /* ② 路线流光：南北 / 东西主干道上各自流动的光点。
+        用"有东西在移动"来说"这条路是活的"，成本是 9 个小圆；
+        而且它天然是**直线运动**，正好落在终末地那条规范上。
+        两端用 sin 淡入淡出 —— 否则光点会在路的两头凭空出现 / 消失。 */
+  var roadX = CX0 + 13 * T + T / 2;     /* 中轴纵路中心线 */
+  var roadY = CY0 + 12 * T + T / 2;     /* 南横路中心线 */
+  for (var li = 0; li < 4; li++) {
+    var u1 = ((ms / 5400) + li / 4) % 1;
+    ctx.fillStyle = 'rgba(216,226,62,' + (0.52 * Math.sin(u1 * Math.PI)).toFixed(3) + ')';
+    ctx.beginPath(); ctx.arc(roadX, CY0 + u1 * (GY * T), 3.2, 0, 6.2832); ctx.fill();
+  }
+  for (var lj = 0; lj < 5; lj++) {
+    var u2 = ((ms / 6900) + lj / 5) % 1;
+    ctx.fillStyle = 'rgba(216,226,62,' + (0.42 * Math.sin(u2 * Math.PI)).toFixed(3) + ')';
+    ctx.beginPath(); ctx.arc(CX0 + u2 * (GX * T), roadY, 2.8, 0, 6.2832); ctx.fill();
+  }
+  ctx.restore();
+
+  /* ════════════════════════════════════════════════════════════
+     ★★ v9：湖面动态 —— 用户 09-22「现在要把水做成动态的」。
+     ────────────────────────────────────────────────────────────
+     两件**轻量**的事（终末地的规范是"克制为基、秩序为纲"，
+     所以不做波浪翻滚，只做最省的两样）：
+       ① 3 圈自湖心向外扩散的涟漪
+       ② 湖面上 15 处随时间的波光
+     ★★ 涟漪形状**复用湖岸那套正弦扰动**（同一个 w 函数）——
+        湖岸是不规则闭合折线，如果用椭圆画涟漪，
+        岸边凹进去的地方就会把涟漪露到岸上。同形缩放则天然贴合。
+     ★ 波光位置用黄金角**确定性地**散布，不能用 Math.random ——
+        随机数每帧都变，15 个点会疯狂闪烁，读起来像噪点而不是波光。 */
+  (function () {
+    var lcx = CX0 + 9.5 * T, lcy = CY0 + 9.5 * T, lr = 2.45 * T;
+    var LR = 34;
+    function shorePath(k) {
+      ctx.beginPath();
+      for (var i = 0; i <= LR; i++) {
+        var ang = i / LR * Math.PI * 2;
+        var w = 1 + Math.sin(ang * 3 + 1.1) * .14 + Math.sin(ang * 5 + 2.7) * .08;
+        var px = lcx + Math.cos(ang) * lr * w * k;
+        var py = lcy + Math.sin(ang) * lr * w * k;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+    }
+    /* ① 涟漪：0.22 → 0.90 倍湖面半径，正弦淡入淡出（否则会凭空出现/消失） */
+    for (var rp = 0; rp < 3; rp++) {
+      var pu = ((ms / 5600) + rp / 3) % 1;
+      ctx.strokeStyle = 'rgba(228,246,255,' + (Math.sin(pu * Math.PI) * .34).toFixed(3) + ')';
+      ctx.lineWidth = 1.3;
+      shorePath(.22 + pu * .68);
+      ctx.stroke();
+    }
+    /* ② 波光 */
+    for (var bi = 0; bi < 15; bi++) {
+      var ba = bi * 2.399963;
+      var bw = 1 + Math.sin(ba * 3 + 1.1) * .14 + Math.sin(ba * 5 + 2.7) * .08;
+      var br2 = .16 + (bi % 6) / 6 * .58;
+      var bx = lcx + Math.cos(ba) * lr * bw * br2;
+      var by = lcy + Math.sin(ba) * lr * bw * br2;
+      var bk = Math.sin(ms / 950 + bi * 1.7) * .5 + .5;
+      ctx.fillStyle = 'rgba(238,251,255,' + (bk * .32).toFixed(3) + ')';
+      ctx.beginPath(); ctx.arc(bx, by, 1.2 + bk * 1.4, 0, 6.2832); ctx.fill();
+    }
+  })();
+
+  ctx.save();
+  /* ① 云影：两块巨大的柔斑缓慢横移。低频率、大范围的明暗变化，
+        是"画面在呼吸"的主要来源（比任何小动效都有效）。 */
+  var cl = DEFS.cloudg;
+  [[CW * .34, CH * .40, CW * .34, CH * .30, 0, 1],
+   [CW * .76, CH * .76, CW * .27, CH * .23, 14, -1]].forEach(function (q, i) {
+    var dx = Math.sin(t / 23 + i * 2.1) * 46, dy = Math.cos(t / 31 + i) * 20;
+    var cx = q[0] + dx, cy = q[1] + dy;
+    /* 云影是**椭圆**的柔斑 —— 同样要走"单位空间"，否则会画成正圆
+       （canvas 的径向渐变只能正圆，原因见 gradUnit 注释）。 */
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(q[2], q[3]);
+    var g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+    var st = (cl && cl.stops) || [{ off: 0, col: '#2A2418', op: .22 }, { off: 1, col: '#2A2418', op: 0 }];
+    st.forEach(function (s) { g.addColorStop(Math.max(0, Math.min(1, s.off)), rgba(s.col, s.op)); });
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(0, 0, 1, 0, 6.2832); ctx.fill();
+    ctx.restore();
+  });
+  /* ② 光柱：从画布外左上斜射的三条柔光带，缓慢"呼吸"。
+        位置是挑过的 —— 要落在初始视野里那块"既在校园外、又不压建筑"的空地。 */
+  var beams = [[-120, 108, 0], [520, 84, 2.6], [1240, 132, 5.2]];
+  beams.forEach(function (b) {
+    var op = .38 + Math.sin(t / 4.5 + b[2]) * .13;
+    var x0 = -120 + b[0], wd = b[1];
+    var g = ctx.createLinearGradient(x0, -100, x0 + wd * .4, 1680);
+    g.addColorStop(0, 'rgba(255,246,208,' + (op).toFixed(3) + ')');
+    g.addColorStop(1, 'rgba(255,246,208,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(x0, -100); ctx.lineTo(x0 + wd, -100);
+    ctx.lineTo(x0 + wd + 2000, CH + 400); ctx.lineTo(x0 + 2000, CH + 400);
+    ctx.closePath(); ctx.fill();
+  });
+  /* ③ 浮尘 / 花瓣：几十粒，缓慢上飘 + 左右摆。它是"空气"的证据，
+        也是全图唯一"向上动"的东西，在一片水平构图里格外显眼。 */
+  ctx.fillStyle = 'rgba(255,252,238,.5)';
+  for (var i = 0; i < PET.length; i++) {
+    var p = PET[i];
+    var y = (p.y - t * p.sp * 60) % CH; if (y < 0) y += CH;
+    var x = p.x + Math.sin(t * .55 + p.ph) * p.amp;
+    ctx.globalAlpha = .30 + .22 * Math.sin(t * .8 + p.ph);
+    ctx.beginPath();
+    ctx.ellipse(x, y, p.r * 1.5, p.r * .85, Math.sin(t * .4 + p.ph) * 1.2, 0, 6.2832);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  /* ④ 「你在这里」的呼吸环：地图上唯一属于"玩家"的东西，让它一直在动，
+        读者才会把自己的位置和这张图联系起来。 */
+  var u = P(23.4 * T, 12.5 * T, 0);
+  var ph = (t * .38) % 1;
+  ctx.strokeStyle = 'rgba(195,232,76,' + (.55 * (1 - ph)).toFixed(3) + ')';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(u.x, u.y, 11 + ph * 22, 0, 6.2832); ctx.stroke();
+  ctx.restore();
+}
+/* ── 每帧 ── */
+var FR = { n: 0, last: 0, max: 0, p95: [], dragMax: 0 };
+function render(ms) {
+  if (!mainCtx) return;
+  var ctx = mainCtx;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, VW, VH);
+  ctx.save();
+  ctx.translate(disp.tx, disp.ty);
+  ctx.scale(disp.s, disp.s);
+  /* ★★ v5：底图**只画可见的那一块**。
+     ── 这是画布涨到 2600×2292 之后必须做的优化 ──
+     底图位图是 1.5 倍超采样 = 3900×2820（约 44 MB），而屏幕上一次只看得到
+     其中一部分；`drawImage(baseCv, 0, 0, CW, CH)` 会让 GPU 把整张图缩放着填一遍，
+     不可见的像素全白填（实测拖动最长帧从 18ms 涨到 30ms）。
+     这里按视窗反算可见矩形（画布坐标）再只画那一块，填充量降到约 1/3。
+     上下限都夹住，所以相机贴边时也不会取到画布外的源区域。 */
+  var vx0 = Math.max(0, -disp.tx / disp.s), vy0 = Math.max(0, -disp.ty / disp.s);
+  var vx1 = Math.min(CW, (VW - disp.tx) / disp.s), vy1 = Math.min(CH, (VH - disp.ty) / disp.s);
+  if (vx1 > vx0 && vy1 > vy0) {
+    ctx.drawImage(baseCv,
+      vx0 * BASE_K, vy0 * BASE_K, (vx1 - vx0) * BASE_K, (vy1 - vy0) * BASE_K,
+      vx0, vy0, vx1 - vx0, vy1 - vy0);
+  }
+
+  var sel = null;
+  for (var k in BLD) if (BLD[k].state && BLD[k].state.sel) { sel = k; break; }
+  if (sel) {                                       /* ② 选中态 */
+    ctx.save();
+    ctx.globalAlpha = .42; ctx.fillStyle = '#0B0D0F';
+    ctx.fillRect(0, 0, CW, CH);                    /* 全图压暗（HTML 那层 .scrim 另有一层） */
+    ctx.restore();
+    replayBld(ctx, sel);                           /* 被选中的那栋原样重画 → 浮出来 */
+    replayBld(ctx, sel, 'selbox');
+    for (var i = 0; i < CMDS.length; i++) {        /* 它的可进入标记全亮 */
+      if (CMDS[i].bld === sel && (CMDS[i].a.class || '') === 'slot') {
+        paintShape(ctx, CMDS[i].tag, CMDS[i].a);
+      }
+    }
+  }
+  if (!busy) drawDynamic(ctx, ms);                 /* ③ 动态（拖动时不画，省下这块开销） */
+  for (var j = 0; j < CMDS.length; j++) {          /* ④ 标签：每帧重画 → 任何缩放都清晰 */
+    if (CMDS[j].tag === 'text') drawText(ctx, CMDS[j].a);
+  }
+  ctx.restore();
+}
+var mainCv = null, mainCtx = null, DPR = 1, needFrame = true, busy = false;
+var UNHANDLED = [];
+var lastMs = 0;
+function loop(ms) {
+  requestAnimationFrame(loop);
+  var dt = lastMs ? ms - lastMs : 16.7;
+  lastMs = ms;
+  FR.n++;
+  if (dt > FR.max) FR.max = dt;
+  if (busy && dt > FR.dragMax) FR.dragMax = dt;
+  FR.p95.push(dt); if (FR.p95.length > 240) FR.p95.shift();
+  var moving = stepTween(ms);
+  if (needFrame || moving || !busy) {
+    needFrame = false;
+    render(ms);
+  }
+}
+/* 贴图预载：底图里 6 张 webp 是 pattern 填充，img 没就绪时先画灰底，
+   全部到齐再重画一次底图。这样"打开就是完整画面"，也没有阻塞。 */
+function loadTextures(done) {
+  var list = [], seen = {};
+  for (var k in DEFS) if (DEFS[k].img && !seen[DEFS[k].img]) { seen[DEFS[k].img] = 1; list.push(DEFS[k].img); }
+  if (!list.length) { done(); return 0; }
+  var left = list.length;
+  list.forEach(function (p) {
+    var im = new Image();
+    im.onload = function () { im.__ok = true; if (--left === 0) done(); };
+    im.onerror = function () { if (--left === 0) done(); };
+    im.src = p;
+    TEXIMG[p] = im;
+  });
+  return list.length;
+}
+(function boot() {
+  mainCv = document.getElementById('scene');
+  mainCtx = mainCv.getContext('2d');
+  mainCtx.__id = 'm';
+  miniCtx = miniCv.getContext('2d');
+  miniCtx.__id = 'i';
+  measure();
+  renderBase();                 /* 先出一版（贴图未到位处是灰底） */
+  renderMini();
+  var n = loadTextures(function () { _patCache = {}; renderBase(); needFrame = true; renderMini(); });
+  window.__texN = n;
+  requestAnimationFrame(loop);
+  window.__booted = true;
+})();
+
+window.__map = {
+  CAM: CAM, toScreen: toScreen, toCanvas: toCanvas, select: select,
+  resetView: function () { resetView(true); }, updateMini: updateMini,
+  /* ── 给自动化测试用的观测口 ──
+     vp()：视窗的偏移与尺寸。**测试必须用这个，不要自己 getBoundingClientRect**
+           然后缓存 —— 缓存下来的偏移一旦遇上布局变化就会让"不动点漂移"
+           的度量凭空多出一个常数量，看起来像缩放公式错了（踩过）。
+     inertiaOn()：惯性是否还在滑。断言"松手后动画恢复"必须等它变 false，
+           否则量到的是滑行中途的状态，会误判成"动画没恢复"（也踩过）。
+     velocity()：松手瞬间的速度，用来看速度上限有没有生效。 */
+  vp: function () { return { x: VPX, y: VPY, w: VW, h: VH }; },
+  /* setCam：把相机精确置到某个状态（不动画），用于"同一状态下重渲染一张参考图"。
+     有了它才能把"过程帧"和"该时刻本应是什么样"逐像素对照 —— 这是判别
+     "合成层残影"唯一可靠的客观办法（残影 = 画面里混进了别的相机状态的内容）。 */
+  setCam: function (o) {
+    cam.classList.remove('anim');
+    if (o && typeof o.tx === 'number') CAM.tx = o.tx;
+    if (o && typeof o.ty === 'number') CAM.ty = o.ty;
+    if (o && typeof o.s === 'number') CAM.s = o.s;
+    clampCam(); paint();
+  },
+  inertiaOn: function () { return inertia !== null; },
+  /* selId：当前选中的站点 id（没选中返回 null）。
+     用于测试时**复现完整的视觉状态** —— 选中会带来两层变化：13 栋压暗 +
+     一层压暗地图的 scrim。只还原相机不复现它，参考图与过程帧就差了这两层，
+     残差会被它们主导，看不出真正的残影。 */
+  selId: function () {
+    var r = null;
+    SITES.forEach(function (s) { if (s._g.classList.contains('sel')) r = s.id; });
+    return r;
+  },
+  velocity: function () { return { vx: drag.vx, vy: drag.vy, sp: Math.hypot(drag.vx, drag.vy) }; },
+  velLimits: function () { return { minDtMs: VEL_MIN_DT_MS, max: VEL_MAX, glideMaxMs: GLIDE_MAX_MS, glideMaxFrames: GLIDE_MAX_FRAMES, staleMs: VEL_STALE_MS }; },
+  /* 当前用的是哪一套贴图。默认必须是 map-assets/ ——
+     不能让某次对比把默认悄悄切成候选素材。 */
+  texBase: function () { return TEX_BASE; },
+  playState: function () { return getComputedStyle(document.documentElement).getPropertyValue('--play').trim() || '(默认 running)'; },
+  sizes: function () { return { CW: CW, CH: CH, VW: VW, VH: VH, T: T, GX: GX, GY: GY, sites: SITES.length, CX0: CX0, CY0: CY0, CX1: CX1, CY1: CY1 }; },
+  /* canvas 版没有 DOM 元素可数，改为数**绘制指令**：
+     数字的口径变了（元素数 → 指令数），但它守的东西没变 ——
+     "该画的东西还在"。 */
+  counts: function () {
+    var r = { polys: 0, rects: 0, circles: 0, paths: 0, lines: 0, texts: 0, ellipses: 0, blds: 0, cmds: CMDS.length };
+    var seen = {};
+    var KEY = { rect: 'rects', circle: 'circles', polygon: 'polys', path: 'paths', line: 'lines', text: 'texts', ellipse: 'ellipses' };
+    CMDS.forEach(function (c) {
+      var k = KEY[c.tag];
+      if (k && r[k] !== undefined) r[k]++;
+      if (c.bld) seen[c.bld] = 1;
+    });
+    r.blds = Object.keys(seen).length;
+    r.hit = 1;
+    return r;
+  },
+  /* 给验证脚本用的渲染自检口 */
+  renderInfo: function () {
+    return {
+      cmds: CMDS.length, mini: MINICMDS.length,
+      base: { w: baseCv.width, h: baseCv.height },
+      canvas: { w: mainCv ? mainCv.width : 0, h: mainCv ? mainCv.height : 0, dpr: DPR },
+      unhandled: UNHANDLED.slice(0, 12), unhandledN: UNHANDLED.length,
+      obbFallback: OBBFALL.slice(0, 8), obbFallbackN: OBBFALL.length,
+      labels: CMDS.filter(function (c) { return c.tag === 'text'; }).length,
+    };
+  },
+  busy: function () { return busy; },
+  /* 有没有写错的轮廓名（应当为空） */
+  badShapes: function () { return BAD_SHAPES.slice(); },
+  /* 楼群用到的形状清单 —— 给验证脚本锁"形状多元"用 */
+  shapes: function () {
+    var m = {}, k = [];
+    SITES.forEach(function (s) { m[s.shape || 'rect'] = 1; });
+    for (var x in m) if (m.hasOwnProperty(x)) k.push(x);
+    return k.sort();
+  },
+  /* 某栋楼轮廓的顶点数（矩形 4 / 八边 8 / 十字 12 / 圆 14）*/
+  vertsOf: function (id) {
+    var s = null;
+    SITES.forEach(function (x) { if (x.id === id) s = x; });
+    if (!s) return 0;
+    return outlineOf(s, 0, 0, s.w * T, s.d * T).length;
+  },
+  /* 建筑的屏幕位置（页面坐标）。canvas 版没有 DOM 元素可 querySelector，
+     测试要点某栋楼只能由数据算出来 —— 这也是"没有 DOM"的必然代价之一。 */
+  siteScreen: function (id) {
+    var s = null;
+    SITES.forEach(function (x) { if (x.id === id) s = x; });
+    if (!s || !s._box) return null;
+    var b = s._box;
+    var f = P((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, b.h * .55);
+    return { x: Math.round(f.x * disp.s + disp.tx + VPX), y: Math.round(f.y * disp.s + disp.ty + VPY) };
+  },
+  /* 把每条绘制指令的包围盒导出来。用途：对照截图出现差异时，
+     能把"屏幕上哪一块不对"直接映射回"是哪条指令没画对" ——
+     这是盲改（看不到图）时唯一能定位到代码段的手段。 */
+  cmdBoxes: function () {
+    return CMDS.map(function (c, i) {
+      var bb = bbOf(c.tag, c.a);
+      return { i: i, tag: c.tag, cls: String(c.a.class || ''), fill: String(c.a.fill || ''),
+        stroke: String(c.a.stroke || ''), x0: bb.x, y0: bb.y, x1: bb.x + bb.w, y1: bb.y + bb.h };
+    });
+  },
+  /* 拖动 / 飞行 / 闲时各测一段帧时间 —— 这是我唯一能给的"流畅"客观证据 */
+  frameStats: function () { return FR; },
+};
+</script>
+</body>
+</html>
