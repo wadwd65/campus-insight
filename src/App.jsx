@@ -39,6 +39,7 @@ import HubHud from './components/HubHud.jsx';
 import { MonoTag } from './components/TermHead.jsx';
 import IntroScene from './scenes/IntroScene.jsx';
 import MapScene from './scenes/MapScene.jsx';
+import EntryScene from './scenes/EntryScene.jsx';
 import { loadBaseline } from './data/loadSample.js';
 import { useGameStore } from './store/useGameStore.js';
 import { QUESTIONS, vectorOf } from './lib/surveySchema.js';
@@ -55,7 +56,9 @@ export default function App() {
   // ★ 默认就是地图。这是本次改版的核心一行 ——
   // 改版前这里写的是 'welcome'，于是答题成了门。
   // map | gate | quiz | report | upload | cohort
-  const [stage, setStage] = useState('map');
+  // ★ 10-07 作品重心修正：默认落地页由「行动地图」改为「入口页」——
+  //   一级入口是测评与上传，地图降为附加体验（见 EntryScene 顶部说明）。
+  const [stage, setStage] = useState('entry');
   const [baseline, setBaseline] = useState(null);
   const [answers, setAnswers] = useState(null);
   const [cohort, setCohort] = useState(null); // 真入口最近一次上传的可用记录
@@ -131,33 +134,18 @@ export default function App() {
   // 它是**深色满宽**的仪表盘，不该塞进下面那个浅色内容容器
   // （max-w-5xl + 白底内边距）里 —— 那样会得到"浅色页面里嵌一块深色"，
   // 也就是这个项目一直在避免的拼接感。
-  // ── 场景层：3D 实景校园（10-07 新增）
-  // 用 iframe 承载那个 1MB 的 Three.js 单文件页：不把 8 万行代码吞进 React 包，
-  // 也不影响 HMR / 构建 / 自检；页面顶部的返回条负责"回地图"。
-  if (stage === 'map3d') {
+  // ── 入口页（10-07 新增，作品重心修正）：一级入口 = 测评 / 上传
+  // 3D 实景校园不进这里，也不做站内场景 —— 它只是入口页上的一个外链（附加展示）。
+  if (stage === 'entry') {
     return (
       <div className="min-h-full flex flex-col term-enter">
-        <div
-          className="flex items-center justify-between px-5 py-3"
-          style={{ background: 'var(--term-bg, #0b0f14)', borderBottom: '1px solid rgba(255,255,255,.10)' }}
-        >
-          <button
-            type="button"
-            onClick={backToMap}
-            className="term-mono text-[11px] tracking-[0.12em]"
-            style={{ color: 'var(--term-ink)' }}
-          >
-            ← 返回行动地图
-          </button>
-          <p className="term-mono text-[10px] tracking-[0.25em]" style={{ color: 'var(--term-ink-soft)' }}>
-            CAMPUS · 3D REAL SCENE
-          </p>
-        </div>
-        <main className="flex-1 w-full" style={{ minHeight: 'calc(100vh - 46px)' }}>
-          <iframe
-            title="3D 实景校园"
-            src={`${import.meta.env.BASE_URL}map/校园地图-3D实景.html`}
-            style={{ display: 'block', width: '100%', height: 'calc(100vh - 46px)', border: 0, background: '#0b0f14' }}
+        <HubHud onRestart={restart} />
+        <div className="term-seam" aria-hidden="true" />
+        <main className="flex-1 w-full max-w-5xl mx-auto px-6 py-12">
+          <EntryScene
+            onGoQuiz={() => setStage('quiz')}
+            onGoUpload={() => setStage('upload')}
+            onGoMap={() => setStage('map')}
           />
         </main>
       </div>
@@ -180,7 +168,6 @@ export default function App() {
             }}
             onGoQuiz={() => setStage('gate')}
             onUpload={() => setStage('upload')}
-            onGo3D={() => setStage('map3d')}
           />
         </main>
       </div>

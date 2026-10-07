@@ -146,7 +146,7 @@ function SlotBar({ slots, total }) {
   );
 }
 
-export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGo3D }) {
+export default function MapScene({ onGoReport, onGoQuiz, onUpload }) {
   const player = useGameStore((s) => s.player);
   const applyChoice = useGameStore((s) => s.applyChoice);
   const resetPlayer = useGameStore((s) => s.resetPlayer);
@@ -320,15 +320,18 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGo3D }) {
               onUpload={onUpload}
             />
 
-            {/* ── 3D 实景校园（10-07 新增）：站内场景，同屏切换、带返回 ── */}
-            <button
-              type="button"
-              onClick={onGo3D}
-              className="glass-btn term-mono block w-full text-center text-[11px] py-2.5 tracking-[0.12em]"
-              style={{ color: 'var(--term-ink)', borderColor: 'rgba(255,255,255,.22)', background: 'rgba(255,255,255,.04)' }}
+            {/* ── 3D 实景校园：★ 10-07 作品重心修正 —— 降级为**附加展示**：
+                保留文件本身（public/map/ 里，不参与构建），这里只放一个外链按钮，
+                不做站内场景、不参与任何评分功能，也不再往主流程里加耦合。 ── */}
+            <a
+              href={`${import.meta.env.BASE_URL}map/校园地图-3D实景.html`}
+              target="_blank"
+              rel="noreferrer"
+              className="term-mono block w-full text-center text-[10.5px] py-2 tracking-[0.12em]"
+              style={{ color: '#7d8b99', border: '1px dashed rgba(255,255,255,.16)', borderRadius: 3 }}
             >
-              ▸ 进入 3D 实景校园
-            </button>
+              3D 实景校园（附加展示）
+            </a>
 
             {model.totalTrips > 0 && (
               <button
