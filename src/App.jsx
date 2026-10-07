@@ -131,6 +131,39 @@ export default function App() {
   // 它是**深色满宽**的仪表盘，不该塞进下面那个浅色内容容器
   // （max-w-5xl + 白底内边距）里 —— 那样会得到"浅色页面里嵌一块深色"，
   // 也就是这个项目一直在避免的拼接感。
+  // ── 场景层：3D 实景校园（10-07 新增）
+  // 用 iframe 承载那个 1MB 的 Three.js 单文件页：不把 8 万行代码吞进 React 包，
+  // 也不影响 HMR / 构建 / 自检；页面顶部的返回条负责"回地图"。
+  if (stage === 'map3d') {
+    return (
+      <div className="min-h-full flex flex-col term-enter">
+        <div
+          className="flex items-center justify-between px-5 py-3"
+          style={{ background: 'var(--term-bg, #0b0f14)', borderBottom: '1px solid rgba(255,255,255,.10)' }}
+        >
+          <button
+            type="button"
+            onClick={backToMap}
+            className="term-mono text-[11px] tracking-[0.12em]"
+            style={{ color: 'var(--term-ink)' }}
+          >
+            ← 返回行动地图
+          </button>
+          <p className="term-mono text-[10px] tracking-[0.25em]" style={{ color: 'var(--term-ink-soft)' }}>
+            CAMPUS · 3D REAL SCENE
+          </p>
+        </div>
+        <main className="flex-1 w-full" style={{ minHeight: 'calc(100vh - 46px)' }}>
+          <iframe
+            title="3D 实景校园"
+            src={`${import.meta.env.BASE_URL}map/校园地图-3D实景.html`}
+            style={{ display: 'block', width: '100%', height: 'calc(100vh - 46px)', border: 0, background: '#0b0f14' }}
+          />
+        </main>
+      </div>
+    );
+  }
+
   if (stage === 'map') {
     return (
       <div className="min-h-full flex flex-col term-enter">
@@ -147,6 +180,7 @@ export default function App() {
             }}
             onGoQuiz={() => setStage('gate')}
             onUpload={() => setStage('upload')}
+            onGo3D={() => setStage('map3d')}
           />
         </main>
       </div>

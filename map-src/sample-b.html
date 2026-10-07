@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>样张B · Canvas 2D 等距</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#e9e5dc;overflow:hidden}
+  canvas{display:block}
+  #hint{position:fixed;left:0;right:0;bottom:14px;text-align:right;padding-right:22px;
+        font:12px "Microsoft YaHei",sans-serif;color:#8d8f93;pointer-events:none}
+</style>
+</head>
+<body>
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   样张 B —— Canvas 2D「等距游戏风插画」（同一栋实验楼，与样张 A 同源数据）
+   ──────────────────────────────────────────────────────────────────────
+   依据：map-assets/official-360/BUILDING-SPEC.md 的「A. 实验楼」档案
+   取色：与样张 A **完全同一套实拍取色**（唯一色源，保证可比）
+
+   与样张 A 的**根本差别**（这是给用户做技术路线选择的依据）：
+     · 样张 A = three.js 真 3D。有光照/阴影/透视，但**几何即形状**，细节靠堆几何
+     · 样张 B = Canvas 2D 手绘。**没有光照引擎**，所有明暗都是画上去的
+       → 好处：可以做"美术上的夸张"（描边、渐变、网点、暖冷分色），
+         一栋楼的信息量可以画得比真 3D 更"好看"、更有插画味
+       → 坏处：**没有真 3D**，视角锁死，不能转、不能真遮挡、不能做光照变化
+
+   画法（等距 = 2:1 菱形格）：
+     · 世界坐标 (x, y, z) → 屏幕 (sx, sy)
+       sx = (x - z) * 0.5 * U
+       sy = (x + z) * 0.25 * U - y * 0.5 * U
+     · 每个面用**纯色 + 手画渐变**，不说"两个面不同色"，而是
+       **顶面最亮 / 左面中间 / 右面最暗**（经典等距三色）
+     · 所有面加**同色系深色描边**（1.2px）—— 这是插画感的第一来源
+   ══════════════════════════════════════════════════════════════════════ */
+
+var W = window.innerWidth, H = window.innerHeight;
+var cv = document.createElement('canvas');
+cv.width = W; cv.height = H;
+document.body.appendChild(cv);
+var cx = cv.getContext('2d');
+cx.imageSmoothingEnabled = true;
+
+/* ── 同一套实拍取色（与样张 A 一致，只做「插画化」处理：加描边、分层明度）── */
+var C = {
+  wall:     [156, 110, 85],    /* 0x9C6E55 */
+  wallTop:  [186, 140, 110],   /* 顶面（亮）*/
+  wallLeft: [156, 110, 85],    /* 左面（中）*/
+  wallRight:[106, 74,  58],    /* 右面（暗）*/
+  wallLine: [ 72, 50,  40],    /* 描边 */
+
+  roof:     [124, 140, 160],   /* 0x7C8CA0 */
+  roofTop:  [156, 172, 190],
+  roofLeft: [124, 140, 160],
+  roofRight:[ 82, 96,  114],
+  roofLine: [ 52, 62,  76],
+
+  gable:    [142, 101, 82],
+  gableL:   [142, 101, 82],
+  gableR:   [ 96, 68,  56],
+
+  win:      [ 46, 59,  72],
+  winLit:   [ 96, 126, 152],   /* 反光窗（插画里故意做几扇亮的，避免死板）*/
+  frame:    [201, 198, 192],
+
+  gallery:  [211, 214, 216],
+  galleryL: [211, 214, 216],
+  galleryR: [160, 164, 168],
+
+  ac:       [194, 190, 182],
+
+  ground:   [172, 169, 163],
+  grass:    [110, 132, 80],
+  grassTop: [130, 152, 96],
+  island:   [119, 140, 86],
+  hedge:    [ 69, 102, 60],
+  hedgeLit: [ 92, 128, 78],
+  walk:     [184, 154, 150],
+
+  ink:      [ 58, 52, 48],     /* 全局深描边色 */
+  shadow:   [ 92, 96, 96]
+};
+
+function rgb(c, a) {
+  return a === undefined ? 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'
+                         : 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')';
+}
+function shade(c, k) {   /* k<1 变暗，k>1 变亮 */
+  return [Math.min(255, Math.round(c[0] * k)), Math.min(255, Math.round(c[1] * k)), Math.min(255, Math.round(c[2] * k))];
+}
+
+/* ── 等距投影 ───────────────────────────────────────────────────── */
+var U = 22;                    /* 单位尺度 */
+/* ★ 构图：等距投影的画布中心不是"世界原点" —— 因为 U 型围合的
+   包围盒是 x∈[-23,23]、z∈[-17.5,10]，形心在 (0, -3.75)。
+   把形心对到画面中心，再整体上移一点点（顶部留标题位）。*/
+var OX = W * 0.5, OY = H * 0.52;
+function P(x, y, z) {
+  return {
+    x: OX + (x - z) * 0.5 * U,
+    y: OY + (x + z) * 0.25 * U - y * 0.5 * U
+  };
+}
+function poly(pts, fill, stroke, lw) {
+  cx.beginPath();
+  cx.moveTo(pts[0].x, pts[0].y);
+  for (var i = 1; i < pts.length; i++) cx.lineTo(pts[i].x, pts[i].y);
+  cx.closePath();
+  if (fill) { cx.fillStyle = fill; cx.fill(); }
+  if (stroke) { cx.strokeStyle = stroke; cx.lineWidth = lw === undefined ? 1.2 : lw; cx.stroke(); }
+}
+/* 渐变填充多边（沿"下→上"方向做明暗，插画感的第二来源）*/
+function polyGrad(pts, cTop, cBot, stroke, lw) {
+  cx.beginPath();
+  cx.moveTo(pts[0].x, pts[0].y);
+  for (var i = 1; i < pts.length; i++) cx.lineTo(pts[i].x, pts[i].y);
+  cx.closePath();
+  var yMin = Math.min.apply(null, pts.map(function (p) { return p.y; }));
+  var yMax = Math.max.apply(null, pts.map(function (p) { return p.y; }));
+  var g = cx.createLinearGradient(0, yMin, 0, yMax);
+  g.addColorStop(0, rgb(cTop));
+  g.addColorStop(1, rgb(cBot));
+  cx.fillStyle = g; cx.fill();
+  if (stroke) { cx.strokeStyle = stroke; cx.lineWidth = lw === undefined ? 1.2 : lw; cx.stroke(); }
+}
+
+/* ══ 核心：一栋「砖体 + 双坡屋顶」的等距绘制 ═══════════════════════
+   ★★ 关键设计：**面按"能看到"才画** —— 这与真 3D 的遮挡剔除同理，
+     但这里是"我按视角手算好哪些面要画"（因为视角锁死，可以完全静态优化）。
+     视角：从 (+X, +Z) 上方看 ⇒ 能看到 **+X 面（右）**、**+Z 面（左）**、**顶面**。
+     ★ 注意等距视角的"左右"与直觉相反：屏幕上靠左的那面其实是 +Z 面。 */
+function isoBuilding(ox, oz, bx, bz, h, o) {
+  o = o || {};
+  var nf = o.floors || 5;
+  var F = h / nf;
+  var x0 = ox - bx / 2, x1 = ox + bx / 2;
+  var z0 = oz - bz / 2, z1 = oz + bz / 2;
+
+  /* ── 先画**落地投影**（插画里比真阴影更"重"，是游戏感的来源）── */
+  var shPts = [P(x0 + 1.2, 0, z0 + 1.2), P(x1 + 1.2, 0, z0 + 1.2),
+               P(x1 + 1.2, 0, z1 + 1.2), P(x0 + 1.2, 0, z1 + 1.2)];
+  poly(shPts, rgb(C.shadow, 0.20), null);
+
+  /* ── 两个立面（先画，再被屋顶压住上沿）── */
+  /* +Z 面（屏幕上偏左）*/
+  var fZ = [P(x0, 0, z1), P(x1, 0, z1), P(x1, h, z1), P(x0, h, z1)];
+  polyGrad(fZ, C.wallTop, C.wallLeft, rgb(C.wallLine), 1.3);
+
+  /* +X 面（屏幕上偏右）*/
+  var fX = [P(x1, 0, z0), P(x1, 0, z1), P(x1, h, z1), P(x1, h, z0)];
+  polyGrad(fX, C.wallLeft, C.wallRight, rgb(C.wallLine), 1.3);
+
+  /* ── 立面装饰：腰线（每层一道）—— 插画里"层"是最重要的尺度参照 ── */
+  for (var f = 1; f < nf; f++) {
+    var y = f * F;
+    /* +Z 面的腰线 */
+    var l1a = P(x0, y - 0.10, z1), l1b = P(x1, y - 0.10, z1);
+    var l1c = P(x1, y + 0.14, z1), l1d = P(x0, y + 0.14, z1);
+    poly([l1a, l1b, l1c, l1d], rgb(shade(C.wallLeft, 1.20), 0.75), rgb(C.wallLine, 0.55), 0.8);
+    /* +X 面的腰线 */
+    var l2a = P(x1, y - 0.10, z0), l2b = P(x1, y - 0.10, z1);
+    var l2c = P(x1, y + 0.14, z1), l2d = P(x1, y + 0.14, z0);
+    poly([l2a, l2b, l2c, l2d], rgb(shade(C.wallRight, 1.30), 0.60), rgb(C.wallLine, 0.45), 0.8);
+  }
+
+  /* ── 窗：每层独立方窗（与样张 A 同一原则）── */
+  var bays = o.bays || 6;
+  var bw = bx / bays;
+  var winW = Math.min(bw * 0.46, 1.35), winH = F * 0.52;
+  for (var b = 0; b < bays; b++) {
+    var wx = x0 + (b + 0.5) * bw;
+    for (var ff = 0; ff < nf; ff++) {
+      var wy = ff * F + F * 0.26;
+      /* +Z 面窗（先画浅色窗套，再画深色玻璃 —— 这套"先框后玻璃"是等距插画的标准做法）*/
+      var w1 = [P(wx - winW / 2 - 0.12, wy - 0.12, z1), P(wx + winW / 2 + 0.12, wy - 0.12, z1),
+                P(wx + winW / 2 + 0.12, wy + winH + 0.12, z1), P(wx - winW / 2 - 0.12, wy + winH + 0.12, z1)];
+      poly(w1, rgb(C.frame), rgb(C.wallLine, 0.60), 0.8);
+      var glass1 = [P(wx - winW / 2, wy, z1), P(wx + winW / 2, wy, z1),
+                    P(wx + winW / 2, wy + winH, z1), P(wx - winW / 2, wy + winH, z1)];
+      /* ★ 插画感：**随机几扇窗给反光色**（纯随机但固定种子，保证可复现）*/
+      var lit = ((b * 5 + ff * 7) % 11) === 0;
+      polyGrad(glass1, lit ? C.winLit : shade(C.win, 1.25), lit ? shade(C.winLit, 0.72) : C.win, rgb(C.wallLine, 0.75), 0.8);
+    }
+  }
+  /* +X 面窗 */
+  var baysD = Math.max(1, Math.round(bz / bw));
+  var bwD = bz / baysD;
+  for (var b2 = 0; b2 < baysD; b2++) {
+    var wz = z0 + (b2 + 0.5) * bwD;
+    for (var f2 = 0; f2 < nf; f2++) {
+      var wy2 = f2 * F + F * 0.26;
+      var w2 = [P(x1, wy2 - 0.12, wz - winW / 2 - 0.12), P(x1, wy2 - 0.12, wz + winW / 2 + 0.12),
+                P(x1, wy2 + winH + 0.12, wz + winW / 2 + 0.12), P(x1, wy2 + winH + 0.12, wz - winW / 2 - 0.12)];
+      poly(w2, rgb(shade(C.frame, 0.86)), rgb(C.wallLine, 0.55), 0.8);
+      var glass2 = [P(x1, wy2, wz - winW / 2), P(x1, wy2, wz + winW / 2),
+                    P(x1, wy2 + winH, wz + winW / 2), P(x1, wy2 + winH, wz - winW / 2)];
+      polyGrad(glass2, shade(C.win, 1.10), shade(C.win, 0.80), rgb(C.wallLine, 0.70), 0.8);
+    }
+  }
+
+  /* ── 双坡屋顶（★ 屋脊沿长边，与样张 A 同一逻辑）──
+     ★★★ v3 修正（v2 屋顶画错，把整栋楼盖住还飘出画面）：
+       等距视角（约 35° 俯角）下，**两个坡都能看到一部分**：
+         · 朝相机的那坡（+Z 坡）= 完整四边形
+         · 背向的那坡（-Z 坡）= 只露出正脊后方一条窄梯形（被正脊"挡住"一部分）
+       所以必须画 **四片**：南坡（完整）+ 北坡（窄梯形，因为俯角把它压扁）
+       + 两个山墙三角。
+       v2 的错误：南坡四边形写成 [x0,z1]-[x1,z1]-[x1,oz]-[x0,oz]，z1→oz 跨了 **整个**
+       进深的一半以上，再加上 `rise` 只有 2m 不够高，读成"一片盖住整栋的板"。
+       正确：南坡 = [x0,h,z1] → [x1,h,z1] → [x1,h+rise,ozRIDGE] → [x0,h+rise,ozRIDGE]
+              其中 ozRIDGE = oz（正脊在进深中点）。且 rise 要够 —— 这里按实拍 22° 已对，
+              真正让它"立起来"的是**北坡要画**（两坡都有 → 才读成坡屋顶而不是单板）。 */
+  var alongX = bx >= bz;    /* 屋脊沿 X？*/
+  var sp = alongX ? bz : bx; /* 跨向进深 */
+  var half = sp / 2;
+  var rise = half * Math.tan(0.38);
+
+  if (alongX) {
+    /* ── 屋脊沿 X ── */
+    var zN = oz - half, zS = oz + half;    /* 北檐 / 南檐 */
+    /* 山墙（±X 两端，砖红三角）—— 先画，被屋顶压住底边 */
+    poly([P(x1 - 0.02, h, zN), P(x1 - 0.02, h, zS), P(x1 - 0.02, h + rise, oz)],
+         rgb(C.gableR), rgb(C.wallLine), 1.2);
+    poly([P(x0 + 0.02, h, zN), P(x0 + 0.02, h, zS), P(x0 + 0.02, h + rise, oz)],
+         rgb(C.gableL), rgb(C.wallLine), 1.2);
+    /* 南坡（完整四边形，朝相机）*/
+    polyGrad([P(x0, h, zS), P(x1, h, zS), P(x1, h + rise, oz), P(x0, h + rise, oz)],
+             shade(C.roofLeft, 1.16), C.roofLeft, rgb(C.roofLine), 1.4);
+    /* 北坡（窄梯形，只露正脊后方一条）*/
+    polyGrad([P(x0, h + rise, oz), P(x1, h + rise, oz), P(x1, h, zN), P(x0, h, zN)],
+             shade(C.roofRight, 1.06), C.roofRight, rgb(C.roofLine), 1.4);
+
+    /* 直立锁边竖棱（南坡）*/
+    cx.strokeStyle = rgb(C.roofLine, 0.28);
+    cx.lineWidth = 0.9;
+    var nRib = Math.round(bx / 1.4);
+    for (var r2 = 0; r2 <= nRib; r2++) {
+      var rx = x0 + (r2 / nRib) * bx;
+      var a = P(rx, h, zS), bpt = P(rx, h + rise, oz);
+      cx.beginPath(); cx.moveTo(a.x, a.y); cx.lineTo(bpt.x, bpt.y); cx.stroke();
+    }
+    /* 正脊 */
+    var p1 = P(x0, h + rise, oz), p2 = P(x1, h + rise, oz);
+    cx.strokeStyle = rgb(shade(C.roofLine, 1.40)); cx.lineWidth = 2.8;
+    cx.beginPath(); cx.moveTo(p1.x, p1.y); cx.lineTo(p2.x, p2.y); cx.stroke();
+    cx.strokeStyle = rgb(shade(C.roofLeft, 1.50)); cx.lineWidth = 1.5;
+    cx.beginPath(); cx.moveTo(p1.x, p1.y - 1.1); cx.lineTo(p2.x, p2.y - 1.1); cx.stroke();
+  } else {
+    /* ── 屋脊沿 Z ── */
+    var xE = ox + half, xW = ox - half;    /* 东坡 / 西檐 */
+    /* 山墙（±Z 两端）*/
+    poly([P(xW, h, z1 - 0.02), P(xE, h, z1 - 0.02), P(ox, h + rise, z1 - 0.02)],
+         rgb(C.gableL), rgb(C.wallLine), 1.2);
+    poly([P(xW, h, z0 + 0.02), P(xE, h, z0 + 0.02), P(ox, h + rise, z0 + 0.02)],
+         rgb(C.gableR), rgb(C.wallLine), 1.2);
+    /* 东坡（朝相机，完整）*/
+    polyGrad([P(xE, h, z0), P(xE, h, z1), P(ox, h + rise, z1), P(ox, h + rise, z0)],
+             shade(C.roofLeft, 1.16), C.roofLeft, rgb(C.roofLine), 1.4);
+    /* 西坡（窄梯形）*/
+    polyGrad([P(ox, h + rise, z0), P(ox, h + rise, z1), P(xW, h, z1), P(xW, h, z0)],
+             shade(C.roofRight, 1.06), C.roofRight, rgb(C.roofLine), 1.4);
+
+    /* 竖棱（东坡）*/
+    cx.strokeStyle = rgb(C.roofLine, 0.28);
+    cx.lineWidth = 0.9;
+    var nRib2 = Math.round(bz / 1.4);
+    for (var r3 = 0; r3 <= nRib2; r3++) {
+      var rz = z0 + (r3 / nRib2) * bz;
+      var a2 = P(xE, h, rz), b2 = P(ox, h + rise, rz);
+      cx.beginPath(); cx.moveTo(a2.x, a2.y); cx.lineTo(b2.x, b2.y); cx.stroke();
+    }
+    /* 正脊 */
+    var p3 = P(ox, h + rise, z0), p4 = P(ox, h + rise, z1);
+    cx.strokeStyle = rgb(shade(C.roofLine, 1.40)); cx.lineWidth = 2.8;
+    cx.beginPath(); cx.moveTo(p3.x, p3.y); cx.lineTo(p4.x, p4.y); cx.stroke();
+    cx.strokeStyle = rgb(shade(C.roofLeft, 1.50)); cx.lineWidth = 1.5;
+    cx.beginPath(); cx.moveTo(p3.x, p3.y - 1.1); cx.lineTo(p4.x, p4.y - 1.1); cx.stroke();
+  }
+}
+
+/* ══ 白色钢桁架连廊（等距）═══════════════════════════════════════ */
+function isoBridge(cxp, czp, len, alongX, height, baseY) {
+  height = height || 3.0;
+  var wdt = 2.6;
+  var bx = alongX ? len : wdt;
+  var bz = alongX ? wdt : len;
+  var x0 = cxp - bx / 2, x1 = cxp + bx / 2;
+  var z0 = czp - bz / 2, z1 = czp + bz / 2;
+  var y0 = baseY, y1 = baseY + height;
+
+  /* +Z 面 */
+  polyGrad([P(x0, y0, z1), P(x1, y0, z1), P(x1, y1, z1), P(x0, y1, z1)],
+           C.gallery, C.galleryL, rgb(C.ink), 1.2);
+  /* +X 面 */
+  polyGrad([P(x1, y0, z0), P(x1, y0, z1), P(x1, y1, z1), P(x1, y1, z0)],
+           C.galleryL, C.galleryR, rgb(C.ink), 1.2);
+  /* 顶面 */
+  poly([P(x0, y1, z0), P(x1, y1, z0), P(x1, y1, z1), P(x0, y1, z1)],
+       rgb(shade(C.gallery, 1.06)), rgb(C.ink), 1.2);
+
+  /* 侧栏斜撑（"钢桁架"的视觉签名）*/
+  cx.strokeStyle = rgb(C.ink, 0.55);
+  cx.lineWidth = 0.9;
+  var n = Math.max(3, Math.round(len / 2.0));
+  for (var i = 0; i < n; i++) {
+    var t0 = i / n, t1 = (i + 1) / n;
+    var ax = x0 + t0 * bx, bx2 = x0 + t1 * bx;
+    var a1 = alongX ? P(ax, y0 + 0.2, z1) : P(x1, y0 + 0.2, z0 + t0 * bz);
+    var b1 = alongX ? P(bx2, y1 - 0.2, z1) : P(x1, y1 - 0.2, z0 + t1 * bz);
+    cx.beginPath(); cx.moveTo(a1.x, a1.y); cx.lineTo(b1.x, b1.y); cx.stroke();
+  }
+}
+
+/* ══ 地面（等距菱形大地块）══════════════════════════════════════
+   ★ v2：原来 E=46 的菱形地块，四条斜边直接切出画面 → 读成"一块斜着的板"。
+     改成 **E=30**（刚好比建筑群外扩 6m）+ **加一圈 3m 的浅色路缘**，
+     这样地块"收得住"，且在画面里是完整的一块。
+     ★ 另外：地块不能有描边 —— 有描边就变成"一块浮空板"。 */
+(function () {
+  var E = 30;
+  poly([P(-E, 0, -E), P(E, 0, -E), P(E, 0, E), P(-E, 0, E)], rgb(C.ground), null);
+  /* 外圈路缘（稍暗一圈，暗示"这是场地边界"）*/
+  var E2 = 27;
+  poly([P(-E2, 0.01, -E2), P(E2, 0.01, -E2), P(E2, 0.01, E2), P(-E2, 0.01, E2)],
+       rgb(shade(C.ground, 0.94)), null);
+
+  /* 内院草坪 */
+  var L = 17;
+  poly([P(-L, 0.02, -1), P(L, 0.02, -1), P(L, 0.02, L), P(-L, 0.02, L)],
+       rgb(C.grassTop), rgb(shade(C.grass, 0.80)), 1.0);
+  /* 内院绿岛（六边形）*/
+  var pts = [];
+  for (var i = 0; i < 6; i++) {
+    var a = i / 6 * Math.PI * 2 + 0.32;
+    var r = 4.6 * (i % 2 === 0 ? 1 : 0.72);
+    pts.push(P(Math.cos(a) * r, 0.04, Math.sin(a) * r + 1.5));
+  }
+  poly(pts, rgb(C.island), rgb(shade(C.island, 0.72)), 1.1);
+  /* 粉红人行道 */
+  poly([P(-17, 0.05, -8.4), P(17, 0.05, -8.4), P(17, 0.05, -5.8), P(-17, 0.05, -5.8)],
+       rgb(C.walk, 0.92), rgb(shade(C.walk, 0.78)), 0.9);
+  poly([P(-17, 0.05, 12.4), P(17, 0.05, 12.4), P(17, 0.05, 15.0), P(-17, 0.05, 15.0)],
+       rgb(C.walk, 0.92), rgb(shade(C.walk, 0.78)), 0.9);
+})();
+
+/* ══ 灌木球（等距画法：圆 + 拾取高光 + 底部暗弧）════════════════ */
+function isoHedge(x, z, r) {
+  var p = P(x, 0, z);
+  /* 落地椭圆投影 */
+  cx.beginPath();
+  cx.ellipse(p.x, p.y, r * U * 0.62, r * U * 0.32, 0, 0, Math.PI * 2);
+  cx.fillStyle = rgb(C.shadow, 0.16); cx.fill();
+  /* 球体（径向渐变 —— 插画特有的"无光照也要立体"手法）*/
+  var cy = p.y - r * U * 0.62;
+  var g = cx.createRadialGradient(p.x - r * U * 0.28, cy - r * U * 0.30, r * U * 0.10,
+                                  p.x, cy, r * U * 0.74);
+  g.addColorStop(0, rgb(C.hedgeLit));
+  g.addColorStop(1, rgb(shade(C.hedge, 0.72)));
+  cx.beginPath(); cx.arc(p.x, cy, r * U * 0.62, 0, Math.PI * 2);
+  cx.fillStyle = g; cx.fill();
+  cx.strokeStyle = rgb(C.ink, 0.55); cx.lineWidth = 1.0; cx.stroke();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   组装：U 型围合（与样张 A **完全相同的布局参数**，保证可比）
+   ══════════════════════════════════════════════════════════════════ */
+var FL = 5 * 3.5;    /* 5 层 × 3.5m = 17.5m */
+
+/* 内院草坪 / 绿岛 / 人行道（先画地面层）*/
+isoBuilding;  /* 占位，保持函数声明顺序清晰 */
+
+/* 排序：等距插画必须**从远到近**画（画家算法）。
+   ★ v2 修正：v1 用「中心点 x+z」当深度 → **西楼被北楼盖住**（其实西楼更近）。
+     正解：深度键用**"离相机最近的角"** = (ox + bx/2) + (oz + bz/2)，
+     因为视角从 (+X,+Z) 看，一件长方体最先挡住别人的是它的近角。
+   （说白了就是 AABB 的 max 角。） */
+function depthKey(ox, oz, bx, bz) { return (ox + bx / 2) + (oz + bz / 2); }
+
+var items = [
+  { t: 'b', ox:  0.0, oz: -12.0, bx: 24, bz: 11, h: FL, bays: 6 },
+  { t: 'b', ox: -17.5, oz: 0.5,  bx: 11, bz: 19, h: FL, bays: 3 },
+  { t: 'b', ox:  17.5, oz: 0.5,  bx: 11, bz: 19, h: FL, bays: 3 },
+  { t: 'g', ox: -14.8, oz: -6.4, len: 8.0, alongX: true },
+  { t: 'g', ox:  14.8, oz: -6.4, len: 8.0, alongX: true },
+  { t: 'g', ox: -14.8, oz: 10.2, len: 8.0, alongX: true },
+  { t: 'g', ox:  14.8, oz: 10.2, len: 8.0, alongX: true }
+];
+items.forEach(function (it) {
+  var bx = it.t === 'b' ? it.bx : (it.alongX ? it.len : 2.6);
+  var bz = it.t === 'b' ? it.bz : (it.alongX ? 2.6 : it.len);
+  it.key = depthKey(it.ox, it.oz, bx, bz);
+});
+items.sort(function (a, b) { return a.key - b.key; });
+
+items.forEach(function (it) {
+  if (it.t === 'b') isoBuilding(it.ox, it.oz, it.bx, it.bz, it.h, { bays: it.bays });
+  else isoBridge(it.ox, it.oz, it.len, it.alongX, 3.0, 3.5 * 1.5 + 0.6);
+});
+
+/* 灌木最后画（在最前层）*/
+[[-9, -2.5, 1.0], [-7, 7.5, 0.9], [9, -2.5, 1.0], [7.5, 8, 0.85],
+ [-2.5, 9, 0.9], [3.5, -9.5, 0.8], [-13, 10, 0.85], [13, 10.5, 0.9]]
+  .forEach(function (p) { isoHedge(p[0], p[1], p[2]); });
+
+/* ══ 标签：合成对比图时由外部统一加，本页不画 ══════════════════
+   （v1 在页面内画了说明框，结果合成对比图时与统一标题条重复，
+     而且要额外裁切 —— 改为「截图不带任何文字」最干净。）*/
+
+</script>
+</body>
+</html>

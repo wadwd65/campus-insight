@@ -1,0 +1,2 @@
+MATERIAL: [{"type":"MeshStandardMaterial","color":"#ffffff","hasMap":true,"mapType":"","imgType":"Number","encoding":null,"y":0,"rx":"-1.571"}]
+dump failed: undefined

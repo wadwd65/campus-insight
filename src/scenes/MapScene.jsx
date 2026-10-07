@@ -146,7 +146,7 @@ function SlotBar({ slots, total }) {
   );
 }
 
-export default function MapScene({ onGoReport, onGoQuiz, onUpload }) {
+export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGo3D }) {
   const player = useGameStore((s) => s.player);
   const applyChoice = useGameStore((s) => s.applyChoice);
   const resetPlayer = useGameStore((s) => s.resetPlayer);
@@ -319,6 +319,16 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload }) {
               onGoQuiz={onGoQuiz}
               onUpload={onUpload}
             />
+
+            {/* ── 3D 实景校园（10-07 新增）：站内场景，同屏切换、带返回 ── */}
+            <button
+              type="button"
+              onClick={onGo3D}
+              className="glass-btn term-mono block w-full text-center text-[11px] py-2.5 tracking-[0.12em]"
+              style={{ color: 'var(--term-ink)', borderColor: 'rgba(255,255,255,.22)', background: 'rgba(255,255,255,.04)' }}
+            >
+              ▸ 进入 3D 实景校园
+            </button>
 
             {model.totalTrips > 0 && (
               <button
