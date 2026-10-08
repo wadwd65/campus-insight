@@ -20,6 +20,7 @@ import { MonoTag } from '../components/TermHead.jsx';
    ⇒ 懒加载：主包不带它，首屏不被拖累（构建后可见它单独成 chunk）*/
 const Atmosphere = lazy(() => import('../components/Atmosphere.jsx'));
 import { BRAND } from '../lib/theme.js';
+import Mascot from '../components/Mascot.jsx';
 
 const INK = '#EDF3FA';
 const INK_SOFT = '#9FB2C4';
@@ -35,6 +36,9 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
       <Suspense fallback={null}>
         <Atmosphere variant="scene" />
       </Suspense>
+
+      {/* 吉祥物：右下角，点一下会跳一下并说话（占位立绘待换，换图只改 public/art/mascot.webp）*/}
+      <Mascot src={`${import.meta.env.BASE_URL}art/mascot.webp`} />
 
       {/* 页头 */}
       <header className="relative z-10" style={{ borderBottom: '1px solid rgba(255,255,255,.10)' }}>

@@ -670,6 +670,126 @@ button {
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
 }
 
+
+/* ── 吉祥物（Mascot）────────────────────────────────────────────
+   三件事：一直漂浮（idle）/ 点一下跳一下 + 冒星（poke）/ 说一句话（bubble）。
+   全部 CSS 驱动，无 JS 定时器（气泡的自动收起才用一次 setTimeout）。 */
+.mascot {
+  position: fixed;
+  right: 14px;
+  bottom: 6px;                 /* 别让脚贴死在视口底边 */
+  gap: 6px;
+  z-index: 12;                 /* 在环境层之上、能被点到 */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: none;        /* 只有按钮本体可点，不挡住页面 */
+}
+.mascot-left { left: 20px; right: auto; align-items: flex-start; }
+.mascot-hit {
+  pointer-events: auto;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.mascot-hit:focus-visible {
+  outline: 2px solid #6AA9FF;
+  outline-offset: 6px;
+  border-radius: 8px;
+}
+.mascot-figure {
+  display: block;
+  position: relative;
+  width: 138px;
+  transform-origin: 50% 100%;
+  animation: mascot-float 4.2s ease-in-out infinite;
+  transition: transform .25s ease;
+}
+.mascot-hit:hover .mascot-figure { transform: scale(1.03); }
+.mascot-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 16px 26px rgba(0, 0, 0, 0.55));
+  transform-origin: 50% 100%;
+  user-select: none;
+}
+/* 点一下：跳一下（一次性） */
+.mascot-figure img.is-poked { animation: mascot-hop .62s cubic-bezier(.34,1.4,.5,1) 1; }
+
+/* 星花：六颗，向外炸开一圈后消失 */
+.mascot-spark { position: absolute; inset: 0; pointer-events: none; }
+.mascot-spark i {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: #FFE7A8;
+  box-shadow: 0 0 6px rgba(255, 231, 168, .8);
+  opacity: 0;
+  animation: mascot-spark .78s ease-out 1;
+  animation-delay: calc(var(--i) * 18ms);
+}
+/* 说话气泡：贴着小人头顶 */
+.mascot-bubble {
+  pointer-events: none;
+  margin-bottom: 46px;         /* 抬到角色胸口高度，避开卡片角标 */
+  max-width: 176px;
+  padding: 8px 11px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #EAF1F8;
+  background: rgba(12, 18, 26, .92);
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
+  backdrop-filter: blur(8px);
+  animation: mascot-bubble-in .22s ease-out 1;
+}
+.mascot-bubble::after {
+  content: '';
+  position: absolute;
+  right: 22px;
+  bottom: -5px;
+  width: 9px;
+  height: 9px;
+  background: rgba(12, 18, 26, .92);
+  border-right: 1px solid rgba(255, 255, 255, .16);
+  border-bottom: 1px solid rgba(255, 255, 255, .16);
+  transform: rotate(45deg);
+}
+
+@keyframes mascot-float {
+  0%, 100% { transform: translateY(0) rotate(-0.5deg); }
+  50%      { transform: translateY(-9px) rotate(0.5deg); }
+}
+@keyframes mascot-hop {
+  0%   { transform: translateY(0) scale(1, 1); }
+  22%  { transform: translateY(-20px) scale(0.97, 1.05); }
+  55%  { transform: translateY(0) scale(1.04, 0.96); }
+  74%  { transform: translateY(-6px) scale(1, 1); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+@keyframes mascot-spark {
+  0%   { opacity: 1; transform: rotate(calc(var(--i) * 60deg)) translateY(0) scale(.5); }
+  100% { opacity: 0; transform: rotate(calc(var(--i) * 60deg)) translateY(-48px) scale(1.2); }
+}
+@keyframes mascot-bubble-in {
+  from { opacity: 0; transform: translateY(6px) scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* 窄屏：缩小并抬高一点，别压住正文 */
+@media (max-width: 720px) {
+  .mascot { right: 10px; }
+  .mascot-figure { width: 96px; }
+  .mascot-bubble { max-width: 176px; font-size: 11.5px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.01ms !important;
@@ -695,6 +815,13 @@ button {
   .atmo-particles {
     display: none;
   }
+  /* 吉祥物：不做漂浮/跳跃/星花，但**点了仍然说话**（信息不该因动画关闭而消失） */
+  .mascot-figure,
+  .mascot-figure img.is-poked,
+  .mascot-spark i {
+    animation: none !important;
+  }
+  .mascot-spark { display: none; }
   /* 环境层的三层不再漂移：留一张静止的场景即可 */
   .atmo-layer {
     animation: none !important;
