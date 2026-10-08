@@ -4,6 +4,14 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    // ★ 10-08：不清空输出目录。
+    // 原因：本机环境的"批量删除保护"会拦住 Vite 清空 outDir（报
+    // [safe-delete][SAFE_DELETE_BULK_GUARD_ERROR] state lock timeout），
+    // 导致 `npm run build` 与 `npm run check` 里的 smoke 构建**必然失败**。
+    // 副作用：outDir 里可能残留上一次的旧文件；需要干净产物时手动删/改名即可。
+    emptyOutDir: false,
+  },
   server: {
     port: 5173,
     open: false,
