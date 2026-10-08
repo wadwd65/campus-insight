@@ -583,6 +583,93 @@ button {
    元素会先空白等着（最长 4 秒），比不动更难受。
    所以这里把入场元素**直接置为终态**，并把纯装饰层整个 display:none
    （不是 opacity:0 —— 那样 DOM 里仍然挂着几十个元素在跑合成）。 */
+
+/* ── 环境层（Atmosphere）：界面四周的动漫场景 + 粒子 ──────────────
+   设计约束：
+     · 只做背景：`pointer-events:none` + `aria-hidden`，不抢任何交互
+     · 全部靠 CSS 关键帧驱动（无 JS 定时器）；粒子由 @tsparticles 负责
+     · 极慢（60~90s 一轮）—— 快一点就从"氛围"变成"干扰"
+     · 三层的移动速度与时长都不同，避免同步（同步一眼假） */
+.atmo {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.atmo-layer {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  will-change: transform;
+}
+/* 天空：最慢、最大幅度的漂移 */
+.atmo-sky {
+  background-image: url("/art/scene-sky.webp");
+  opacity: 0.95;
+  /* ★ 10-08 修正：天空原图很亮，配深色面板后把黑藤蔓衬成"污渍" ⇒ 压暗 + 去饱和 */
+  filter: brightness(0.58) saturate(0.9) blur(0.6px);
+  animation: atmo-drift-sky 72s ease-in-out infinite alternate;
+}
+/* 拱门废墟：贴底、稍快，像"远处在缓缓移动" */
+.atmo-arch {
+  background-image: url("/art/scene-arch.webp");
+  background-position: center bottom;
+  opacity: 0.66;
+  filter: brightness(0.78) saturate(0.92);
+  animation: atmo-drift-arch 58s ease-in-out infinite alternate;
+}
+/* 藤蔓剪影：**只留在四周** —— 它就是"四周"那圈装饰。
+   ★ 10-08 修正：原来整张铺满（opacity .55）⇒ 黑压压一片、还把页脚文字压得读不清。
+   现在两件事：① 中间用遮罩掏空（只露边缘）② 透明度降到 .3 再轻模糊。 */
+.atmo-vine {
+  background-image: url("/art/scene-front.webp");
+  opacity: 0.34;
+  filter: blur(0.7px);
+  transform-origin: 50% 12%;
+  -webkit-mask-image: radial-gradient(115% 85% at 50% 45%, transparent 46%, #000 88%);
+  mask-image: radial-gradient(115% 85% at 50% 45%, transparent 46%, #000 88%);
+  animation: atmo-sway 84s ease-in-out infinite alternate;
+}
+/* 可读性压层：上深下浅，保证文字浮在场景上仍然读得清 */
+.atmo-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 80% at 50% 8%, rgba(8, 12, 20, 0.36), transparent 62%),
+    linear-gradient(to bottom, rgba(7, 11, 18, 0.80) 0%, rgba(7, 11, 18, 0.58) 42%, rgba(7, 11, 18, 0.86) 100%);
+}
+.atmo-particles {
+  position: absolute;
+  inset: 0;
+}
+.atmo-particles canvas {
+  display: block;
+}
+
+@keyframes atmo-drift-sky {
+  0%   { transform: scale(1.06) translate3d(-1.2%, -0.8%, 0); }
+  100% { transform: scale(1.12) translate3d(1.4%, 1.0%, 0); }
+}
+@keyframes atmo-drift-arch {
+  0%   { transform: scale(1.04) translate3d(1.0%, 0.4%, 0); }
+  100% { transform: scale(1.10) translate3d(-1.2%, -0.4%, 0); }
+}
+@keyframes atmo-sway {
+  0%   { transform: rotate(-0.6deg) scale(1.05) translate3d(-0.6%, 0, 0); }
+  100% { transform: rotate(0.6deg) scale(1.09) translate3d(0.6%, 0.4%, 0); }
+}
+
+/* 浅色内容页上的玻璃卡：让深色环境层上的文字块仍然成立 */
+.atmo-panel {
+  background: rgba(10, 15, 22, 0.50);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px) saturate(1.1);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.01ms !important;
@@ -604,7 +691,13 @@ button {
   .intro-rain,
   .intro-floater,
   .intro-floater > span,
-  .term-scan {
+  .term-scan,
+  .atmo-particles {
     display: none;
+  }
+  /* 环境层的三层不再漂移：留一张静止的场景即可 */
+  .atmo-layer {
+    animation: none !important;
+    transform: none !important;
   }
 }
