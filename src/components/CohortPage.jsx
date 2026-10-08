@@ -18,6 +18,7 @@ import { buildCohort, cohortHeadline } from '../lib/cohort.js';
 import { BRAND, INK_SOFT, FONT, AXIS_LABEL_STYLE } from '../lib/theme.js';
 import TermPanel from './TermPanel.jsx';
 import { MonoTag, SectionHead } from './TermHead.jsx';
+import CohortAi from './CohortAi.jsx';
 import { TERM_INK, monoTag, sectionIndex } from '../lib/surface.js';
 
 export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, onRestart }) {
@@ -43,17 +44,50 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
         />
         {headline && (
           <p
-            className="text-base leading-7 text-[var(--ink)] mt-3"
-            style={{ borderLeft: `2px solid ${TERM_INK.cyan}`, paddingLeft: '0.9rem' }}
+            className="text-[17px] leading-8 text-[var(--ink)] mt-3"
+            style={{
+              borderLeft: `2px solid ${TERM_INK.cyan}`,
+              paddingLeft: '1rem',
+              paddingTop: '0.5rem',
+              paddingBottom: '0.5rem',
+              background: 'linear-gradient(90deg, rgba(106,169,255,.07), rgba(106,169,255,0) 70%)',
+            }}
           >
             {headline}
           </p>
         )}
+
+        {/* ★ 10-08：三个关键数字先摆出来（结论优先的视觉化）——
+            教师扫一眼就能记住的三件事：多少人、最多是哪类、分歧在哪。 */}
+        <div className="grid grid-cols-3 gap-3 mt-5">
+          <Kpi label="有效样本" value={cohort.size} unit="人" />
+          <Kpi
+            label="最多的一类"
+            value={cohort.most.name}
+            unit={`${cohort.most.count} 人 · ${cohort.most.pct}%`}
+            accent
+          />
+          <Kpi
+            label="分歧最大"
+            value={cohort.divergent ? cohort.divergent.axis : '—'}
+            unit={cohort.divergent ? `一半人落在 ${cohort.divergent.q1}~${cohort.divergent.q3}` : ''}
+          />
+        </div>
       </div>
 
       <div className="space-y-12">
+        {/* ★ 10-08：大模型解读 —— 官方链路三段里的第三段（数据 → 图表 → 解读）。
+            放在"结论"之后，因为它就是这份数据的人话版结论。 */}
         <Section
           n={2}
+          title="这份数据说了什么"
+          hint="大模型读上面的分布写的三段话；没有配置密钥时，由本地规则按同一套数字生成"
+        >
+          <CohortAi cohort={cohort} />
+        </Section>
+
+        <Section
+          n={3}
           title="这个班的位置"
           hint="实线是班里每个人的百分位的中位数；虚线圈是全体大学生 50% 的位置。同标尺，可以直接和快入口的报告对比"
         >
@@ -77,7 +111,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
           </ul>
         </Section>
 
-        <Section n={3} title="这个班分成几类" hint="按每个人最突出的那一维归组，一个人只会进一个组">
+        <Section n={4} title="这个班分成几类" hint="按每个人最突出的那一维归组，一个人只会进一个组">
           <GroupBars groups={cohort.groups} size={cohort.size} />
           <ul className="mt-3 space-y-1">
             {cohort.groups.map((g) => (
@@ -89,7 +123,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
           </ul>
         </Section>
 
-        <Section n={4} title="班里和你最像的人" hint="按九维属性算距离。需要一个『你』做参照">
+        <Section n={5} title="班里和你最像的人" hint="按九维属性算距离。需要一个『你』做参照">
           {cohort.similar ? (
             <div className="space-y-2">
               {cohort.similar.top.map((s, i) => (
@@ -222,4 +256,31 @@ function GroupBars({ groups, size }) {
   }, [groups, size]);
 
   return <Chart option={option} height={190} ariaLabel="班级类型分布条形图" />;
+}
+
+/** 结论优先的三个关键数字：一个标签 + 一个值 + 一行单位说明 */
+function Kpi({ label, value, unit, accent = false }) {
+  return (
+    <TermPanel style={{ padding: '13px 14px 12px' }}>
+      <p className="term-mono text-[10px] tracking-[0.18em] text-[var(--ink-soft)]">{label}</p>
+      {/* 数值 + 单位同行：单位小一号、跟随基线 —— 避免"48"下面只剩一个"人"字 */
+      }
+      <p className="mt-1.5 flex items-baseline gap-1" title={String(value)}>
+        <span
+          className="text-[17px] font-semibold leading-tight truncate"
+          style={{ color: accent ? BRAND : 'var(--ink)' }}
+        >
+          {value}
+        </span>
+        {unit ? (
+          <span className="text-[11px] tabular-nums shrink-0 text-[var(--ink-soft)]">{unit}</span>
+        ) : null}
+      </p>
+      {/* 底部一根细色条：让三张卡在视觉上"有重量"，也把强调项标出来 */}
+      <span
+        className="mt-2.5 block h-[2px] rounded-full"
+        style={{ background: accent ? BRAND : 'var(--line)' }}
+      />
+    </TermPanel>
+  );
 }

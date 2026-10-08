@@ -97,13 +97,23 @@ function looksComplete(text) {
  *        传输配置覆盖项。**只有自检会传**，页面永远不传（读环境变量）。
  * @returns {Promise<{text: string, degraded: boolean, reason: string|null, aborted?: boolean}>}
  */
-export async function streamSummary({ report, name = '', onDelta, signal, endpoint = {} }) {
+export async function streamSummary({
+  report, name = '', onDelta, signal, endpoint = {},
+  /* ★ 10-08：可选的"自定义链路" —— 让群体画像（cohort）复用同一条流式管线，
+     而不必再抄一份 fetch/超时/中断/降级逻辑。
+     不传时行为与以前完全一致（个人版 summary）。 */
+  request, fallback,
+}) {
   const cfg = { ...envConfig(), ...endpoint };
-  const degrade = (reason) => ({ text: fallbackText(report, { name }), degraded: true, reason });
+  const degrade = (reason) => ({
+    text: (typeof fallback === 'function' ? fallback() : fallbackText(report, { name })),
+    degraded: true,
+    reason,
+  });
 
   if (!(cfg.baseUrl && cfg.apiKey && cfg.model)) return degrade('not-configured');
 
-  const { system, user } = buildSummaryRequest(report, { name });
+  const { system, user } = request ?? buildSummaryRequest(report, { name });
 
   // 外部中断（组件卸载）与自身超时合成一个信号 —— fetch 只接受一个 signal
   const ctrl = new AbortController();

@@ -21,6 +21,7 @@ import { parseCsvText } from '../src/lib/parseCsv.js';
 import { cleanSurveyRows } from '../src/lib/surveyClean.js';
 import { toAttributeMatrix, buildBaseline } from '../src/lib/matrix.js';
 import { buildCohort, cohortHeadline } from '../src/lib/cohort.js';
+import { buildCohortFacts, buildCohortRequest, cohortFallbackText } from '../src/lib/cohortSummary.js';
 import { REQUIRED_COLUMNS } from '../src/lib/surveySchema.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -69,7 +70,25 @@ ok(head.includes('学术型最多'), '结论句含"最多的一类"');
 ok(head.includes('25%'), '结论句含占比');
 ok(head.length > 30, '结论句不是空壳', `${head.length} 字`);
 
-/* ── 4. 负向用例：脏数据必须被拦住（而不是静默算出一个错结果）── */
+/* ── 4. 第三段链路：AI 解读（10-08 补齐，同样要上闸门）── */
+const facts = buildCohortFacts(cohort, { className: '测试班' });
+ok(facts.includes('有效样本 48 人'), '事实文本含样本数');
+ok(facts.includes('学术型'), '事实文本含最多的一类');
+ok(facts.includes('分歧最大'), '事实文本含分歧项');
+
+const req = buildCohortRequest(cohort, { className: '测试班' });
+ok(req && typeof req.system === 'string' && req.system.length > 80, '请求含 system 提示词', `${req.system.length} 字`);
+ok(req && typeof req.user === 'string' && req.user.includes('有效样本'), '请求含 user 事实');
+ok(/不要编造/.test(req.system), 'system 里有"不许编造"的约束');
+
+const fb = cohortFallbackText(cohort);
+ok(fb.length > 150, '兜底文案有实质内容（评委没密钥时看到的就是它）', `${fb.length} 字`);
+ok(fb.includes('48'), '兜底文案含人数');
+ok(fb.includes('学术型'), '兜底文案含最多的一类');
+ok(fb.includes('建议'), '兜底文案给出可执行建议');
+ok(!/undefined|NaN|\[object/.test(fb), '兜底文案无坏值（undefined/NaN/[object）');
+
+/* ── 5. 负向用例：脏数据必须被拦住（而不是静默算出一个错结果）── */
 const bad = parseCsvText('姓名,年龄\n张三,20\n', REQUIRED_COLUMNS);
 ok(bad.ok === false, '负向：缺列的 CSV 被拒绝', bad.ok === false ? '' : '竟然通过了');
 ok((bad.errors || []).length > 0, '负向：给出了可读的错误信息', (bad.errors?.[0]?.message || '').slice(0, 40));

@@ -137,11 +137,11 @@ export default function App() {
   // ── 入口页（10-07 新增，作品重心修正）：一级入口 = 测评 / 上传
   // 3D 实景校园不进这里，也不做站内场景 —— 它只是入口页上的一个外链（附加展示）。
   if (stage === 'entry') {
+    // 入口页自带页头（见 EntryScene）—— 不套 HubHud：
+    // 它上面的属性条在"还没走过任何地方"时是一条空状态，读起来像报错。
     return (
       <div className="min-h-full flex flex-col term-enter">
-        <HubHud onRestart={restart} />
-        <div className="term-seam" aria-hidden="true" />
-        <main className="flex-1 w-full max-w-5xl mx-auto px-6 py-12">
+        <main className="flex-1 w-full">
           <EntryScene
             onGoQuiz={() => setStage('quiz')}
             onGoUpload={() => setStage('upload')}
