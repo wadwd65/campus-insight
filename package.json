@@ -13,7 +13,9 @@
     "selftest:map": "node scripts/selftest-map.mjs",
     "selftest:intro": "node scripts/selftest-intro.mjs",
     "smoke": "vite build --ssr scripts/smoke-render.jsx --outDir .smoke-out --logLevel warn && node .smoke-out/smoke-render.js",
-    "check": "npm run selftest && npm run selftest:store && npm run selftest:map && npm run selftest:intro && npm run smoke",
+    "smoke:csv": "node scripts/smoke-csv.mjs",
+    "verify:dist": "node scripts/verify-dist.mjs",
+    "check": "npm run selftest && npm run selftest:store && npm run selftest:map && npm run selftest:intro && npm run smoke && npm run smoke:csv && npm run build && npm run verify:dist",
     "gen:data": "python scripts/generate-survey-data.py",
     "gen:cohort": "python scripts/generate-survey-data.py -n 48 --seed 20261001 --out public/data/示例-班级问卷.csv"
   },
