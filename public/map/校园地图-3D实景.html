@@ -5443,7 +5443,16 @@ function batBuildId(id) {
 var BAT_RENDER_COUNT = 0;
 function batLoop() {
   requestAnimationFrame(batLoop);
-  renderer.render(scene, camera);
+  /* ★ 10-10 按需渲染：2.5D 平面图模式会设 window.__IDLE_PAUSE=true，
+     静止时**跳过重绘**（地图不动、相机没变，重绘整个 3D 场景纯属浪费
+     —— 几十万三角形 + 8192 阴影 + ACES 每帧跑，就是 CPU/内存被吃满的元凶）。
+     交互（拖拽/缩放）时 apply() 置 __DIRTY，下一帧才渲染一帧。
+     batch 截图页（?view=）不设 __IDLE_PAUSE ⇒ 保持原"每帧都画"，
+     探针 BAT_RENDER_COUNT 语义不变、批量截图链路零回归。 */
+  if (!window.__IDLE_PAUSE || window.__DIRTY) {
+    renderer.render(scene, camera);
+    if (window.__DIRTY) window.__DIRTY = false;
+  }
   BAT_RENDER_COUNT++;
 }
 batLoop();
@@ -7630,6 +7639,255 @@ window.__CAMP = {
     'radial-gradient(ellipse 80% 76% at 50% 46%, rgba(0,0,0,0) 44%, rgba(16,22,30,.30) 100%),' +
     'linear-gradient(to bottom, rgba(120,160,210,.06), rgba(0,0,0,0) 38%)';
   document.body.appendChild(vig);
+})();
+
+/* -*- coding: utf-8 -*- */
+/* ══════════════════════════════════════════════════════════════════
+   tower-15-flat25d.js —— 2.5D 平面图模式（2026-10-10，用户需求）
+
+   需求原话：「把那个我们生成的那个3d地图，把它做的可以移动，
+   然后把四周全部裁掉，直接就一个2.5d的平面图」
+
+   落地拆成四件事：
+     ① 裁四周 —— 隐藏城市层(name=city)与天空球，背景换成贴近地表的纯色；
+        相机平移范围钳制在校园包围盒（±300m）内，最远缩放也只看到
+        校园地台（ground 层 ±620m），永远不会露出"外面的世界"。
+     ② 可移动 —— 按住拖拽 = 抓住地图平移（鼠标/触屏统一走 pointer 事件）。
+     ③ 可缩放 —— 滚轮 + 双指捏合；双击复位回全校园取景。
+     ④ 2.5D —— 方位/俯角锁死（2.5D 平面图不转圈），只保留平移与缩放。
+
+   兼容：?view=xxx（截图链路 / view() 预设机位）**不走本模式**，
+   保留原 3D 航拍逻辑 —— 批量截图脚本零回归。
+   ══════════════════════════════════════════════════════════════════ */
+(function () {
+  /* 带 view= 参数 = 截图/预设机位用途，保持原 3D 行为 */
+  if (/[?&]view=/.test(location.search)) return;
+
+  /* ── ① 裁四周 ─────────────────────────────────────────────── */
+  var cityG = null;
+  CAMP_STAGE.children.forEach(function (g) { if (g.name === 'city') cityG = g; });
+  if (cityG) {
+    cityG.visible = false;
+    /* ★ 10-10 内存释放：只是 visible=false 的话，城市层 ±1800m 的贴图
+       和几何还赖在显存/内存里。整片城市 ≈ 几百 MB，白占。
+       dispose 掉几何 + 材质 + 纹理，再彻底移出舞台。 */
+    cityG.traverse(function (o) {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) {
+        var ms = Array.isArray(o.material) ? o.material : [o.material];
+        ms.forEach(function (m) {
+          if (m.map) m.map.dispose();
+          if (m.normalMap) m.normalMap.dispose();
+          m.dispose();
+        });
+      }
+    });
+    CAMP_STAGE.remove(cityG);
+  }
+
+  var skyMesh = null;
+  scene.traverse(function (o) {
+    if (o.isMesh && o.material && o.material.side === THREE.BackSide &&
+        o.geometry && o.geometry.type === 'SphereGeometry') skyMesh = o;
+  });
+  if (skyMesh) {
+    skyMesh.visible = false;
+    if (skyMesh.material && skyMesh.material.map) skyMesh.material.map.dispose();
+    if (skyMesh.material) skyMesh.material.dispose();
+    if (skyMesh.geometry) skyMesh.geometry.dispose();
+    if (skyMesh.parent) skyMesh.parent.remove(skyMesh);
+  }
+
+  /* 背景色取地表基色（v15c 的 ground 0x9E9A92 一族），缩到最远也无缝 */
+  scene.background = new THREE.Color(0x9AA091);
+  scene.fog = null;                               /* 雾是给城市远景用的，平面图不要 */
+
+  /* ── ①b 阴影（预渲染用，一次性）──────────────────────────────
+     阴影贴图是灯光视角渲染的，与相机无关。静态图只渲染一次，所以阴影
+     也只需渲染一次：降到 4096² + autoUpdate=false，预渲染那帧搞定。 */
+  var sunL = null;
+  scene.traverse(function (o) { if (o.isDirectionalLight) sunL = o; });
+  if (sunL && sunL.shadow) {
+    sunL.shadow.mapSize.set(4096, 4096);
+    if (sunL.shadow.map) { sunL.shadow.map.dispose(); sunL.shadow.map = null; }
+    sunL.shadow.autoUpdate = false;
+    sunL.shadow.needsUpdate = true;
+  }
+
+  /* ── ② 相机定到 2.5D 初始视角 ─────────────────────────────────
+     ★ 10-10 用户要求"只留围墙"：取景范围按围墙（CAMP_BOUND 用地红线）包围盒
+     精确计算，裁掉围墙外多余的地台。围墙是斜边的不规则圆角矩形，
+     所以不能再用"横向 640m"这种估算 —— 拿围墙 8 角在相机 right/up 轴
+     上投影求半跨度（复用 fitCameraTo 的同一套数学）。 */
+  var AZ = THREE.MathUtils.degToRad(36);
+  var EL = THREE.MathUtils.degToRad(55);
+  var cam = window.__CAMP_CAM;
+  if (!cam) return;
+
+  var bxMin = 1e9, bxMax = -1e9, bzMin = 1e9, bzMax = -1e9;
+  CAMP_BOUND.forEach(function (p) {
+    var wx = (p[0] - CAMP.ox) * CAMP.k;
+    var wz = (p[1] - CAMP.oz) * CAMP.k;
+    if (wx < bxMin) bxMin = wx; if (wx > bxMax) bxMax = wx;
+    if (wz < bzMin) bzMin = wz; if (wz > bzMax) bzMax = wz;
+  });
+  var cx = (bxMin + bxMax) / 2, cz = (bzMin + bzMax) / 2;
+
+  var dir = new THREE.Vector3(
+    Math.cos(EL) * Math.sin(AZ), Math.sin(EL), Math.cos(EL) * Math.cos(AZ)
+  ).normalize();
+  var fwd = dir.clone().negate();
+  var right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), fwd).normalize();
+  var up = new THREE.Vector3().crossVectors(fwd, right).normalize();
+
+  var projX = 0, projY = 0;
+  for (var i = 0; i < 8; i++) {
+    var px = (i & 1) ? bxMax : bxMin;
+    var py = (i & 2) ? 25 : 0;
+    var pz = (i & 4) ? bzMax : bzMin;
+    var d = new THREE.Vector3(px - cx, py - 5, pz - cz);
+    projX = Math.max(projX, Math.abs(d.dot(right)));
+    projY = Math.max(projY, Math.abs(d.dot(up)));
+  }
+  var aspectR = window.innerWidth / window.innerHeight;
+  /* 0.93：透视俯角下线性取景天然偏保守（远端透视缩小），再收 7% 让围墙贴边 */
+  var need = Math.max(projY, projX / aspectR) * 0.93;
+  var DIST0 = Math.min(900, Math.max(180, need / Math.tan(cam.fov * 0.5 * Math.PI / 180)));
+
+  cam.aspect = aspectR;
+  cam.updateProjectionMatrix();
+  cam.position.copy(new THREE.Vector3(cx, 5, cz)).addScaledVector(dir, DIST0);
+  cam.lookAt(cx, 5, cz);
+
+  /* ── ③ 预渲染一张高清静态图 ──────────────────────────────────
+     ★ 根治卡顿：2.5D 视角本来就锁死，根本不用每帧实时渲染 269 万三角形。
+     这里渲染**一张**长边 5120 的高清图（放大 3x 仍清晰），之后整个 WebGL
+     场景销毁 —— 内存从 2~3GB 降到一张几 MB 的图，拖拽/缩放零 GPU 渲染。 */
+  var MAX_EDGE = 3840;   /* 3840：放大 3x 仍清晰；5120 的同步编码在内存紧张时会卡死主线程 */
+  var w0 = window.innerWidth, h0 = window.innerHeight;
+  var scl = MAX_EDGE / Math.max(w0, h0);
+  var RW = Math.max(2, Math.round(w0 * scl));
+  var RH = Math.max(2, Math.round(h0 * scl));
+  renderer.setPixelRatio(1);
+  renderer.setSize(RW, RH, false);
+  renderer.domElement.style.width = '100%';
+  renderer.domElement.style.height = '100%';
+  renderer.render(scene, cam);
+  /* toBlob 异步编码（浏览器后台线程，不卡主线程——同步 toDataURL 在
+     大图 + 内存紧张时会阻塞几十秒把页面卡死），完成后销毁场景再显示静态图 */
+  renderer.domElement.toBlob(function (blob) {
+  var url = URL.createObjectURL(blob);
+
+  /* ── ④ 销毁 WebGL 场景（释放几何 + 纹理 + 阴影贴图 ≈ 2~3GB）──── */
+  window.__IDLE_PAUSE = true;                     /* batLoop 停止渲染 */
+  window.__DIRTY = false;
+  scene.traverse(function (o) {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) {
+      var ms = Array.isArray(o.material) ? o.material : [o.material];
+      ms.forEach(function (m) {
+        var keys = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap', 'alphaMap'];
+        keys.forEach(function (k) { if (m[k]) m[k].dispose(); });
+        m.dispose();
+      });
+    }
+  });
+  renderer.dispose();
+  renderer.forceContextLoss();
+  if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
+
+  /* ── ⑤ 显示静态图 + CSS transform 交互（零渲染）──────────────── */
+  var wrap = document.createElement('div');
+  wrap.style.cssText =
+    'position:fixed;left:0;top:0;right:0;bottom:0;overflow:hidden;' +
+    'background:#9AA091;cursor:grab;touch-action:none;z-index:1;';
+  var img = document.createElement('img');
+  img.draggable = false;
+  img.src = url;
+  img.style.cssText =
+    'position:absolute;left:50%;top:50%;width:100%;height:100%;' +
+    'object-fit:fill;transform-origin:50% 50%;will-change:transform;user-select:none;';
+  wrap.appendChild(img);
+  document.body.appendChild(wrap);
+
+  var tx = 0, ty = 0, sc = 1;
+  var SC_MIN = 0.85, SC_MAX = 3.5;
+  function render() {
+    img.style.transform = 'translate(-50%,-50%) translate(' + tx + 'px,' + ty + 'px) scale(' + sc + ')';
+  }
+  function clampPan() {
+    var rect = wrap.getBoundingClientRect();
+    var mx = Math.max(0, (sc - 1) * rect.width / 2);
+    var my = Math.max(0, (sc - 1) * rect.height / 2);
+    tx = Math.max(-mx, Math.min(mx, tx));
+    ty = Math.max(-my, Math.min(my, ty));
+  }
+  function zoomAt(cx, cy, factor) {
+    var rect = wrap.getBoundingClientRect();
+    var px = cx - rect.left - rect.width / 2;
+    var py = cy - rect.top - rect.height / 2;
+    var ns = Math.max(SC_MIN, Math.min(SC_MAX, sc * factor));
+    var k = ns / sc;
+    tx = px - (px - tx) * k;
+    ty = py - (py - ty) * k;
+    sc = ns;
+    clampPan();
+    render();
+  }
+  render();
+
+  var pointers = new Map();
+  var pinchD0 = 0, scAtPinch = 1;
+  wrap.addEventListener('pointerdown', function (e) {
+    try { wrap.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 2) {
+      var ps = Array.from(pointers.values());
+      pinchD0 = Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y);
+      scAtPinch = sc;
+    }
+    wrap.style.cursor = 'grabbing';
+  });
+  wrap.addEventListener('pointermove', function (e) {
+    if (!pointers.has(e.pointerId)) return;
+    var prev = pointers.get(e.pointerId);
+    var dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1) {
+      tx += dx; ty += dy;
+      clampPan(); render();
+    } else if (pointers.size === 2) {
+      var ps = Array.from(pointers.values());
+      var d = Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y);
+      if (pinchD0 > 0) {
+        sc = Math.max(SC_MIN, Math.min(SC_MAX, scAtPinch * d / pinchD0));
+        render();
+      }
+    }
+  });
+  function release(e) {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinchD0 = 0;
+    if (pointers.size === 0) wrap.style.cursor = 'grab';
+  }
+  wrap.addEventListener('pointerup', release);
+  wrap.addEventListener('pointercancel', release);
+  wrap.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    zoomAt(e.clientX, e.clientY, e.deltaY > 0 ? 0.9 : 1.1);
+  }, { passive: false });
+  wrap.addEventListener('dblclick', function () { tx = 0; ty = 0; sc = 1; render(); });
+
+  /* ── ⑥ 操作提示 ──────────────────────────────────────────── */
+  var tip = document.createElement('div');
+  tip.style.cssText =
+    'position:fixed;left:14px;bottom:14px;z-index:9;pointer-events:none;' +
+    'font:11px/1.6 ui-monospace,Consolas,monospace;letter-spacing:.08em;' +
+    'color:#EDF2F7;background:rgba(14,20,28,.72);border:1px solid rgba(255,255,255,.14);' +
+    'border-radius:10px;padding:7px 12px;';
+  tip.textContent = '静态 2.5D 平面图 // 拖拽移动 · 滚轮/双指缩放 · 双击复位';
+  document.body.appendChild(tip);
+  });  /* toBlob 回调结束 */
 })();
 
 </script>
