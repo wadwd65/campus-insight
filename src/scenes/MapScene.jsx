@@ -146,7 +146,7 @@ function SlotBar({ slots, total }) {
   );
 }
 
-export default function MapScene({ onGoReport, onGoQuiz, onUpload }) {
+export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry }) {
   const player = useGameStore((s) => s.player);
   const applyChoice = useGameStore((s) => s.applyChoice);
   const resetPlayer = useGameStore((s) => s.resetPlayer);
@@ -173,15 +173,31 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload }) {
   return (
     <div className="term-canvas term-grid relative min-h-full">
       <div className="relative max-w-5xl mx-auto px-6 py-8">
-        {/* ── 顶栏：时段 + 今日状态 ── */}
+        {/* ── 顶栏：返回 + 时段 + 今日状态 ── */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div>
-            <p className="term-mono text-[10px] tracking-[0.3em]" style={{ color: 'var(--term-ink-soft)' }}>
-              CAMPUS · ACTION MAP
-            </p>
-            <h2 className="text-xl font-semibold mt-1" style={{ color: 'var(--term-ink)' }}>
-              今天的四个时段，你打算怎么花
-            </h2>
+          <div className="flex items-center gap-4">
+            {/* ★ 10-10 修返回逻辑：此前从地图出发后全站回不到入口页（主页）。
+                HUD 上虽然也有了「◄ 主页」，但地图是整屏深色场景，
+                顶栏本地再放一颗更直观的，不用去找 HUD。 */}
+            {onGoEntry && (
+              <button
+                type="button"
+                onClick={onGoEntry}
+                className="term-mono text-[11px] px-3 py-1.5 rounded-sm transition hover:opacity-100"
+                style={{ color: 'var(--term-ink-soft)', border: '1px solid var(--term-line)' }}
+                title="回到站点主页（入口页）"
+              >
+                ← 返回主页
+              </button>
+            )}
+            <div>
+              <p className="term-mono text-[10px] tracking-[0.3em]" style={{ color: 'var(--term-ink-soft)' }}>
+                CAMPUS · ACTION MAP
+              </p>
+              <h2 className="text-xl font-semibold mt-1" style={{ color: 'var(--term-ink)' }}>
+                今天的四个时段，你打算怎么花
+              </h2>
+            </div>
           </div>
           <SlotBar slots={model.slots} total={model.slotsPerDay} />
         </div>
@@ -325,8 +341,6 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload }) {
                 不做站内场景、不参与任何评分功能，也不再往主流程里加耦合。 ── */}
             <a
               href={`${import.meta.env.BASE_URL}map/校园地图-3D实景.html`}
-              target="_blank"
-              rel="noreferrer"
               className="term-mono block w-full text-center text-[10.5px] py-2 tracking-[0.12em]"
               style={{ color: '#7d8b99', border: '1px dashed rgba(255,255,255,.16)', borderRadius: 3 }}
             >

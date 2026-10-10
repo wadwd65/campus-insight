@@ -425,21 +425,12 @@ button {
    正中一旦有按钮，整屏就读成"一个等待操作的对话框"；
    挪到角落，它才读成"一整片环境，你随时可以走进去"。 */
 .intro-enter {
-  position: absolute;
-  left: 3rem;
-  bottom: 3rem;
+  /* ★ 10-10 用户拍板：按钮固定居中。relative + margin auto = 跟随文档流、
+     水平居中，任何窗口尺寸都在标题正下方，不再分宽窄屏两套定位。 */
+  position: relative;
+  margin: 0 auto 2.5rem;
+  align-items: center;
   z-index: 20;
-}
-
-@media (max-width: 767px) {
-  /* 窄屏左下角会显得空悬，改回居中排列 */
-  .intro-enter {
-    position: relative;
-    left: auto;
-    bottom: auto;
-    margin: 0 auto 2.5rem;
-    align-items: center;
-  }
 }
 
 /* ── 玻璃质感 ──────────────────────────────────────────────────────
@@ -664,10 +655,74 @@ button {
 
 /* 浅色内容页上的玻璃卡：让深色环境层上的文字块仍然成立 */
 .atmo-panel {
-  background: rgba(10, 15, 22, 0.50);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(12px) saturate(1.1);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+  /* ★ 10-10 卡顿根治：**去掉 backdrop-filter**。
+     入口页这层面板面积最大，且压在"持续漂移的场景图 + 粒子动画"之上，
+     backdrop-filter 会让浏览器每帧对这一大块做实时模糊 = 帧数狂掉的根因
+     （参考视频的背景是静态图所以不卡，我们是动态背景，不能照搬真 blur）。
+     改用"假玻璃"：更不透明的深色底 + 内高光 + 圆角 + 阴影 ——
+     深色场景下玻璃感主要来自"透一点背景 + 高光边"，不靠实时模糊也成立。 */
+  background: rgba(10, 15, 22, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px; /* ★ 10-10 对齐参考站的圆角卡片观感 */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 24px 60px rgba(0, 0, 0, 0.42);
+}
+
+/* ── 深色场景玻璃卡（2026-10-10，参考 B 站二次元博客 BV1RMorB7E1K）──────
+   参考站的配方：半透明底 + 白色细边 + 圆角 + 内侧高光线。
+   ★ 性能（10-10 排查卡顿）：**去掉 backdrop-filter**。
+   原因：入口页同时存在主面板 blur + 两个按钮 blur = 3 层实时模糊，又叠在
+   持续动画的背景（粒子 + 场景漂移）上，浏览器每帧要对每层背后的动画
+   重做全区域模糊 → 明显掉帧。按钮面积小、透出背景有限，去掉 blur 后
+   用略高的半透明底 + 内高光补偿，玻璃感几乎无差别，却省掉 2 次逐帧模糊。 */
+.glass-card {
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    0 12px 36px rgba(0, 0, 0, 0.38);
+  transition:
+    background 200ms ease,
+    box-shadow 200ms ease,
+    transform 130ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 130ms ease;
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-3px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 18px 44px rgba(0, 0, 0, 0.46);
+}
+
+/* 按下去要"有感觉"：回弹曲线收尾 + 提亮 + 高光加深，三件事一起上才叫反馈 */
+.glass-card:active {
+  transform: translateY(1px) scale(0.955);
+  filter: brightness(1.45);
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+/* ── 全站点击反馈（2026-10-10）────────────────────────────────────
+   用户要求"点击要有强烈的反馈"。入口按钮之外，全站还有几十颗
+   term-panel 卡片与 mono 小按钮，一颗颗加类不现实 —— 就在全局层兜底：
+   所有可按下的按钮，按下瞬间缩小 4%。
+   ★ 性能：只做 transform 缩放（GPU 合成、零重排），**不用 filter 亮度**
+   —— filter 会和场景层的 backdrop-filter 叠加建合成层，拖慢入口页。 */
+button:not(:disabled) {
+  transition-property: transform;
+  transition-duration: 120ms;
+  transition-timing-function: ease;
+}
+
+button:not(:disabled):active {
+  transform: scale(0.96) translateZ(0);
 }
 
 

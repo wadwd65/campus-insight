@@ -24,7 +24,7 @@ import { TERMINAL } from '../lib/terminalTheme.js';
 import { HUD_HALF, signed, summarizeAttributes } from '../lib/hudModel.js';
 import { useGameStore } from '../store/useGameStore.js';
 
-export default function HubHud({ onRestart }) {
+export default function HubHud({ onRestart, onGoEntry }) {
   const player = useGameStore((s) => s.player);
   const backToIntro = useGameStore((s) => s.backToIntro);
   const resetPlayer = useGameStore((s) => s.resetPlayer);
@@ -37,6 +37,22 @@ export default function HubHud({ onRestart }) {
       <div className="max-w-5xl mx-auto px-6 pt-4 pb-3">
         {/* 第一行：身份与状态 */}
         <div className="flex items-center gap-3 flex-wrap">
+          {/* ★ 10-10 修返回逻辑：入口页（entry）是一级界面，但此前全站的"返回"都指向
+              backToMap（地图）—— 进入地图之后没有任何一条路能回到主页。
+              这颗按钮随 HUD 全站可见（地图 / 答题 / 报告 / 上传 / 群体画像都渲染它），
+              任何页面都能一键回主页。 */}
+          {onGoEntry && (
+            <button
+              type="button"
+              onClick={onGoEntry}
+              className="term-mono text-[11px] transition-opacity hover:opacity-100"
+              style={{ color: TERMINAL.inkSoft }}
+              title="回到站点主页（入口页）"
+            >
+              ◄ 主页
+            </button>
+          )}
+
           <button
             type="button"
             onClick={backToIntro}

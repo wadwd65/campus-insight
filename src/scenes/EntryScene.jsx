@@ -76,13 +76,13 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
             <span className="ml-1">（两条路都走完这三段）</span>
           </div>
 
-          {/* 一级入口 */}
+          {/* 一级入口（★ 10-10 玻璃化：参考 BV1RMorB7E1K 的毛玻璃卡片，
+              点击反馈由 .glass-card:active 的回弹+提亮承担） */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
             <button
               type="button"
               onClick={onGoUpload}
-              className="relative text-left px-5 py-5 rounded-sm transition"
-              style={{ background: 'rgba(106,169,255,.14)', border: `1px solid ${BRAND}` }}
+              className="glass-card relative text-left px-5 py-5"
             >
               <span className="term-mono text-[10px] tracking-[0.25em]" style={{ color: BRAND }}>
                 01 · DATA BOARD
@@ -101,8 +101,7 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
             <button
               type="button"
               onClick={onGoQuiz}
-              className="relative text-left px-5 py-5 rounded-sm transition"
-              style={{ background: CARD, border: `1px solid ${LINE}` }}
+              className="glass-card relative text-left px-5 py-5"
             >
               <span className="term-mono text-[10px] tracking-[0.25em]" style={{ color: INK_SOFT }}>
                 02 · ASSESSMENT
@@ -130,8 +129,6 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
               </button>
               <a
                 href={`${import.meta.env.BASE_URL}map/校园地图-3D实景.html`}
-                target="_blank"
-                rel="noreferrer"
                 style={{ color: INK_SOFT }}
               >
                 3D 实景校园（附加展示）

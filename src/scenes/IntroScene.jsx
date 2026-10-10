@@ -241,7 +241,7 @@ export default function IntroScene() {
 
           玻璃质感（.glass-btn）是这一版新加的：参考里可操作的东西
           读起来是"按在玻璃上"，而不是"一块实心色块"。 */}
-      <div className="intro-enter intro-line flex flex-col gap-4 items-start" style={at(INTRO_TIMING.cta)}>
+      <div className="intro-enter intro-line flex flex-col gap-4 items-center" style={at(INTRO_TIMING.cta)}>
         <span className="term-mono text-[11px]" style={{ color: LIGHT.inkSoft }}>
           欢迎回来
         </span>

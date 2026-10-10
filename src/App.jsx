@@ -155,7 +155,7 @@ export default function App() {
   if (stage === 'map') {
     return (
       <div className="min-h-full flex flex-col term-enter">
-        <HubHud onRestart={restart} />
+        <HubHud onRestart={restart} onGoEntry={() => setStage('entry')} />
         {/* 地图整屏都是深的，所以这里**不加**过渡带 ——
             过渡带的作用是"深浅相接处化一下"，而这里两侧都是深色，
             加一条亮线只会在深色里多出一条没有意义的横线。 */}
@@ -168,6 +168,7 @@ export default function App() {
             }}
             onGoQuiz={() => setStage('gate')}
             onUpload={() => setStage('upload')}
+            onGoEntry={() => setStage('entry')}
           />
         </main>
       </div>
@@ -176,7 +177,7 @@ export default function App() {
 
   return (
     <div className="min-h-full flex flex-col term-enter">
-      <HubHud onRestart={restart} />
+      <HubHud onRestart={restart} onGoEntry={() => setStage('entry')} />
       {/* 深色 HUD → 浅色正文的过渡带。见 index.css 的 .term-seam 说明：
           不加它，这条边界就是一条硬切的黑白线。 */}
       <div className="term-seam" aria-hidden="true" />

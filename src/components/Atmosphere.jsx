@@ -29,13 +29,30 @@ const initEngine = async (engine) => {
 export default function Atmosphere({ variant = 'scene' }) {
   const [particlesOn, setParticlesOn] = useState(false);
 
+  /* 检测软件渲染（SwiftShader 等）：软渲染下 canvas 粒子逐帧绘制极吃 CPU，
+     是"浏览器关了硬件加速"时的卡顿主源 —— 这种环境直接不渲染粒子。 */
+  function isSoftwareRenderer() {
+    try {
+      if (typeof WebGLRenderingContext === 'undefined') return true;
+      var cv = document.createElement('canvas');
+      var gl = cv.getContext('webgl');
+      if (!gl) return true;
+      var ext = gl.getExtension('WEBGL_debug_renderer_info');
+      var name = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '') : '';
+      return /swiftshader|software|llvmpipe|basic render/i.test(name);
+    } catch (e) {
+      return true;
+    }
+  }
+
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return undefined;
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    /* ★ 10-08 自查发现的缺口：只在挂载时判断的话，用户**中途**改成"减少动态"
+    /* ★ 10-10 自查发现的缺口：只在挂载时判断的话，用户**中途**改成"减少动态"
        粒子不会卸载（动画已被 CSS 关掉，但 canvas 还在跑）。
-       这里挂监听，设置一变就跟着开/关。 */
-    const sync = () => setParticlesOn(!mq.matches);
+       这里挂监听，设置一变就跟着开/关。
+       ★ 再加一条：软渲染环境（浏览器关硬件加速）也不渲染粒子。 */
+    const sync = () => setParticlesOn(!mq.matches && !isSoftwareRenderer());
     sync();
     if (mq.addEventListener) mq.addEventListener('change', sync);
     else mq.addListener(sync);                       // 老 Safari
@@ -50,9 +67,13 @@ export default function Atmosphere({ variant = 'scene' }) {
     const narrow = typeof window !== 'undefined' && window.innerWidth < 720;
     return {
       fullScreen: { enable: false },
-      detectRetina: true,
+      /* ★ 10-10 性能：关 retina（canvas 面积减半）、粒子数下调、限制 30fps。
+         粒子是常驻逐帧 canvas 动画，是入口页唯一的持续 CPU 开销；
+         30fps 的粒子肉眼仍流畅，但逐帧绘制成本直接减半。 */
+      detectRetina: false,
+      fpsLimit: 30,
       particles: {
-        number: { value: narrow ? 28 : 72 },
+        number: { value: narrow ? 14 : 30 },
         color: { value: ['#bfe3ff', '#ffd9ea', '#ffffff'] },
         shape: { type: 'circle' },
         opacity: {
