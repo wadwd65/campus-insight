@@ -27,13 +27,27 @@
  * 为了让这些真的能被测到，传输配置走 endpoint 注入 —— 生产不传，读环境变量。
  */
 
-import { buildSummaryRequest } from './buildSummary.js';
+import { buildSummaryRequest, buildSummaryFacts } from './buildSummary.js';
 import { fallbackText } from './fallback.js';
 import { consumeSseStream } from './sse.js';
+import { validateSummary } from './validateSummary.js';
 
 const DEFAULT_TIMEOUT_MS = 25000;
 /** 上限只防跑飞：正常输出 320 字，900 字已经是很长的余量。 */
 const MAX_CHARS = 900;
+
+/**
+ * ★ 10-13：判定为"不能给用户看"的问题类型（见 validateSummary.js）。
+ *   出现其中任何一种，整段改用内置文案 —— 并把 reason 标成 invalid-summary，
+ *   界面会如实显示"模型这次写得不对，已改用本地文案"，不假装是网络问题。
+ *
+ *   ⚠️ 刻意**不含 `too-short`**：短 ≠ 错。
+ *   · 「说错话」（编造数字 / 诊断口吻）必须拦 —— 那会误导用户；
+ *   · 「说得少」只是不理想，而且"没写完"已经由 looksComplete（结尾标点）单独守着。
+ *   把 too-short 也当硬伤会误伤：一句正常但简短的话会被整段丢掉，换成更长的内置文案，
+ *   这既不是用户的意图，也让"短测试样本"这类正当输入被误判。
+ */
+const HARD_ISSUE_TYPES = new Set(['empty', 'invented-number', 'diagnosis']);
 
 /**
  * 读环境变量。
@@ -155,7 +169,19 @@ export async function streamSummary({
     if (signal?.aborted) return { text, degraded: false, reason: null, aborted: true };
     if (!looksComplete(text)) return degrade('truncated');
 
-    return { text, degraded: false, reason: null };
+    // ★ 10-13 审查新增（任务书 P3#4 / 验收"AI 不会将虚构数字混入统计结果"）：
+    //   模型输出在显示之前先过一遍落地校验。
+    //   硬伤（编造数字 / 心理诊断口吻 / 空）**整段降级** —— 一段错的话比没有话更糟：
+    //   用户不会去核对，但答辩时评委一读就发现数字对不上。
+    //   软问题（格式符号、禁用词）照常显示，只把清单带回给调用方（可记控制台）。
+    // ★ 群体链路（cohortSummary）传 report: null —— 此时不传 facts，
+    //   校验自动跳过"数字白名单"那一项，只查格式 / 诊断口吻 / 禁用词。
+    const facts = report ? buildSummaryFacts(report) : null;
+    const verdict = validateSummary(text, { facts });
+    const hard = verdict.issues.filter((i) => HARD_ISSUE_TYPES.has(i.type));
+    if (hard.length) return degrade('invalid-summary');
+
+    return { text, degraded: false, reason: null, issues: verdict.issues };
   } catch (e) {
     if (signal?.aborted) return { text: '', degraded: false, reason: null, aborted: true };
     return degrade(timedOut ? 'timeout' : 'network');

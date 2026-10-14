@@ -138,8 +138,12 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
                   </div>
                 </TermPanel>
               ))}
-              <p className="text-xs text-[var(--ink-soft)] pt-1">
-                你自己的类型是「{cohort.similar.mineGroup}」那一种。
+              {/* ★ 10-14 审查（任务书 P4#7）：原句「你自己的类型是「X」那一种。」
+                  读起来像在给人贴标签。这里补上归类规则 —— 它是**按最突出的那一维**
+                  做的规则分组，不是人格分类，也不代表"你就是这一类人"。 */}
+              <p className="text-xs text-[var(--ink-soft)] pt-1 leading-5">
+                按最突出的那一维归类，你落在「{cohort.similar.mineGroup}」——
+                这只是一种便于对照的规则分组，不是给你下定义。
               </p>
             </div>
           ) : (

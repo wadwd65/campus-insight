@@ -13,8 +13,9 @@
  *   单行选项不认识 → 剔除该行（说明数据脏，但其余仍可用）
  */
 
-import { QUESTIONS, OPTIONAL_COLUMNS, isKnownOption } from './surveySchema.js';
+import { QUESTIONS, OPTIONAL_COLUMNS, isKnownOption, MATRIX_VERSION } from './surveySchema.js';
 import { normalizeCell } from './text.js';
+import matrixJson from '../data/matrix.json' with { type: 'json' };
 
 /**
  * @param {{__line:number, __raw:object}[]} rows parseCsvText 的输出
@@ -27,6 +28,14 @@ export function cleanSurveyRows(rows) {
   const reasons = new Map(); // 原因 → {count, samples:[]}
   const details = []; // 前若干条具体错误，供「查看详情」展开
 
+  // ★ 10-14 审查补全（任务书 P4#3）：缺失值与非法选项**分开统计**。
+  // 原来两类都并进"有选项不在题目选项范围内"一个桶里，用户看不出到底是
+  // "有格子是空的"还是"填了不认识的选项"——而这两件事的改法完全不同。
+  let missingCells = 0;   // 空值单元格数（不是行数：一行可能空好几格）
+  let invalidCells = 0;   // 不在选项范围内的单元格数
+  let missingRows = 0;    // 含空值的行数
+  let invalidRows = 0;    // 含非法选项的行数
+
   const bump = (label, line, hint) => {
     if (!reasons.has(label)) reasons.set(label, { label, count: 0, samples: [], hint });
     const r = reasons.get(label);
@@ -37,21 +46,33 @@ export function cleanSurveyRows(rows) {
   for (const { __line, __raw } of rows) {
     const values = {};
     const problems = [];
+    let rowMissing = 0;
+    let rowInvalid = 0;
 
     for (const q of QUESTIONS) {
       const text = normalizeCell(__raw?.[q.field]);
       values[q.field] = text;
 
       if (!text) {
-        problems.push({ field: q.field, message: `「${q.field}」是空的` });
+        rowMissing += 1;
+        problems.push({ field: q.field, type: 'missing', message: `「${q.field}」是空的` });
       } else if (!isKnownOption(q.field, text)) {
+        rowInvalid += 1;
         // 报「第几行、哪一列、原值是什么」—— 只说「数据格式错误」等于没说
-        problems.push({ field: q.field, message: `「${q.field}」的值「${text}」不在该题的选项里` });
+        problems.push({ field: q.field, type: 'invalid', message: `「${q.field}」的值「${text}」不在该题的选项里` });
       }
     }
 
     if (problems.length) {
-      const label = '有选项不在题目选项范围内';
+      missingCells += rowMissing;
+      invalidCells += rowInvalid;
+      if (rowMissing) missingRows += 1;
+      if (rowInvalid) invalidRows += 1;
+
+      // 分开记账：一行里既有空格又有非法值时要能区分主要病因
+      const label = rowInvalid >= rowMissing
+        ? '有选项不在题目选项范围内'
+        : '有单元格是空的';
       bump(label, __line, '检查这一列是否填了错别字，或用了别的版本的问题表述');
       if (details.length < 20) details.push({ line: __line, problems });
       continue;
@@ -82,6 +103,7 @@ export function cleanSurveyRows(rows) {
 
   const inputCount = rows.length;
   const droppedCount = inputCount - records.length;
+  const base = matrixJson?.baselineMeta ?? {};
 
   return {
     ok: records.length > 0,
@@ -90,21 +112,42 @@ export function cleanSurveyRows(rows) {
       inputCount,
       keptCount: records.length,
       droppedCount,
+      /** 剔除比例（0~1）—— 质量判断用，不再让调用方各算一遍 */
+      dropRatio: inputCount ? droppedCount / inputCount : 0,
       duplicateCount,
       duplicateSuspicious: inputCount > 0 && duplicateCount / inputCount > 0.5,
+      // ★ 10-14 补全：细分统计（任务书 P4#3）
+      missingCells,
+      invalidCells,
+      missingRows,
+      invalidRows,
+      // ★ 10-14 补全：基准版本与数据来源 —— 报告里必须能说清"拿什么当的分母"
+      baseline: {
+        version: MATRIX_VERSION,
+        sampleSize: base.sampleSize ?? null,
+        source: base.source ?? null,
+        disclaimer: base.disclaimer ?? null,
+      },
       reasons: [...reasons.values()],
-      summary: buildSummary(inputCount, records.length, reasons, duplicateCount),
+      summary: buildSummary(inputCount, records.length, reasons, duplicateCount, {
+        missingCells, invalidCells, missingRows, invalidRows,
+      }),
     },
     details,
   };
 }
 
-function buildSummary(inputCount, keptCount, reasons, duplicateCount) {
+function buildSummary(inputCount, keptCount, reasons, duplicateCount, cells = {}) {
   const parts = [];
 
   if (reasons.size) {
+    // 把"多少格是空的、多少格填错了"先说清楚 —— 这决定了用户去改哪一列
+    const detail = [];
+    if (cells.missingCells) detail.push(`空格 ${cells.missingCells} 处（涉及 ${cells.missingRows} 行）`);
+    if (cells.invalidCells) detail.push(`选项不匹配 ${cells.invalidCells} 处（涉及 ${cells.invalidRows} 行）`);
+
     parts.push(
-      `剔除 ${inputCount - keptCount} 条：${[...reasons.values()]
+      `剔除 ${inputCount - keptCount} 条${detail.length ? '（' + detail.join('、') + '）' : ''}：${[...reasons.values()]
         .map((r) => {
           const where = r.samples.length
             ? `（第 ${r.samples.join('、')} 行${r.count > r.samples.length ? ' 等' : ''}）`

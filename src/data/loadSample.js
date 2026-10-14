@@ -52,5 +52,14 @@ export function loadBaseline() {
     return cache;
   })();
 
+  // ★ 10-14 审查修复（任务书 P5#2「数据加载失败后能否重试」）：
+  //   原实现只在**成功**路径里 `pending = null`。一旦失败，`pending` 就永久留着一个
+  //   rejected promise —— 之后无论调用多少次，返回的都是同一个失败，重试按钮形同虚设。
+  //   这里补上失败清理：失败后把 pending 清掉，下一次调用才会真的重新发起请求。
+  //   （cache 不设，所以成功后仍然只算一次 —— 缓存语义不变。）
+  pending.catch(() => {
+    pending = null;
+  });
+
   return pending;
 }

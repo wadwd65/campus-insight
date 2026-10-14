@@ -140,7 +140,11 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
                style={{ borderTop: `1px solid ${LINE}` }}>
             <FooterNote title="数据不出浏览器" body="上传的 CSV 只在本机解析与计算，服务端拿不到原始作答。" />
             <FooterNote title="没有密钥也完整" body="大模型不可用时，解读自动降级为本地规则按同一套数字生成。" />
-            <FooterNote title="426 项自检" body="每次提交前自动验证计算层、两条主线与构建产物。" />
+            {/* ★ 10-14 审查修复：这里原写「426 项自检」。加了隐私(8)/统计(25)/AI(11)/CSV(34)
+                四道闸门后，真实值是 505。
+                ⚠️ 这是**手写常量**，每加测试都要同步 —— 已经因为漏改而被用户看到过一次。
+                根治办法是构建期从 check 汇总注入，但那要先给 check 加机器可读输出，留待后续。 */}
+            <FooterNote title="505 项自检" body="每次提交前自动验证计算层、两条主线、隐私白名单、统计边界、AI 落地与构建产物。" />
           </div>
         </div>
       </div>

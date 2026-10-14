@@ -1,6 +1,18 @@
 {
   "version": 1,
   "note": "选项 → 属性增量矩阵。Python 生成端与 JS 计算端共用这一份，避免两处定义漂移。设计依据见 docs/设计-01-问题与映射矩阵.md 第二节、第四节。",
+  "baselineMeta": {
+    "file": "public/data/问卷基准数据.csv",
+    "sampleSize": 2000,
+    "generator": "scripts/generate-survey-data.py",
+    "seed": 20260914,
+    "generatedOn": "2026-09-14",
+    "sampling": "按 6 种人群亚型加权采样（非每题独立均匀随机，否则 2000 人会挤成正态云、百分位失去意义）",
+    "source": "程序化模拟生成，不是真实调查数据",
+    "disclaimer": "这是模拟基准人群，用于演示百分位机制；不得表述为真实大学生总体排名",
+    "percentileClamp": [2, 98],
+    "percentileClampNote": "百分位夹在 2~98 是**显示范围限制**（避免出现「超过 0% 的人」这种不可读的表述），不是统计有效性证明；2000 条基准在两端的精度本来就不足"
+  },
   "attributes": [
     { "key": "academic", "label": "学术投入", "axis": "学术力" },
     { "key": "social", "label": "社交活跃", "axis": "社交力" },

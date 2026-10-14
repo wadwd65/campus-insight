@@ -19,8 +19,9 @@
  */
 
 import { RADAR_KEYS, RADAR_AXIS_NAME } from './results.js';
-import { ALL_ATTR_KEYS, labelOf } from './surveySchema.js';
+import { ALL_ATTR_KEYS, BASE_ATTR_KEYS, labelOf } from './surveySchema.js';
 import { toAttributeMatrix, toPercents, toAttributes } from './matrix.js';
+import { THRESHOLDS } from './thresholds.js';
 
 /**
  * 分组依据：**这个人最突出的那一个维度**。
@@ -73,9 +74,25 @@ const stdev = (xs) => {
   return Math.sqrt(mean(xs.map((x) => (x - m) ** 2)));
 };
 
-/** 九维属性上的欧氏距离 —— 「和你最像的人」就按这个排。 */
-function distance(a, b) {
-  return Math.sqrt(ALL_ATTR_KEYS.reduce((s, k) => s + (a[k] - b[k]) ** 2, 0));
+/**
+ * 八维属性上的欧氏距离 —— 「和你最像的人」就按这个排。
+ *
+ * ★ 10-14 审查修复（任务书 P4#6）：这里原来用 `ALL_ATTR_KEYS`（9 个，含派生 `buddhist`），
+ *   会让基础属性被**重复计权**。
+ *
+ *   问题很具体：`buddhist = -1×plan + 1×resilience` —— 它完全是两个基础属性的线性组合，
+ *   **不含任何新信息**。把它加进距离，等于让 plan 与 resilience 各被算了两遍
+ *   （一遍直接、一遍经由 buddhist），这两维的权重被放大到约两倍，
+ *   而"佛系"这个视角本身是零成本的 —— 于是"最像的人"会被这两维主导。
+ *
+ *   ⇒ 距离只在**基础维度**上算。派生属性仍然用于显示（称号、雷达图、分组），
+ *     但它是"看法"，不是"新事实"，不该进相似度公式。
+ *
+ * @param {Record<string,number>} a
+ * @param {Record<string,number>} b
+ */
+export function distance(a, b) {
+  return Math.sqrt(BASE_ATTR_KEYS.reduce((s, k) => s + ((a?.[k] ?? 0) - (b?.[k] ?? 0)) ** 2, 0));
 }
 
 /**
@@ -118,8 +135,9 @@ export function buildCohort(records, baseline, ownAnswers = null) {
   });
 
   const most = [...groups].sort((a, b) => b.count - a.count)[0];
-  // 分歧最大的维度：只有样本够多时才说这句话 —— 3 个人的"分歧最大"没有意义
-  const divergent = total >= 8 ? [...axes].sort((a, b) => b.iqr - a.iqr)[0] : null;
+  // 分歧最大的维度：只有样本够多时才说这句话 —— 3 个人的"分歧最大"没有意义。
+  // ★ 10-14：阈值改从 thresholds.js 取（原来是硬编码的 8），全站统一。
+  const divergent = total >= THRESHOLDS.minRecordsForDivergence ? [...axes].sort((a, b) => b.iqr - a.iqr)[0] : null;
 
   // ── 三 · 与你最像的人 ──
   // 需要"你"存在，所以只有在本会话答过快入口时才算。没答过就不编一个"你"出来。
@@ -166,12 +184,21 @@ export function buildCohort(records, baseline, ownAnswers = null) {
 export function cohortHeadline(cohort) {
   const { size, most, groups, divergent } = cohort;
   if (!size) return '';
+  // ★ 10-14（任务书 P4#8）：样本太少时，连"整体结论"都不该给 ——
+  //   与其给一句看起来权威实则无意义的话，不如直说"看不出稳定规律"。
+  if (size < THRESHOLDS.minRecordsForCohort) {
+    return `${size} 个人的样本太少，只能看个体分布，看不出稳定的群体特征。`;
+  }
   const parts = [`${size} 个人里，${most.name}最多（${most.count} 人，${most.pct}%）。`];
   const empty = groups.filter((g) => g.count === 0);
   if (empty.length === 1) parts.push(`一个${empty[0].name}都没有。`);
   else if (empty.length > 1) parts.push(`没有${empty.map((g) => g.name).join('、')}。`);
-  if (divergent && divergent.iqr >= 24) {
+  if (divergent && divergent.iqr >= THRESHOLDS.divergentIqr) {
     parts.push(`分歧最大的是「${divergent.axis}」—— 一半人落在 ${divergent.q1}~${divergent.q3} 之间，这个班在这件事上很不一样。`);
+  }
+  // 样本偏少时补一句谨慎提示（阈值集中配置，见 thresholds.js）
+  if (size < THRESHOLDS.minRecordsForWarning) {
+    parts.push(`样本量偏少（${size} 人），以上结论仅供参考。`);
   }
   return parts.join('');
 }

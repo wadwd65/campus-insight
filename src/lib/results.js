@@ -246,7 +246,7 @@ function describe(item) {
 /**
  * 完整报告。基线由 buildBaseline() 从基准 CSV 算出来，只算一次，全站共用。
  *
- * @param {Record<string,string>} answers 6 个字段 → 选项文本
+ * @param {Record<string,string>} answers 题目字段 → 选项文本（字段数由 matrix.json 决定，当前 10 个）
  * @param {{size:number, sorted:object}} baseline
  */
 export function buildReport(answers, baseline) {

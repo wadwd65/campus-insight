@@ -141,12 +141,20 @@ export default function ReportView({
           n={fromMap && trail?.length > 0 ? 2 : 1}
           show={step >= 1}
           title="大学生活者画像"
-          hint="每个数字的意思是：你超过了多少比例的大学生"
+          hint="每个数字的意思是：你超过了多少比例的大学生（基准人群为模拟数据，见页脚说明）"
         >
           <RadarChart data={report.radar} />
         </Section>
 
-        <Section n={fromMap && trail?.length > 0 ? 3 : 2} show={step >= 2} title="时间去哪了">
+        {/* ★ 10-13 审查补注（任务书 P2#7）：时间分配与四年曲线都由百分位经固定公式
+            "估算"出来，属于叙事性推导，不是实测记录 —— 以前这两处都没说，读者容易
+            把环形图上的百分比当成"他真的这样分配时间"。这里把口径写在标题下方。 */}
+        <Section
+          n={fromMap && trail?.length > 0 ? 3 : 2}
+          show={step >= 2}
+          title="时间去哪了"
+          hint="按你的回答推算的时间分配倾向，不是实测记录"
+        >
           <TimeDonut data={report.timeSplit} />
         </Section>
 
@@ -154,7 +162,7 @@ export default function ReportView({
           n={fromMap && trail?.length > 0 ? 4 : 3}
           show={step >= 3}
           title="四年心情曲线"
-          hint="不是分数，只是一条相对起伏的线"
+          hint="不是分数，也不是实测 —— 按你的回答绘出的一条相对起伏的线"
         >
           <MoodCurve data={report.moodCurve} />
         </Section>

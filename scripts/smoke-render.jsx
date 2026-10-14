@@ -28,6 +28,7 @@ import UploadPanel from '../src/components/UploadPanel.jsx';
 import HubHud from '../src/components/HubHud.jsx';
 import MapScene from '../src/scenes/MapScene.jsx';
 import IntroScene from '../src/scenes/IntroScene.jsx';
+import { ErrorBlock } from '../src/App.jsx';
 import { useGameStore } from '../src/store/useGameStore.js';
 import { parseCsvText } from '../src/lib/parseCsv.js';
 import { cleanSurveyRows } from '../src/lib/surveyClean.js';
@@ -133,15 +134,21 @@ check('标题与三块内容都在', ['这个班的位置', '这个班分成几�
 check('给出了「最像的人」', /非常像|挺像|有点像/.test(cohortText));
 check('写明了示例数据是模拟的', cohortText.includes('模拟生成'));
 
-// 「你自己的类型是『?』」那一句必须印中文组名。
+// 「你落在『?』」那一句必须印中文组名。
 // groupOf() 返回的是键（academic/buddhist…），漏了 key→name 的映射就会把英文键印到页面上 ——
 // 而且这件事**不会**触发上面任何一条断言：页面结构完好，只是有一个词是英文的。
-const mineGroupMatch = /你自己的类型是「([^」]*)」/.exec(cohortText);
+//
+// ★ 10-14：文案按审查任务书 P4#7 改过 —— 原来写「你自己的类型是「X」那一种」，
+//   像在给人贴标签；现在是「按最突出的那一维归类，你落在「X」—— 这只是一种便于对照的
+//   规则分组，不是给你下定义」。断言跟着改的是**正则**，不是被测逻辑。
+const mineGroupMatch = /你落在「([^」]*)」/.exec(cohortText);
 check(
-  '「你自己的类型」印的是中文组名而不是英文键',
+  '「你的分组」印的是中文组名而不是英文键',
   mineGroupMatch != null && /^[\u4e00-\u9fa5]+型$/.test(mineGroupMatch[1]),
   mineGroupMatch ? `实际印出：「${mineGroupMatch[1]}」` : '页面上没找到这句话',
 );
+check('分组文案说明了这是规则归类、不是人格标签',
+  cohortText.includes('规则分组') || cohortText.includes('不是给你下定义'));
 
 // 没答过快入口时，不该凭空造一个「你」
 const noMeHtml = plain(
@@ -159,6 +166,9 @@ const uploadText = plain(uploadHtml);
 check('列出了必需列名', REQUIRED_COLUMNS.every((c) => uploadText.includes(c)));
 check('说明了文件不会上传', uploadText.includes('不会上传到任何服务器'));
 check('提供了示例入口', uploadText.includes('示例班级问卷'));
+// ★ 10-14（任务书 P4#2）：文件大小上限必须在**用户选文件之前**就可见 ——
+//   事后报错不如事前告知；这条断言同时守住"限制真的接到了界面上"
+check('事先告知了文件大小上限', uploadText.includes('不超过 5 MB'), uploadText.slice(0, 0) || '找 "不超过 5 MB"');
 
 // ── 4.5 · 主站 HUD ──
 // 这里只验**空态**。有数据时的显示规则（正负、分母、最强最弱）不在这一步验，
@@ -388,6 +398,18 @@ console.log('\n4.9 · 入场页（第一屏）');
   const styleAttrs = introHtml.match(/style="[^"]*"/g) || [];
   check('没有 NaNpx / undefined% 这类坏样式值', !styleAttrs.some((s) => /NaN|undefined/.test(s)));
 }
+
+// ── 4.6 · 基准加载失败页 ──
+// ★ 10-14（任务书 P5#2「数据加载失败后能否重试」）：
+//   原实现只有一条错误文案，没有任何出路 —— 用户只能刷新浏览器。
+//   这里守住"错误页必须提供一个重试入口"。
+console.log('\n4.6 · 基准加载失败页');
+const errHtml = render('错误页', h(ErrorBlock, { message: '测试用错误信息', onRetry: () => {} }));
+const errText = plain(errHtml);
+check('说明了加载失败', errText.includes('基准数据没能加载'));
+check('显示了具体原因', errText.includes('测试用错误信息'));
+check('提供了「重新加载」按钮（失败后有出路）', errText.includes('重新加载'));
+check('给了排查方向（文件是否被删）', errText.includes('public/data'));
 
 // ── 5 · 全局兜底：页面上不许出现这三种"坏味道" ──
 // 这一项扫的是**未归一化**的原始 HTML：字段名写错时，坏字符串也可能落在属性里，

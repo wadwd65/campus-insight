@@ -24,6 +24,7 @@ import { useRef, useState } from 'react';
 import { parseCsvText } from '../lib/parseCsv.js';
 import { cleanSurveyRows } from '../lib/surveyClean.js';
 import { REQUIRED_COLUMNS } from '../lib/surveySchema.js';
+import { checkFileSize, assessQuality, THRESHOLDS } from '../lib/thresholds.js';
 import { BRAND } from '../lib/theme.js';
 import TermPanel from './TermPanel.jsx';
 import { MonoTag, SectionHead } from './TermHead.jsx';
@@ -69,6 +70,14 @@ export default function UploadPanel({ onReady, onBack }) {
 
   async function readFile(file) {
     if (!file) return;
+    // ★ 10-14 审查新增（任务书 P4#2）：**读取前**先看大小。
+    //   `file.text()` 会把整个文件读进内存，一个误选的视频能直接把页面卡死 ——
+    //   所以要在读之前挡，而不是读完再判断。
+    const sizeCheck = checkFileSize(file);
+    if (!sizeCheck.ok) {
+      setError({ title: '这个文件太大了', message: sizeCheck.message });
+      return;
+    }
     setBusy(true);
     try {
       // 文件用 UTF-8 读。Excel 另存的 GBK CSV 在这里会读出乱码，
@@ -184,6 +193,7 @@ export default function UploadPanel({ onReady, onBack }) {
 
           <p className="text-xs text-[var(--ink-soft)] leading-5 mt-4">
             文件只在你的浏览器里被读取和计算，不会上传到任何服务器。
+            单个文件不超过 {THRESHOLDS.maxFileLabel}（问卷 CSV 通常只有几百 KB）。
           </p>
         </>
       )}
@@ -216,6 +226,16 @@ export default function UploadPanel({ onReady, onBack }) {
 function ResultCard({ result, onConfirm, onReset }) {
   const { fileName, report, warnings, details, records } = result;
   const dropped = report.droppedCount;
+  // ★ 10-14 审查新增（任务书 P4#3/#4）：数据质量评估。
+  //   太少的样本 / 太高的剔除比例，不该悄悄出一张看起来很权威的图。
+  const quality = assessQuality(report);
+  const [confirmed, setConfirmed] = useState(false);
+
+  const LEVEL_STYLE = {
+    warn: { border: '#fcd34d', title: '#92400e', body: '#a16207' },
+    block: { border: '#fca5a5', title: '#991b1b', body: '#b91c1c' },
+  };
+  const st = LEVEL_STYLE[quality.level];
 
   return (
     <TermPanel style={{ padding: '20px 22px' }}>
@@ -226,6 +246,51 @@ function ResultCard({ result, onConfirm, onReset }) {
         {dropped > 0 && <>（剔除 {dropped} 条）</>}
       </p>
       <p className="text-sm text-[var(--ink-soft)] leading-6">{report.summary}</p>
+
+      {/* 数据质量明细（任务书 P4#3 要求的完整报告项） */}
+      <dl
+        className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs"
+        style={{ color: 'var(--ink-soft)' }}
+      >
+        <div className="flex justify-between">
+          <dt>原始记录</dt><dd className="tabular-nums">{report.inputCount}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt>有效记录</dt><dd className="tabular-nums">{records.length}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt>剔除记录</dt>
+          <dd className="tabular-nums">{dropped}（{Math.round((report.dropRatio ?? 0) * 100)}%）</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt>空值单元格</dt><dd className="tabular-nums">{report.missingCells ?? 0}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt>选项不匹配</dt><dd className="tabular-nums">{report.invalidCells ?? 0}</dd>
+        </div>
+        <div className="flex justify-between">
+          <dt>与他人完全相同</dt><dd className="tabular-nums">{report.duplicateCount ?? 0}</dd>
+        </div>
+      </dl>
+      {report.baseline?.sampleSize && (
+        <p className="text-[11px] mt-2 leading-5" style={{ color: 'var(--ink-soft)' }}>
+          对比基准：<span className="tabular-nums">{report.baseline.sampleSize}</span> 人
+          · 矩阵 v{report.baseline.version} · {report.baseline.source}
+        </p>
+      )}
+
+      {/* 质量警告（太少 / 剔除太多）——block 级必须显式确认才能继续 */}
+      {quality.message && st && (
+        <div
+          className="mt-3 px-3 py-2 border text-xs leading-5"
+          style={{ borderColor: st.border, color: st.body, background: 'transparent' }}
+        >
+          <strong style={{ color: st.title }}>
+            {quality.level === 'block' ? '样本太少：' : '数据质量提醒：'}
+          </strong>
+          {quality.message}
+        </div>
+      )}
 
       {dropped > 0 && details.length > 0 && (
         <details className="mt-3">
@@ -249,13 +314,14 @@ function ResultCard({ result, onConfirm, onReset }) {
       )}
 
       <div className="flex items-center gap-3 mt-5 pt-4 border-t border-[var(--line)]">
+        {/* needConfirm 时按钮变两步：第一次点击只展开"我确认"提示，不直接出图 */}
         <button
           type="button"
-          onClick={onConfirm}
+          onClick={() => (quality.needConfirm && !confirmed ? setConfirmed(true) : onConfirm())}
           className="px-4 py-2 text-sm text-white transition hover:opacity-90"
-          style={{ background: BRAND }}
+          style={{ background: quality.needConfirm && !confirmed ? '#9a3412' : BRAND }}
         >
-          看这个班的画像
+          {quality.needConfirm && !confirmed ? '我知道，仍然出图' : '看这个班的画像'}
         </button>
         <button
           type="button"

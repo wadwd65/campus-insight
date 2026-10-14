@@ -15,6 +15,8 @@ import { BRAND } from '../lib/theme.js';
 function reasonText(reason) {
   if (reason === 'not-configured') return '未配置大模型密钥，这段由本地规则生成';
   if (reason === 'timeout') return '大模型超时，这段由本地规则生成';
+  // ★ 10-13：落地校验没通过（编造数字 / 诊断口吻）——如实说明，不冒充网络故障
+  if (reason === 'invalid-summary') return '大模型这次的内容与统计数据对不上，已改用本地规则生成';
   return '大模型暂时不可用，这段由本地规则生成';
 }
 

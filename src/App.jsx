@@ -74,18 +74,23 @@ export default function App() {
 
   // 基准数据在**入场动画播放时就已经开始下载**：等用户点「进入终端」时它多半已就绪，
   // 所以这个 effect 不能挪到 hub 分支里去 —— 那样就会白白等一次网络往返。
-  useEffect(() => {
-    let alive = true;
+  //
+  // ★ 10-14 审查修复（任务书 P5#2「数据加载失败后能否重试」）：
+  //   原实现把这个请求写在 useEffect 里就跑一次，失败就永远停在错误页 ——
+  //   用户唯一的出路是刷新浏览器（而入口页的措辞是"回地图"，回不去）。
+  //   现在抽成可重入的 loadBaselineData()，错误页上给一个「重新加载」按钮。
+  function loadBaselineData() {
+    setError(null);
+    setBaseline(null);
     loadBaseline()
-      .then((d) => {
-        if (alive) setBaseline(d.baseline);
-      })
-      .catch((e) => {
-        if (alive) setError(e.message);
-      });
-    return () => {
-      alive = false;
-    };
+      .then((d) => setBaseline(d.baseline))
+      .catch((e) => setError(e.message));
+  }
+
+  useEffect(() => {
+    loadBaselineData();
+    // loadBaseline 自带缓存（cache/pending），effect 不会重复发请求
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ★ 回到地图 —— 这是全站的"回首页"。
@@ -98,11 +103,18 @@ export default function App() {
 
   // 彻底重来：清账本、清作答、回地图。
   // 它对应 HUD 上的「重来」——那是"我不想保留这一轮了"，语义与 backToMap 不同。
+  //
+  // ★ 10-14 审查修复（任务书 P5#2「重来后所有相关状态是否正确清空」）：
+  //   原来漏清了 `cohort`（上一次上传的班级数据）与 `error`（基准加载失败的残留）。
+  //   `cohort` 留着不会立刻显示错内容（stage 回地图了），但用户之后再点上传、
+  //   或界面某处读到它，就会拿到"上一轮的数据"——这种残留最难查，因为它不报错。
   function restart() {
     resetPlayer();
     setAnswers(null);
     setFromCohort(false);
     setMapRun(false);
+    setCohort(null);   // ★ 新增：清掉上一轮上传的班级数据
+    setError(null);    // ★ 新增：清掉上一次加载失败的残留
     setName('');
     setStage('map');
   }
@@ -184,7 +196,7 @@ export default function App() {
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-6 py-12">
         {error ? (
-          <ErrorBlock message={error} />
+          <ErrorBlock message={error} onRetry={loadBaselineData} />
         ) : !baseline ? (
           <Hint text="正在加载基准人群数据…" />
         ) : stage === 'gate' ? (
@@ -237,12 +249,18 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-6 py-4 space-y-2">
           {/* 两条声明各占一行。原先挤成一行时，"PRIVACY //" 后面跟了 40 多个字，
               等宽小标的作用就没了 —— 它本来是用来分隔和指路的，
-              被正文淹没之后只剩噪音。 */}
+              被正文淹没之后只剩噪音。
+
+              ★ 10-13 审查修复：原文写「只把算好的百分比与称号发给模型服务」，
+              与 buildSummary.js 的实际发送内容不符（实际还发了题面原话、时间分配、
+              四年曲线、冷知识、关键词）。这里按 buildSummary 的白名单（SUMMARY_FIELD_KEYS）
+              逐类如实列明，声明与代码从此对得上。 */}
           <div className="flex gap-3">
             <MonoTag style={{ minWidth: 76, flexShrink: 0 }}>PRIVACY&nbsp;//</MonoTag>
             <span className="text-xs text-[var(--ink-soft)] leading-5">
-              你的选择与上传的文件只在浏览器里计算；开启大模型解读时，
-              只把算好的百分比与称号发给模型服务来写那段话，其余什么都不发
+              你的选择与上传的文件只在浏览器里计算。开启大模型解读时，只把报告里已算好的这几类数据
+              —— 每道题的选项、九项人群位置、时间分配、四年曲线、称号与冷知识 ——
+              发给模型服务来写那段话；原始文件与其它身份信息一律不发送
             </span>
           </div>
           <div className="flex gap-3">
@@ -284,12 +302,39 @@ function Hint({ text }) {
   return <p className="text-center text-sm text-[var(--ink-soft)] py-20">{text}</p>;
 }
 
-function ErrorBlock({ message }) {
+/**
+ * 基准数据加载失败。
+ *
+ * ★ 10-14 审查修复（任务书 P5#2）：原来这里只显示一条错误，**没有任何出路** ——
+ *   用户只能刷新浏览器。现在给一个「重新加载」按钮，直接重跑 loadBaselineData()。
+ *   （底层 loadBaseline 也修了：失败后会清掉 pending，否则重试只会拿到同一个 rejected promise。）
+ */
+export function ErrorBlock({ message, onRetry }) {
+  const [retrying, setRetrying] = useState(false);
   return (
     <div className="max-w-2xl mx-auto">
       <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-6 py-8">
         <p className="text-base font-medium mb-2">基准数据没能加载</p>
         <p className="text-sm text-[var(--ink-soft)] leading-6">{message}</p>
+        <div className="flex items-center gap-3 mt-5">
+          <button
+            type="button"
+            disabled={retrying}
+            onClick={() => {
+              setRetrying(true);
+              onRetry?.();
+              // 让按钮有个短暂的反馈；真正的加载态由上层 !baseline 分支负责显示
+              setTimeout(() => setRetrying(false), 800);
+            }}
+            className="px-4 py-2 text-sm text-white transition hover:opacity-90 disabled:opacity-50"
+            style={{ background: '#9a3412' }}
+          >
+            {retrying ? '正在重试…' : '重新加载'}
+          </button>
+          <span className="text-xs text-[var(--ink-soft)]">
+            若一直失败，确认 public/data/ 下的基准文件在仓库里没被删。
+          </span>
+        </div>
       </div>
     </div>
   );

@@ -18,6 +18,8 @@
  *   而不是"AI 不可用"这种占位句。
  */
 import { cohortHeadline } from './cohort.js';
+import { ALL_ATTR_KEYS, labelOf } from './surveySchema.js';
+import { THRESHOLDS } from './thresholds.js';
 
 /** 把 cohort 变成一段"给模型看的事实"（只给数字，不给结论 —— 结论让模型写） */
 export function buildCohortFacts(cohort, { className = '' } = {}) {
@@ -43,7 +45,9 @@ export function buildCohortFacts(cohort, { className = '' } = {}) {
 
   L.push('');
   L.push('【九项属性的班级中位数】');
-  L.push(Object.entries(cohort.medianAttrs).map(([k, v]) => `${k} ${v}`).join(' · '));
+  // ★ 10-13 审查修复：原来发的是英文 key（`academic 65`），模型容易直接抄进正文或误解；
+  // 换成中文标签（labelOf），与界面、与个人版摘要口径一致。
+  L.push(ALL_ATTR_KEYS.map((k) => `${labelOf(k)} ${cohort.medianAttrs[k]}`).join(' · '));
 
   if (cohort.similar) {
     L.push('');
@@ -63,6 +67,15 @@ export function buildCohortSystemPrompt() {
     '4. 第三段：给班主任一到两条**可执行**的建议（比如班会怎么设计、哪些人容易被忽略），不要空话。',
     '5. 只能说上面给的数据能支撑的结论。**不要编造数据里没有的信息**（不要提学校名、不要提具体人名、不要提问卷没有的维度）。',
     '6. 语气像个有经验、不端着的老师：具体、克制、不煽情。不用 emoji，不用感叹号。',
+    '',
+    '★ 以下三条是 10-13 审查后补的硬约束：',
+    '7. **不要混淆统计口径。** 明确区分「中位数」「Q1~Q3 区间」「离散度 IQR」「人数占比」——',
+    '   中位数不是平均值，区间宽度不代表人数比例，占比是"人数占总人数"而不是"某一维度的分数"。',
+    '   不要把 5 个类型的人数占比 与 5 个维度的分数 混在一起说。',
+    '8. **不要用少数极端样本概括全班。** 判断"这个班怎样"要看中位数与多数人，',
+    '   个别很高或很低的个案只能作为例子提一句，不能代表整体。',
+    '9. **样本少时要谨慎。** 如果有效样本少于 8 人，不要断言"这个班的整体气质"或',
+    '   "分歧最大"，改成"人数太少，这份结果只能当参考，看不出稳定规律"。',
   ].join('\n');
 }
 
@@ -94,7 +107,7 @@ export function cohortFallbackText(cohort) {
   if (empty.length === 1) p1.push(`一个${empty[0].name}都没有。`);
   else if (empty.length > 1) p1.push(`没有${empty.map((g) => g.name).join('、')}。`);
   p1.push(
-    top2[0].pct >= 40
+    top2[0].pct >= THRESHOLDS.concentratedPct
       ? '这个班的倾向相当集中，一件事拉得动大多数人。'
       : '分布比较分散，说明这个班不是一种人，做班级决定时要考虑两拨人的不同需要。'
   );
@@ -105,7 +118,8 @@ export function cohortFallbackText(cohort) {
     const p2 = [
       `最"不一样"的是「${divergent.axis}」—— 一半人落在 ${divergent.q1} 到 ${divergent.q3} 之间，离散度 ${divergent.iqr}。`,
     ];
-    const wide = divergent.iqr >= 24;
+    // ★ 10-14：阈值从 thresholds.js 取（原为硬编码 24）
+    const wide = divergent.iqr >= THRESHOLDS.divergentIqr;
     p2.push(
       wide
         ? '这个跨度很大：同一个班里，有人在这件事上非常靠前，有人非常靠后，中间几乎没有过渡。'
@@ -118,7 +132,7 @@ export function cohortFallbackText(cohort) {
 
   /* 第三段：可执行建议 */
   const p3 = [];
-  if (divergent && divergent.iqr >= 24) {
+  if (divergent && divergent.iqr >= THRESHOLDS.divergentIqr) {
     p3.push(`建议：把班会设计成"两种节奏都能参与"的形式 —— 围绕「${divergent.axis}」这一项，先给不爱表达的一半留出书面/小组的参与方式，再让活跃的一半带节奏，别让跨度变成沉默。`);
   } else {
     p3.push('建议：这个班比较同质，适合用统一的任务推进；但也要留意少数几类占比很小的人，他们容易被"多数人的节奏"盖过去。');
