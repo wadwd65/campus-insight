@@ -36,6 +36,9 @@ import SurveyForm from './components/SurveyForm.jsx';
 import UploadPanel from './components/UploadPanel.jsx';
 import QuizGate from './components/QuizGate.jsx';
 import HubHud from './components/HubHud.jsx';
+import GeometricBackdrop from './components/GeometricBackdrop.jsx';
+import SkyBackdrop from './components/SkyBackdrop.jsx';
+import Mascot from './components/Mascot.jsx';
 import { MonoTag } from './components/TermHead.jsx';
 import IntroScene from './scenes/IntroScene.jsx';
 import MapScene from './scenes/MapScene.jsx';
@@ -71,6 +74,18 @@ export default function App() {
   // 地图没有 answers，只有一本累加的账。见 results.js 的 buildReportFromAttributes。
   const [mapRun, setMapRun] = useState(false);
   const player = useGameStore((s) => s.player);
+
+  // ★ 10-14 B+C：问卷算完时的属性快照。
+  //   它是「复测」这一半的基线 —— 玩家接着去地图上走一遍，
+  //   地图的增量会叠在这本账上，于是报告页可以并排显示
+  //   「问卷算出的你」和「地图走出来的你」。
+  //   放在 App 而不是 store：它是一次性的历史快照，不该被后续行动改写
+  //   （store 里的 player.attributes 是"当前值"，语义不同）。
+  const [quizSnapshot, setQuizSnapshot] = useState(null);
+
+  // ★ B+C：只有**从问卷直接来**的报告才显示「去地图复测」按钮。
+  //   已经走过地图的报告再给一个"去地图"是循环邀请（点了又会回到同一页）。
+  //   判据用 mapRun 而不是 quizSnapshot：复测之后 mapRun 仍为 true，正好不再显示。
 
   // 基准数据在**入场动画播放时就已经开始下载**：等用户点「进入终端」时它多半已就绪，
   // 所以这个 effect 不能挪到 hub 分支里去 —— 那样就会白白等一次网络往返。
@@ -111,6 +126,7 @@ export default function App() {
   function restart() {
     resetPlayer();
     setAnswers(null);
+    setQuizSnapshot(null); // ★ B+C：快照不清，"复测"会拿着上一轮的基线
     setFromCohort(false);
     setMapRun(false);
     setCohort(null);   // ★ 新增：清掉上一轮上传的班级数据
@@ -131,12 +147,26 @@ export default function App() {
       if (vec) applyChoice({ id: `${q.field}=${a[q.field]}`, label: q.text, delta: vec });
     }
 
+    // ★ B+C：把这一轮作答算出的属性存成快照，供"复测"对比用。
+    //   必须在 applyChoice 全部跑完之后取，否则拿到的是空账。
+    setQuizSnapshot({ ...player.attributes });
+
     if (fromCohort) {
       setFromCohort(false);
       setStage('cohort');
     } else {
       setStage('report');
     }
+  }
+
+  // ★ B+C（C1）：从问卷报告去地图"复测"。
+  //   刻意**不清账本、不清 answers、不清 quizSnapshot** ——
+  //   地图的每一步都会叠在问卷算出的属性上，这样走完才能对比"两次测量"。
+  //   这也解释了为什么不复用 backToMap()：那个函数的语义是"回去看看"，
+  //   而这里是"接着走一段，用来验证前一次测量"。
+  function goMapFromReport() {
+    setMapRun(true);
+    setStage('map');
   }
 
   // 入场场景独立成屏：它不依赖基准数据，也不依赖账本，不该被上面的加载态卡住。
@@ -167,10 +197,13 @@ export default function App() {
   if (stage === 'map') {
     return (
       <div className="min-h-full flex flex-col term-enter">
+        {/* ★ 10-15：地图页补上天空与立绘。
+            此前 App 有**三个独立 return**，而天空只挂在默认分支上 ——
+            地图页与入口页因此完全没有背景层（指标里 5-map 没有天空层溢出，就是证据）。
+            地图页改成浅色之后，这个缺口才暴露出来：它是"浅底但没有天空"的一页，
+            与另三页气质割裂。 */}
+        <SkyBackdrop />
         <HubHud onRestart={restart} onGoEntry={() => setStage('entry')} />
-        {/* 地图整屏都是深的，所以这里**不加**过渡带 ——
-            过渡带的作用是"深浅相接处化一下"，而这里两侧都是深色，
-            加一条亮线只会在深色里多出一条没有意义的横线。 */}
         <main className="flex-1 w-full">
           {/* 基准数据还没到也不拦着 —— 地图不依赖基准人群，它只写账本 */}
           <MapScene
@@ -183,12 +216,35 @@ export default function App() {
             onGoEntry={() => setStage('entry')}
           />
         </main>
+        <Mascot src={`${import.meta.env.BASE_URL}art/mascot.webp`} />
       </div>
     );
   }
 
   return (
     <div className="min-h-full flex flex-col term-enter">
+      {/* ★ 10-14：几何装饰层（参考《明日方舟》SideStory「众生行记」的界面语言）。
+          放在最外层、fixed 定位、pointer-events:none ——
+          它必须在地图页也可见（地图自己有背景，但那页更需要"坐标系"的感觉），
+          又不能挡掉任何一次点击。入场页不挂它（那页是场景层，不是数据层）。 */}
+      {/* ★ 10-14 v2：两层背景。
+            ① ark-sky —— 顶部一层通透的蓝紫光（众生行记"避开深色、用亮度造神圣感"）
+            ② GeometricBackdrop —— 螺旋 / 圆环 / 制图线 / 几何色块 */}
+      <div className="ark-sky" aria-hidden="true" />
+      <GeometricBackdrop variant="page" />
+      {/* ★ 10-15：天空提到**全站**，不再只挂答题页。
+          用户这次明确「重做的是全部网站的 UI」——
+          背景是整站的地基，只挂一页会让各页变成不同气质。
+          它 fixed 铺满、z-index:-1、pointer-events:none，所有内容压在它之上。
+          ⚠️ 与几何层互斥（见 index.css 的 :has() 规则）：
+             有天空时几何自动让位 —— 两套装饰叠在一起是"一张照片 + 一堆线"。 */}
+      <SkyBackdrop />
+      {/* ★ 10-15：立绘小人常驻全站（用户：「除了那个动开场动画那里」）。
+          入场页是 early return，天然不经过这里 —— 正好符合"除了开场动画"。
+          入口页由 EntryScene 自带一份，不在这里重复挂（同页会出现两个）。
+          z-index 在天空之上、内容之下由 .mascot 自身控制，pointer-events 只留可点区。 */}
+      <Mascot src={`${import.meta.env.BASE_URL}art/mascot.webp`} />
+
       <HubHud onRestart={restart} onGoEntry={() => setStage('entry')} />
       {/* 深色 HUD → 浅色正文的过渡带。见 index.css 的 .term-seam 说明：
           不加它，这条边界就是一条硬切的黑白线。 */}
@@ -210,9 +266,15 @@ export default function App() {
             <ReportView
               answers={answers}
               attributes={mapRun ? player.attributes : undefined}
-              trail={mapRun ? player.trail : undefined}
+              // ★ B+C：轨迹**两种路径都传**。
+              //   问卷的每一题也会 applyChoice 进账本（见 finishQuiz），
+              //   所以 trail 里本来就有作答记录 —— 以前只在 mapRun 时传，
+              //   结果是问卷路径的报告看不到自己刚答了 10 题。
+              trail={player.trail}
               baseline={baseline}
               name={name}
+              quizSnapshot={quizSnapshot}
+              onGoMap={mapRun ? undefined : goMapFromReport}
               onRestart={restart}
               onBackToMap={backToMap}
             />
@@ -245,7 +307,18 @@ export default function App() {
         )}
       </main>
 
-      <footer className="border-t border-[var(--line)] bg-[var(--surface)]">
+      <footer
+        className="border-t"
+        style={{
+          // ★ 10-15：页脚原来用 --surface（#fbfdfe，近乎不透明的白）。
+          //   它在纯白页面上没问题；压在**有云的天空**上时，
+          //   云从底下一透，那段说明文字就成了"和背景融在一起"的典型。
+          //   改成 0.94 的白玻璃 + 一条冷色顶边 —— 仍然是"说明区"的轻量感，
+          //   但它有自己的底了。
+          background: 'rgba(255, 255, 255, 0.94)',
+          borderTopColor: 'rgba(21, 107, 122, 0.18)',
+        }}
+      >
         <div className="max-w-5xl mx-auto px-6 py-4 space-y-2">
           {/* 两条声明各占一行。原先挤成一行时，"PRIVACY //" 后面跟了 40 多个字，
               等宽小标的作用就没了 —— 它本来是用来分隔和指路的，

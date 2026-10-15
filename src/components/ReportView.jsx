@@ -20,6 +20,12 @@ import MoodCurve from './MoodCurve.jsx';
 import FactsCard from './FactsCard.jsx';
 import AiSummary from './AiSummary.jsx';
 import { MonoTag, SectionHead } from './TermHead.jsx';
+import { TermBlock } from './TermPanel.jsx';
+import GeometricBackdrop from './GeometricBackdrop.jsx';
+import NavButton from './NavButton.jsx';
+
+/** 插图路径统一走这里：换目录只改一行，且 base 路径交给 Vite（部署到子路径也不会 404）。 */
+const ART = (f) => `${import.meta.env.BASE_URL}art/ark/${f}`;
 import { buildReport, buildReportFromAttributes } from '../lib/results.js';
 import { pickKeyword, buildClosing } from '../lib/keyword.js';
 import { fallbackText } from '../lib/fallback.js';
@@ -42,6 +48,8 @@ export default function ReportView({
   trail,
   baseline,
   name = '',
+  quizSnapshot = null,
+  onGoMap,
   onRestart,
   onBackToMap,
 }) {
@@ -52,7 +60,11 @@ export default function ReportView({
         : buildReport(answers, baseline),
     [answers, attributes, baseline],
   );
-  const fromMap = Boolean(attributes) && !answers;
+  // ★ 10-14 B+C 修 bug：原来是 `Boolean(attributes) && !answers`。
+  //   问卷答完再去地图复测时，answers 还在（复测不清它），于是这个判断变成 false ——
+  //   报告转而去读问卷答案、不读账本，「两次测量」也被关掉，整个复测链路断在这里。
+  //   正确的判据只有一个：**App 有没有传 attributes**（它只在 mapRun 时传）。
+  const fromMap = Boolean(attributes);
   const closing = useMemo(() => buildClosing(pickKeyword(report.percents)), [report]);
 
   // 大模型成稿后由 AiSummary 回传，供「复制文字版」使用。
@@ -101,7 +113,7 @@ export default function ReportView({
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       {/* 报告也长得像终端：顶部一条状态行，和入场/地图同一种语言。
           "REPORT // GENERATED" 这句不是装饰 ——
           它把"你刚刚的二十次点击已经被算完了"这件事讲出来，
@@ -116,32 +128,133 @@ export default function ReportView({
       {/* 称号区。原先是一行大字纯文本，现在是「纹章 + 等宽小标 + 称号」，
           纹章直接复刻入场那个六边形 ——
           同一台机器在入场认一次、在报告再认一次，四页才算一个作品。
-          称号用琥珀色：那是入场立绘右侧（运动）的颜色，也是终端里"结果出来了"的色。 */}
-      <div className="text-center mb-12">
-        <div className="flex justify-center mb-5">
-          <Crest />
+          称号用琥珀色：那是入场立绘右侧（运动）的颜色，也是终端里"结果出来了"的色。
+
+          ★ 10-14 美化：原来这一块是"居中的小图标 + 一行小标 + 一行大字"，
+             三样东西各占一行、间距均等 —— 没有主次，读起来像三行互不相干的文字。
+             这里把层次做出来：
+               ① 纹章后面垫一层径向光晕 —— 它变成"一个光源"，而不是一个图标
+               ② 称号字号 30 → 38px、字重加粗、字距收紧 —— 这是全页最重要的一句话
+               ③ 称号下方补一条左右对称的渐变细线，把"标题区"和"正文区"分开
+               ④ 上下留白从均等改成上紧下松，视觉重心落回称号本身 */}
+      {/* ★★★ 10-15：称号区从"深色主视觉带"改成**浅色玻璃 + 圆形纹章**。
+          10-14 那版是把 crest 铺满整条、压暗、称号反白 —— 在浅灰纸上很成立。
+          但背景换成动漫天空之后，它变成了"贴在亮画面上的黑砖"（见 10-15 截图），
+          和题干区当初是同一个病。
+          这一版：**纹章当徽章立在玻璃上**，称号用深色。
+
+          ⚠️ 徽章的形状踩过一次：第一版做成 `rounded-full` 圆形（想着"径向对称、
+             圆裁不切坏构图"），结果截图里是一枚几乎看不见的白圈 ——
+             因为**这张纹章的暗部恰好在四角**，圆形裁切把暗部全切掉了，
+             只剩中间那团亮芯。
+             ⇒ 换成**切角方形**：暗角留下来，徽章立刻读得出来，
+               而且与全站的斜切角语言同源。
+
+      ⚠️⚠️ 这个注释块必须写全闭合符（斜杠星号 + 右花括号）。
+        本轮踩过两次，都值得记：
+          一、漏了闭合符 ⇒ 注释一路吞到下一个星号斜杠，
+             把整个称号区 JSX 变成注释文本 —— **构建不报错**
+             （语法上只是一个很长的注释），是 smoke 的「渲染出称号」抓出来的。
+             没有那道闸门，交付出去就是一页没有标题的报告。
+          二、修的时候把闭合符号本身写进了注释正文 ⇒ 那个右花括号
+             会**提前关掉 JSX 表达式容器**，构建立刻报
+             「Unexpected token」。⇒ 注释里不要出现花括号字面量。 */}
+      <div className="mb-10">
+        <div
+          className="sky-glass relative overflow-hidden px-6 py-8 text-center sm:px-10 sm:py-10"
+          style={{
+            clipPath:
+              'polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px))',
+          }}
+        >
+          <span
+            className="mx-auto mb-5 block h-[136px] w-[136px] overflow-hidden sm:h-[156px] sm:w-[156px]"
+            style={{
+              clipPath:
+                'polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px))',
+              boxShadow: '0 12px 30px -12px rgba(11, 90, 107, 0.5)',
+            }}
+          >
+            <img
+              src={`${import.meta.env.BASE_URL}art/ark/crest.webp`}
+              alt=""
+              aria-hidden="true"
+              className="ark-art h-full w-full object-cover"
+              decoding="async"
+            />
+          </span>
+          <MonoTag tone="amber">// 你的称号</MonoTag>
+          <h1
+            className="ci-title-hero mx-auto mt-2.5 max-w-[560px] text-[36px] sm:text-[44px]"
+            style={{ color: 'var(--ark-deep)' }}
+          >
+            {report.facts.title}
+          </h1>
+          <span
+            aria-hidden="true"
+            className="mx-auto mt-5 block h-[2px] w-[220px]"
+            style={{
+              background:
+                'linear-gradient(90deg, transparent, rgba(21,107,122,0.55) 22%, rgba(21,107,122,0.55) 78%, transparent)',
+            }}
+          />
         </div>
-        <MonoTag tone="amber">// 你的称号</MonoTag>
-        <h1 className="mt-2.5 text-3xl font-semibold tracking-tight" style={{ color: TERM_INK.amber }}>
-          {report.facts.title}
-        </h1>
       </div>
 
+      {/* ★ B+C（C1）：从问卷报告去地图"复测"。
+          只在问卷路径出现（App 传 onGoMap；地图来的报告不传）。
+          措辞刻意用"看看会不会走出同一个你"而不是"再去测一次" ——
+          前者是邀请，后者像复查，而这里要的是让人想去。 */}
+      {onGoMap && (
+        <div
+          className="mb-10 px-5 py-4 flex flex-wrap items-center gap-4"
+          style={{ background: 'var(--ark-wash)', borderLeft: '3px solid var(--ark)' }}
+        >
+          <div className="flex-1 min-w-[220px]">
+            <p className="text-[15px] font-semibold" style={{ color: 'var(--ink-strong)' }}>
+              这份报告来自你的 {Object.keys(answers ?? {}).length} 个答案
+            </p>
+            <p className="text-xs mt-1 leading-5" style={{ color: 'var(--ink-mid)' }}>
+              想去地图上走一遍，看看会不会走出同一个你？地图的每一步都会叠在同一本账上，
+              走完回来可以并排对比两次测量。
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onGoMap}
+            className="ci-lift px-5 py-2.5 text-sm font-medium text-white"
+            style={{ background: 'var(--grad-ark)', boxShadow: 'var(--shadow-ark)' }}
+          >
+            去地图上走一遍 →
+          </button>
+        </div>
+      )}
+
       <div className="space-y-10">
-        {/* 这一块只有地图路径会有：问卷答完没有"顺序"这个概念，
-            而地图的轨迹是**有序的** —— 先去了图书馆再去小吃街，
-            和反过来是两种人。这是地图给报告带来的、问卷给不了的东西。 */}
-        {fromMap && trail?.length > 0 && (
-          <Section n={1} show={step >= 1} title="你走过的路" hint="按顺序重放一遍这四年">
+        {/* ★ 10-14 B+C（B3）：这一块**两种路径都有**。
+            问卷的每一题也会 applyChoice 进账本（见 App.finishQuiz），
+            所以 trail 里本来就躺着 10 条作答记录 —— 以前只有地图路径才显示，
+            于是问卷玩家答完 10 题，报告里却看不到自己答过什么，两个玩法互相看不见。
+            现在合成一条时间线，并用来源标签把"这是你选的"和"这是你走的"分开。 */}
+        {trail?.length > 0 && (
+          <Section
+            n={1}
+            show={step >= 1}
+            title="这一轮你是怎么走的"
+            hint="按顺序重放一遍：问卷的每一次选择、地图的每一次落脚，都记在同一本账上"
+            art={ART('sec-trail.webp')}
+          >
             <ActionTrail trail={trail} />
           </Section>
         )}
 
         <Section
-          n={fromMap && trail?.length > 0 ? 2 : 1}
+          n={trail?.length > 0 ? 2 : 1}
           show={step >= 1}
           title="大学生活者画像"
           hint="每个数字的意思是：你超过了多少比例的大学生（基准人群为模拟数据，见页脚说明）"
+          art={ART('sec-profile.webp')}
+          boxed
         >
           <RadarChart data={report.radar} />
         </Section>
@@ -150,53 +263,88 @@ export default function ReportView({
             "估算"出来，属于叙事性推导，不是实测记录 —— 以前这两处都没说，读者容易
             把环形图上的百分比当成"他真的这样分配时间"。这里把口径写在标题下方。 */}
         <Section
-          n={fromMap && trail?.length > 0 ? 3 : 2}
+          n={trail?.length > 0 ? 3 : 2}
           show={step >= 2}
           title="时间去哪了"
           hint="按你的回答推算的时间分配倾向，不是实测记录"
+          art={ART('sec-time.webp')}
+          boxed
         >
           <TimeDonut data={report.timeSplit} />
         </Section>
 
         <Section
-          n={fromMap && trail?.length > 0 ? 4 : 3}
+          n={trail?.length > 0 ? 4 : 3}
           show={step >= 3}
           title="四年心情曲线"
           hint="不是分数，也不是实测 —— 按你的回答绘出的一条相对起伏的线"
+          art={ART('sec-mood.webp')}
+          boxed
         >
           <MoodCurve data={report.moodCurve} />
         </Section>
 
-        <Section n={fromMap && trail?.length > 0 ? 5 : 4} show={step >= 4} title="人群冷知识">
+        <Section n={trail?.length > 0 ? 5 : 4} show={step >= 4} title="人群冷知识" art={ART('sec-facts.webp')}>
           <FactsCard facts={report.facts} />
         </Section>
 
         <Section
-          n={fromMap && trail?.length > 0 ? 6 : 5}
+          n={trail?.length > 0 ? 6 : 5}
           show={step >= 4}
           title="给你的话"
           hint="这段话由大模型照着你的数据写，不是模板填空"
+          art={ART('sec-closing.webp')}
         >
           <AiSummary report={report} name={name} onText={(text) => setAiText(text)} />
-          <p className="text-base font-medium mt-5" style={{ color: TERM_INK.amber }}>
-            {closing}
-          </p>
+          {/* ★ B+C（C3）：两次测量对比。
+              只在地图路径 + 有问卷快照时出现 —— 也就是"答完题又去走了地图"。
+              它把两个玩法从"并列的两个入口"变成"同一件事的两次测量"：
+              一致 → "两种走法得出了同一个你"；不一致 → 本身就是有意思的结论，
+              而且这里必须说清"不一致不代表谁错了"（口径见下方说明）。 */}
+          {fromMap && quizSnapshot && (
+            <DualMeasure quizSnapshot={quizSnapshot} baseline={baseline} current={report} />
+          )}
+          {/* ★ 10-14 美化：结尾这句是全页最可能被截图的一句话，
+              原来它只是一行 16px 的琥珀色字，混在正文里。
+              现在给它一整个引用块：左侧琥珀竖线 + 极淡的琥珀渐变底 +
+              字号提到 17px。它读起来像"被框起来的一句话"，而不是又一段正文。 */}
+          <div
+            className="mt-5 pl-4 py-3 pr-3"
+            style={{
+              borderLeft: '3px solid var(--ark)',
+              background:
+                'linear-gradient(90deg, rgba(21,107,122,0.10), rgba(21,107,122,0) 72%)',
+            }}
+          >
+            <p className="text-[17px] font-semibold leading-8" style={{ color: 'var(--ark-deep)' }}>
+              {closing}
+            </p>
+          </div>
         </Section>
       </div>
 
+      {/* ★ 10-14 美化：三个按钮原来是"一个实心紫 + 两个白描边"，
+          三个长得差不多、主次不清。现在：
+            主按钮 = 渐变实底 + 品牌色投影（明确"点这里"）
+            次按钮 = 白底 + 描边 + 悬停抬起（明确"也可以点这里"）
+            三级（回地图）= 只留文字，不加框 —— 它是"离开"，不该抢主按钮 */}
       <div className="flex flex-wrap items-center gap-3 mt-12 pt-8 border-t border-[var(--line)]">
         <button
           type="button"
           onClick={copyText}
-          className="px-4 py-2 text-sm text-white transition hover:opacity-90"
-          style={{ background: BRAND }}
+          className="px-5 py-2.5 text-sm font-medium text-white transition-transform ci-lift"
+          style={{
+            background: 'var(--grad-ark)',
+            boxShadow: 'var(--shadow-ark)',
+          }}
         >
-          {copied ? '已复制' : '复制文字版'}
+          {copied ? '已复制 ✓' : '复制文字版'}
         </button>
         <button
           type="button"
           onClick={onRestart}
-          className="border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm text-[var(--ink)] transition hover:border-slate-300"
+          className="ci-lift border bg-[var(--surface)] px-4 py-2.5 text-sm transition-colors"
+          style={{ borderColor: 'var(--line-strong)', color: 'var(--ink-mid)' }}
         >
           再答一次
         </button>
@@ -204,13 +352,9 @@ export default function ReportView({
             所以"看完这份报告"的默认去向是回地图，而不是重来一遍。
             没有这个出口，玩家看完报告就只能关掉页面（或按浏览器的后退键）。 */}
         {onBackToMap && (
-          <button
-            type="button"
-            onClick={onBackToMap}
-            className="border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-sm text-[var(--ink-soft)] transition hover:border-slate-300 hover:text-[var(--ink)]"
-          >
-            ← 回到地图
-          </button>
+          <NavButton onClick={onBackToMap} icon="←" title="回到行动地图">
+            回到地图
+          </NavButton>
         )}
         <span className="text-xs text-[var(--ink-soft)]">
           换个答案，报告的走向会完全不同
@@ -220,14 +364,21 @@ export default function ReportView({
   );
 }
 
-function Section({ n, show, title, hint, children }) {
+/**
+ * @param {boolean} [boxed] 把内容装进一张卡片。
+ *   ★ 10-14 美化：原来三张图是直接铺在页面底色上的，
+ *     图表和正文用的是**同一个背景**，读者看不出"这里是一张图"。
+ *     装进卡片之后，图有了自己的面，页面才有"标题→图→标题→图"的节奏。
+ *     纯文字块（冷知识、给你的话）不加框 —— 它们本来就是正文的一部分。
+ */
+function Section({ n, show, title, hint, children, boxed = false, art = null }) {
   return (
     <section
       className="transition-all duration-500 ease-out"
       style={{ opacity: show ? 1 : 0, transform: show ? 'none' : 'translateY(14px)' }}
     >
-      <SectionHead index={n} title={title} hint={hint} />
-      {children}
+      <SectionHead index={n} title={title} hint={hint} art={art} />
+      {boxed ? <TermBlock style={{ padding: '16px 14px' }}>{children}</TermBlock> : children}
     </section>
   );
 }
@@ -243,20 +394,58 @@ function Section({ n, show, title, hint, children }) {
  *   形状共用、参数不共用，硬抽成一个组件会让它长出四个 props，反而更难读。
  */
 function Crest() {
+  // ★ 10-14：纹章的配色也换到蓝紫家族（众生行记主色）。
+  // 原来外环青、内核琥珀，是两套色；现在统一成"一个主色的两个深浅"，
+  // 中心菱形仍是暖色 —— 全页唯一允许出现琥珀的地方，作为"结果出来了"的落点。
+  const ARK = '#156b7a';
+  const ARK_DEEP = '#0b5a6b';
+  const WARM = '#b45309';
   return (
-    <svg width="64" height="64" viewBox="0 0 120 120" role="img" aria-label="终端纹章">
+    <svg width="88" height="88" viewBox="0 0 120 120" role="img" aria-label="终端纹章">
       <title>终端纹章</title>
+      {/* ★ 10-14 美化：垫一层径向光晕（中间琥珀、向外透明）。
+          原来纹章是浮在白纸上的一组细线，现在是"一个有光的东西" ——
+          代价只是两个 circle + 一个 radialGradient，不引入图片也不做动画。 */}
+      <defs>
+        <radialGradient id="crest-glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor={ARK} stopOpacity="0.20" />
+          <stop offset="55%" stopColor={ARK} stopOpacity="0.07" />
+          <stop offset="100%" stopColor={ARK} stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx="60" cy="60" r="58" fill="url(#crest-glow)" />
+      <circle
+        cx="60"
+        cy="60"
+        r="44"
+        fill="none"
+        stroke={ARK}
+        strokeWidth="0.6"
+        opacity="0.28"
+      />
+      {/* ★ 10-14：外圈再加一道制图式虚线圆 ——
+          工程制图里虚线表示"参考/辅助"，它让纹章从"一个标志"变成"一张图上的一个基准" */}
+      <circle
+        cx="60"
+        cy="60"
+        r="54"
+        fill="none"
+        stroke={ARK}
+        strokeWidth="0.8"
+        strokeDasharray="2 5"
+        opacity="0.4"
+      />
       <polygon
         points="60,4 108,32 108,88 60,116 12,88 12,32"
         fill="none"
-        stroke={TERM_INK.cyan}
+        stroke={ARK}
         strokeWidth="1"
         opacity="0.5"
       />
       <polygon
         points="60,20 96,40 96,80 60,100 24,80 24,40"
         fill="none"
-        stroke={TERM_INK.amber}
+        stroke={ARK_DEEP}
         strokeWidth="1"
         opacity="0.85"
       />
@@ -267,13 +456,13 @@ function Crest() {
           y1="34"
           x2="60"
           y2="44"
-          stroke={TERM_INK.cyan}
+          stroke={ARK}
           strokeWidth="1"
           opacity="0.55"
           transform={`rotate(${deg} 60 60)`}
         />
       ))}
-      <polygon points="60,46 74,60 60,74 46,60" fill={TERM_INK.amber} opacity="0.9" />
+      <polygon points="60,46 74,60 60,74 46,60" fill={WARM} opacity="0.9" />
     </svg>
   );
 }
@@ -299,19 +488,133 @@ function ActionTrail({ trail }) {
         style={{ background: 'var(--line)' }}
         aria-hidden="true"
       />
-      {trail.map((t, i) => (
-        <li key={`${t.id}-${i}`} className="relative">
-          <span
-            className="absolute -left-6 top-[5px] inline-block w-[15px] h-[15px] rounded-full border-2"
-            style={{ borderColor: BRAND, background: 'var(--surface)' }}
-            aria-hidden="true"
-          />
-          <p className="text-sm text-[var(--ink)] leading-6">
-            <span className="text-xs text-[var(--ink-soft)] mr-2">{i + 1}</span>
-            {t.label}
-          </p>
-        </li>
-      ))}
+      {trail.map((t, i) => {
+        // ★ 10-14 B+C：区分来源。地图行动带时间戳（at），问卷作答不带 ——
+        //   这是两个路径在账本里唯一可靠的差别，比按 id 猜稳健。
+        const fromMapPath = Boolean(t.at);
+        const tag = fromMapPath ? '地图' : '问卷';
+        return (
+          <li key={`${t.id}-${i}`} className="relative">
+            <span
+              className="absolute -left-6 top-[5px] inline-block w-[15px] h-[15px] rounded-full border-2"
+              style={{
+                borderColor: fromMapPath ? 'var(--accent-warm)' : 'var(--ark)',
+                background: fromMapPath ? 'var(--accent-warm)' : 'var(--surface)',
+              }}
+              aria-hidden="true"
+            />
+            <p className="text-sm text-[var(--ink)] leading-6 flex flex-wrap items-baseline gap-x-2">
+              <span className="text-xs text-[var(--ink-soft)] mr-1 tabular-nums">{i + 1}</span>
+              {/* 来源徽标：让"这是你选的"和"这是你走的"在一行里就分得清 */}
+              <span
+                className="term-mono text-[10px] px-1.5 py-[1px] shrink-0"
+                style={{
+                  color: fromMapPath ? 'var(--accent-warm-deep)' : 'var(--ark)',
+                  border: `1px solid ${fromMapPath ? 'rgba(180,83,9,.35)' : 'var(--ark-line)'}`,
+                  background: fromMapPath ? 'rgba(180,83,9,.07)' : 'var(--ark-wash)',
+                }}
+              >
+                {tag}
+              </span>
+              <span>{t.label}</span>
+            </p>
+          </li>
+        );
+      })}
     </ol>
+  );
+}
+
+/**
+ * ★ B+C（C3）两次测量对比 —— 这是把问卷与地图粘起来的关键一块。
+ *
+ * 它存在的理由：两个玩法以前是**并列的两个入口**，答完问卷出报告、
+ * 走完地图也出报告，玩家没有任何契机意识到"这俩量的是同一个人"。
+ * 现在地图的增量叠在问卷算出的属性上，于是可以并排问一句：
+ * 「用答题的方式量出来的你」和「用脚走出来的你」，是不是同一个？
+ *
+ * 三条设计约束：
+ *   ① **不复用 percentileOf 自己算** —— 直接调 buildReportFromAttributes，
+ *      保证两边走的是同一条归一化路径（否则对比出的差是口径差，不是行为差）。
+ *   ② **不一致不能说成"你答错了"**。两种测量本来就该有差异：
+ *      答题是"你觉得自己是什么样"，地图是"你实际选择了什么"。
+ *      差异本身是结论，不是错误 —— 这句话必须写在界面上，否则用户会以为出了 bug。
+ *   ③ 差值用 ± 与颜色区分方向，但**不做过度的红绿**（本作的约定见 regional_conventions：
+ *      涨红跌绿是股市约定，这里是行为数据，用主色/暖色区分更贴合作品气质）。
+ */
+function DualMeasure({ quizSnapshot, baseline, current }) {
+  const quizReport = useMemo(
+    () => buildReportFromAttributes(quizSnapshot, baseline, { answers: null }),
+    [quizSnapshot, baseline],
+  );
+
+  const rows = useMemo(() => {
+    const quizMap = {};
+    for (const d of quizReport.radar) quizMap[d.key] = d.value;
+    return current.radar.map((d) => ({
+      key: d.key,
+      axis: d.axis,
+      quiz: quizMap[d.key],
+      now: d.value,
+      diff: d.value - quizMap[d.key],
+    }));
+  }, [quizReport, current]);
+
+  // 最大绝对差：用来把差条归一化到同一长度，否则大差值会把小差值压成一条线
+  const maxAbs = Math.max(1, ...rows.map((r) => Math.abs(r.diff)));
+
+  return (
+    <div className="mt-6">
+      <div className="flex items-center gap-2.5 mb-3">
+        <span className="ci-chip ci-chip-accent">复测</span>
+        <span className="text-sm font-medium" style={{ color: 'var(--ink-strong)' }}>
+          两次测量，同一个你
+        </span>
+      </div>
+
+      <dl className="space-y-2.5">
+        {rows.map((r) => (
+          <div key={r.key} className="flex items-baseline gap-3">
+            <dt className="w-16 shrink-0 text-xs" style={{ color: 'var(--ink-mid)' }}>
+              {r.axis}
+            </dt>
+            <dd className="flex-1 flex items-baseline gap-2">
+              <span className="ci-num text-sm font-semibold w-8 text-right" style={{ color: 'var(--ink-mid)' }}>
+                {r.quiz}
+              </span>
+              <span className="text-xs" style={{ color: 'var(--ink-dim)' }}>→</span>
+              <span className="ci-num text-sm font-semibold w-8" style={{ color: 'var(--ark-deep)' }}>
+                {r.now}
+              </span>
+              {/* 差条：从中线向两侧长，长度按最大差归一化 */}
+              <span className="flex-1 flex items-center gap-2">
+                <span className="relative h-[6px] flex-1" style={{ background: 'var(--line-soft)' }}>
+                  <span
+                    className="absolute top-0 bottom-0"
+                    style={{
+                      left: r.diff >= 0 ? '50%' : `${50 - (Math.abs(r.diff) / maxAbs) * 50}%`,
+                      width: `${(Math.abs(r.diff) / maxAbs) * 50}%`,
+                      background: r.diff >= 0 ? 'var(--ark)' : 'var(--accent-warm)',
+                    }}
+                  />
+                  <span className="absolute left-1/2 top-[-2px] bottom-[-2px] w-px" style={{ background: 'var(--line-strong)' }} />
+                </span>
+                <span
+                  className="ci-num text-[11px] w-9 shrink-0 text-right"
+                  style={{ color: r.diff === 0 ? 'var(--ink-dim)' : r.diff > 0 ? 'var(--ark)' : 'var(--accent-warm)' }}
+                >
+                  {r.diff > 0 ? `+${r.diff}` : r.diff}
+                </span>
+              </span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      <p className="text-xs leading-5 mt-3" style={{ color: 'var(--ink-dim)' }}>
+        左边是答题算出的百分位，右边是在地图上走完之后算出的。两次不一致不代表谁错了 ——
+        答题更接近"你觉得自己是什么样"，地图更接近"你实际选择了什么"，差异本身就是结论。
+      </p>
+    </div>
   );
 }

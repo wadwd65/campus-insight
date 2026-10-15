@@ -27,7 +27,7 @@ export default function MoodCurve({ data }) {
         type: 'category',
         data: data.map((d) => d.stage),
         boundaryGap: false,
-        axisLine: { lineStyle: { color: LINE } },
+        axisLine: { lineStyle: { color: '#c9c2e6' } },
         axisTick: { show: false },
         axisLabel: AXIS_LABEL_STYLE,
       },
@@ -36,7 +36,7 @@ export default function MoodCurve({ data }) {
         min: 30,
         max: 95,
         axisLabel: { show: false },
-        splitLine: { lineStyle: { color: LINE, type: 'dashed' } },
+        splitLine: { lineStyle: { color: '#ddd8ee', type: 'dashed' } },
       },
       series: [
         {
@@ -46,7 +46,20 @@ export default function MoodCurve({ data }) {
           data: data.map((d) => d.value),
           lineStyle: { width: 3, color: BRAND },
           itemStyle: { color: BRAND, borderColor: '#ffffff', borderWidth: 2 },
-          areaStyle: { color: 'rgba(79,70,229,0.10)' },
+          // ★ 10-14 v2（参考《众生行记》）：面积从一层 0.10 的死白改成竖向渐变
+          //   （上 0.26 → 下 0.02）。"光从上面照下来"是通透感最省力的做法；
+          //   而且渐变让曲线起伏更明显 —— 纯色面积会把高低差抹平。
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(21,107,122,0.26)' },
+                { offset: 0.6, color: 'rgba(21,107,122,0.08)' },
+                { offset: 1, color: 'rgba(21,107,122,0.02)' },
+              ],
+            },
+          },
           label: {
             show: true,
             position: 'top',

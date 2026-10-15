@@ -22,13 +22,30 @@ export default function RadarChart({ data, compare = null, name = '你的画像'
     const series = [
       {
         type: 'radar',
-        symbolSize: 5,
-        lineStyle: { width: 2, color: BRAND },
-        itemStyle: { color: BRAND },
-        // 有对比序列时不再填色：两条半透明色块叠在一起会互相盖住，
-        // 读图的人分不清哪块是哪个
-        areaStyle: compare ? undefined : { color: 'rgba(79,70,229,0.16)' },
-        emphasis: { lineStyle: { width: 3 } },
+        symbolSize: 6,
+        // ★ 10-14 v2（参考《众生行记》）：
+        //   ① 线宽 2 → 2.5，描边也要在截图里活下来
+        //   ② 面积从一层死板的纯色改成**径向渐变**：中心 0.22 → 边缘 0.04。
+        //      纯色面积是"一块塑料"，渐变面积是"一团光" ——
+        //      这正是那个活动"通透的蓝紫"的意思。
+        //   ③ 填色值从 rgba(79,70,229,...)（旧 indigo）换成蓝紫 #156b7a 的 rgb 分量
+        lineStyle: { width: 2.5, color: BRAND },
+        itemStyle: { color: BRAND, borderColor: '#ffffff', borderWidth: 1.5 },
+        // 有对比序列时仍然填色，但改成很淡的渐变：
+        // 两条叠在一起时分得清（一条实线一团光 vs 一条虚线），
+        // 而且班级页那条"基准圈"在淡面积上仍然读得出来
+        areaStyle: {
+          color: {
+            type: 'radial',
+            x: 0.5, y: 0.5, r: 0.62,
+            colorStops: [
+              { offset: 0, color: 'rgba(21,107,122,0.24)' },
+              { offset: 0.55, color: 'rgba(21,107,122,0.14)' },
+              { offset: 1, color: 'rgba(21,107,122,0.05)' },
+            ],
+          },
+        },
+        emphasis: { lineStyle: { width: 3 }, areaStyle: { opacity: 0.95 } },
         data: [{ value: data.map((d) => d.value), name }],
       },
     ];
@@ -38,7 +55,7 @@ export default function RadarChart({ data, compare = null, name = '你的画像'
         type: 'radar',
         symbolSize: 0,
         silent: true,
-        lineStyle: { width: 1, type: 'dashed', color: INK_SOFT },
+        lineStyle: { width: 1.5, type: 'dashed', color: INK_SOFT },
         data: [{ value: data.map(() => compare.value), name: compare.name }],
       });
     }
@@ -62,12 +79,19 @@ export default function RadarChart({ data, compare = null, name = '你的画像'
         : undefined,
       radar: {
         indicator: data.map((d) => ({ name: d.axis, max: 100 })),
-        radius: '64%',
+        radius: '70%',
         center: ['50%', compare ? '48%' : '52%'],
         axisName: AXIS_LABEL_STYLE,
-        splitLine: { lineStyle: { color: LINE } },
-        axisLine: { lineStyle: { color: LINE } },
-        splitArea: { show: false },
+        // ★ v2：网格线从 #e5e7eb 加深到带紫调的 #d9d4ec，并在奇数圈铺极淡的底 ——
+        // 一圈淡一圈白，雷达的"格"才数得出来（原来全是白的，格等于不存在）
+        splitLine: { lineStyle: { color: '#d9d4ec' } },
+        axisLine: { lineStyle: { color: '#c9c2e6' } },
+        splitArea: {
+          show: true,
+          areaStyle: {
+            color: ['rgba(21,107,122,0.035)', 'rgba(21,107,122,0)'],
+          },
+        },
       },
       series,
     };

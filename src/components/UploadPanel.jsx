@@ -28,6 +28,7 @@ import { checkFileSize, assessQuality, THRESHOLDS } from '../lib/thresholds.js';
 import { BRAND } from '../lib/theme.js';
 import TermPanel from './TermPanel.jsx';
 import { MonoTag, SectionHead } from './TermHead.jsx';
+import NavButton from './NavButton.jsx';
 
 const SAMPLE_FILE = '示例-班级问卷.csv';
 
@@ -108,7 +109,7 @@ export default function UploadPanel({ onReady, onBack }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       {/* 状态行 —— 与问卷页、报告页同一句式（大写动作 + // + 状态），
           三页连起来看才是一条线，而不是三个互不相干的页面 */}
       <div className="flex items-baseline justify-between gap-3 mb-6">
@@ -116,14 +117,9 @@ export default function UploadPanel({ onReady, onBack }) {
           {/* 回地图。上传页现在是从地图的入口坞进来的（不是从首页），
               所以"回去"的语义是"回地图"，而不是"回上一页"。
               没有它，用户会卡在这一页 —— 之前只有浏览器后退键可用。 */}
-          <button
-            type="button"
-            onClick={onBack}
-            className="term-mono text-[10.5px] tracking-[0.12em] transition-colors"
-            style={{ color: 'var(--ink-soft)' }}
-          >
-            ← 回到地图
-          </button>
+          <NavButton onClick={onBack} icon="←" title="回到行动地图">
+              回到地图
+            </NavButton>
           <MonoTag>COLLECTING // UPLOAD</MonoTag>
         </div>
         <MonoTag>CSV · 逐行校验</MonoTag>
@@ -131,6 +127,7 @@ export default function UploadPanel({ onReady, onBack }) {
 
       <SectionHead
         index={1}
+        level={1}
         title="看一个班的分布"
         hint="上传一份问卷结果 CSV（每人一行、每道题的作答），就能看到这个群体的画像：五维位置、类型分布、以及班里和你最像的人。"
       />
@@ -142,6 +139,15 @@ export default function UploadPanel({ onReady, onBack }) {
 
       {!result && (
         <>
+          {/* ★ 10-14 美化：原来这块是「一圈灰虚线 + 两行灰字 + 一个紫按钮」，
+              拖拽区本身没有任何"这是个投放目标"的暗示 ——
+              看起来像一个空的错误提示框。改了三处：
+                ① 四角加青色直角括号 —— 这是"取景框/投放区"的通用语言，
+                   不用写一行说明，人就知道东西该放这里
+                ② 加一枚上传图标（向上箭头 + 托盘）。纯文字的"拖到这里"
+                   在扫读时会被当成正文，有个图形才认得出是操作区
+                ③ 拖拽悬停时：边框变品牌色 + 底色淡青 + 图标放大，
+                   原来的反馈只是边框变色，太轻 */}
           <div
             onDragOver={(e) => {
               e.preventDefault();
@@ -153,45 +159,116 @@ export default function UploadPanel({ onReady, onBack }) {
               setDragging(false);
               readFile(e.dataTransfer?.files?.[0]);
             }}
-            className={[
-              'border-2 border-dashed px-6 py-12 text-center transition',
-              dragging ? 'border-[var(--brand)] bg-slate-50' : 'border-[var(--line)]',
-            ].join(' ')}
+            className="relative overflow-hidden px-6 py-14 text-center transition-all duration-200"
+            style={{
+              // ★ 10-14 v4：白底虚线框 → **深色光场**（upload-bg.webp 作底）。
+              //   以前这是整页最"素"的一块：一圈浅灰虚线 + 两行灰字 + 一个紫按钮，
+              //   看起来像一个空的错误提示框，而不是"把文件投放到这里"的入口。
+              //   众生行记的做法是给操作区一个发光的暗场；这里照做，文字随之反白。
+              clipPath:
+                'polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px))',
+            }}
           >
-            <p className="text-sm text-[var(--ink)] mb-1">
-              {busy ? '正在读取…' : '把 CSV 拖到这里'}
-            </p>
-            <p className="text-xs text-[var(--ink-soft)] mb-5">或者</p>
+            <img
+              src={`${import.meta.env.BASE_URL}art/ark/upload-bg.webp`}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 h-full w-full object-cover ark-art"
+              decoding="async"
+            />
+            {/* ★ 10-15：从"压暗"改成"提亮"。
+                背景换成动漫天空后，深色投放台又是一块黑砖。
+                现在用一层白玻璃盖住底图左侧（文字区），右侧留出 upload-bg 的画面。 */}
+            <span
+              aria-hidden="true"
+              className="absolute inset-0"
+              style={{
+                background:
+                  'linear-gradient(100deg, rgba(255,255,255,0.93) 0%, rgba(255,255,255,0.86) 48%, rgba(255,255,255,0.28) 100%)',
+              }}
+            />
+
+            {/* 四角括号 */}
+            {[
+              { left: 8, top: 8, bl: true, bt: true },
+              { right: 8, top: 8, br: true, bt: true },
+              { left: 8, bottom: 8, bl: true, bb: true },
+              { right: 8, bottom: 8, br: true, bb: true },
+            ].map((c, i) => (
+              <span
+                key={i}
+                aria-hidden="true"
+                className="absolute w-[14px] h-[14px]"
+                style={{
+                  left: c.left,
+                  right: c.right,
+                  top: c.top,
+                  bottom: c.bottom,
+                  borderLeft: c.bl ? '2px solid' : undefined,
+                  borderRight: c.br ? '2px solid' : undefined,
+                  borderTop: c.bt ? '2px solid' : undefined,
+                  borderBottom: c.bb ? '2px solid' : undefined,
+                  borderColor: dragging ? 'var(--ark)' : 'rgba(21,107,122,0.45)',
+                }}
+              />
+            ))}
+
+            <div className="relative">
+              <div className="flex justify-center mb-4">
+                <UploadGlyph active={dragging} />
+              </div>
+
+              <p
+                className="text-[15px] font-semibold mb-1"
+                style={{ color: busy ? 'var(--ink-mid)' : 'var(--ink-strong)' }}
+              >
+                {busy ? '正在读取…' : '把 CSV 拖到这里'}
+              </p>
+              <p className="text-xs mb-6" style={{ color: 'var(--ink-mid)' }}>
+                或者
+              </p>
             <button
               type="button"
               disabled={busy}
               onClick={() => inputRef.current?.click()}
-              className="px-4 py-2 text-sm text-white transition hover:opacity-90 disabled:opacity-50"
-              style={{ background: BRAND }}
+              className="ci-lift px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+              style={{
+                background: 'var(--grad-ark)',
+                boxShadow: 'var(--shadow-ark)',
+              }}
             >
               选择文件
             </button>
+            {/* ★ 10-14：补 aria-label（原来这个 input 没有任何可访问名，
+                屏幕阅读器只会读出"按钮"） */}
             <input
               ref={inputRef}
+              id="csv-file-input"
               type="file"
               accept=".csv,text/csv"
               className="hidden"
+              aria-label="上传班级问卷 CSV 文件"
               onChange={(e) => readFile(e.target.files?.[0])}
             />
-            <p className="text-xs text-[var(--ink-soft)] mt-6">
+            <p className="text-xs mt-7" style={{ color: 'var(--ink-mid)' }}>
               没有现成的数据？
+              {/* ★ 10-14：这颗按钮实测只有 108×16 —— 它嵌在一行文字里，
+                  视觉上是"链接"，但功能上是"换一份数据"的主要出口，
+                  手机上 16px 高点不中。给它 24px 的最小热区（不撑视觉，只撑可点范围）。 */}
               <button
                 type="button"
                 onClick={useSample}
                 disabled={busy}
-                className="ml-1 underline decoration-dotted hover:text-[var(--ink)] transition"
+                className="ml-1 inline-flex items-center min-h-[24px] underline decoration-dotted transition-colors"
+                style={{ color: 'var(--ark)' }}
               >
                 用示例班级问卷试试
               </button>
             </p>
           </div>
+          </div>
 
-          <p className="text-xs text-[var(--ink-soft)] leading-5 mt-4">
+          <p className="text-xs leading-5 mt-4" style={{ color: 'var(--ink-dim)' }}>
             文件只在你的浏览器里被读取和计算，不会上传到任何服务器。
             单个文件不超过 {THRESHOLDS.maxFileLabel}（问卷 CSV 通常只有几百 KB）。
           </p>
@@ -223,6 +300,46 @@ export default function UploadPanel({ onReady, onBack }) {
   );
 }
 
+/**
+ * 上传区的图标：一支向上的箭头 + 一个托盘。
+ *
+ * 为什么不用 emoji 或图片：**它要跟着状态变色**。
+ * 拖拽悬停时整枚图标换成品牌色并微微放大 —— 图片做不到，
+ * 而"颜色 + 位移"这两件事正是"这里可以放"最直接的说明。
+ */
+function UploadGlyph({ active }) {
+  const c = active ? 'var(--accent)' : 'var(--line-strong)';
+  return (
+    <svg
+      width="46"
+      height="46"
+      viewBox="0 0 48 48"
+      aria-hidden="true"
+      style={{
+        transform: active ? 'translateY(-3px) scale(1.08)' : 'none',
+        transition: 'transform 180ms cubic-bezier(0.34, 1.4, 0.64, 1)',
+      }}
+    >
+      <path d="M24 33V13" stroke={c} strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M16 21l8-8 8 8"
+        fill="none"
+        stroke={c}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 30v6a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-6"
+        fill="none"
+        stroke={c}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function ResultCard({ result, onConfirm, onReset }) {
   const { fileName, report, warnings, details, records } = result;
   const dropped = report.droppedCount;
@@ -238,14 +355,45 @@ function ResultCard({ result, onConfirm, onReset }) {
   const st = LEVEL_STYLE[quality.level];
 
   return (
-    <TermPanel style={{ padding: '20px 22px' }}>
+    <TermPanel style={{ padding: '20px 22px' }} tick="accent" shadow="md">
       <MonoTag>{fileName}</MonoTag>
-      <p className="text-base text-[var(--ink)] mt-2 mb-1">
-        读入 <strong className="tabular-nums">{report.inputCount}</strong> 条，
-        可用 <strong className="tabular-nums">{records.length}</strong> 条
-        {dropped > 0 && <>（剔除 {dropped} 条）</>}
-      </p>
-      <p className="text-sm text-[var(--ink-soft)] leading-6">{report.summary}</p>
+
+      {/* ★ 10-14 美化：原来"读入 48 条，可用 46 条"是一行 16px 的普通文字 ——
+          这份卡片的**结论**和下面的说明文字是同一个字号、同一个颜色，
+          扫一眼分不出哪句是重点。这里把两个数提成 26px 的等宽大数字，
+          "多少条"变成一眼能读到的东西，说明文字退到次级灰。 */}
+      <div className="flex items-end gap-5 mt-3 mb-1">
+        <div>
+          <p className="term-mono text-[11px] tracking-[0.16em]" style={{ color: 'var(--ink-dim)' }}>
+            读入
+          </p>
+          <p className="ci-stat ci-num" style={{ color: 'var(--ink-strong)' }}>
+            {report.inputCount}
+            <span className="text-[12px] font-normal ml-1" style={{ color: 'var(--ink-dim)' }}>条</span>
+          </p>
+        </div>
+        <div>
+          <p className="term-mono text-[11px] tracking-[0.16em]" style={{ color: 'var(--ink-dim)' }}>
+            可用
+          </p>
+          <p className="ci-stat ci-num" style={{ color: 'var(--accent-deep)' }}>
+            {records.length}
+            <span className="text-[12px] font-normal ml-1" style={{ color: 'var(--ink-dim)' }}>条</span>
+          </p>
+        </div>
+        {dropped > 0 && (
+          <div>
+            <p className="term-mono text-[11px] tracking-[0.16em]" style={{ color: 'var(--ink-dim)' }}>
+              剔除
+            </p>
+            <p className="ci-stat ci-num" style={{ color: 'var(--accent-warm)' }}>
+              {dropped}
+              <span className="text-[12px] font-normal ml-1" style={{ color: 'var(--ink-dim)' }}>条</span>
+            </p>
+          </div>
+        )}
+      </div>
+      <p className="text-sm leading-6" style={{ color: 'var(--ink-mid)' }}>{report.summary}</p>
 
       {/* 数据质量明细（任务书 P4#3 要求的完整报告项） */}
       <dl
@@ -318,15 +466,25 @@ function ResultCard({ result, onConfirm, onReset }) {
         <button
           type="button"
           onClick={() => (quality.needConfirm && !confirmed ? setConfirmed(true) : onConfirm())}
-          className="px-4 py-2 text-sm text-white transition hover:opacity-90"
-          style={{ background: quality.needConfirm && !confirmed ? '#9a3412' : BRAND }}
+          className="ci-lift px-5 py-2.5 text-sm font-medium text-white"
+          style={{
+            background:
+              quality.needConfirm && !confirmed
+                ? 'linear-gradient(100deg, #7f1d1d, #b91c1c)'
+                : 'var(--grad-ark)',
+            boxShadow:
+              quality.needConfirm && !confirmed ? '0 8px 22px -8px rgba(185,28,28,.5)' : 'var(--shadow-ark)',
+          }}
         >
           {quality.needConfirm && !confirmed ? '我知道，仍然出图' : '看这个班的画像'}
         </button>
         <button
           type="button"
           onClick={onReset}
-          className="text-sm text-[var(--ink-soft)] hover:text-[var(--ink)] transition"
+          className="text-sm transition-colors"
+          style={{ color: 'var(--ink-mid)' }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--ink-strong)')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--ink-mid)')}
         >
           换一个文件
         </button>

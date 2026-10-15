@@ -19,7 +19,7 @@ import { MonoTag } from '../components/TermHead.jsx';
 /* 粒子库（@tsparticles）体积不小，而它只在挂载后才有意义
    ⇒ 懒加载：主包不带它，首屏不被拖累（构建后可见它单独成 chunk）*/
 const Atmosphere = lazy(() => import('../components/Atmosphere.jsx'));
-import { BRAND } from '../lib/theme.js';
+import { BRAND_ON_DARK } from '../lib/theme.js';
 import Mascot from '../components/Mascot.jsx';
 
 const INK = '#EDF3FA';
@@ -41,7 +41,17 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
       <Mascot src={`${import.meta.env.BASE_URL}art/mascot.webp`} />
 
       {/* 页头 */}
-      <header className="relative z-10" style={{ borderBottom: '1px solid rgba(255,255,255,.10)' }}>
+      {/* ★ 10-14：页头原本是透明的，文字直接压在氛围层上 ——
+          氛围层是半透明的（还可能是懒加载失败、压根没画出来），
+          一旦它没铺满，这行 11px 的小字就会落在页面的浅色底上，
+          实测对比度只有 2.08。这里给页头一层深色底，把它钉死在可读范围。 */}
+      <header
+        className="relative z-10"
+        style={{
+          borderBottom: '1px solid rgba(255,255,255,.10)',
+          background: 'rgba(10,15,22,0.62)',
+        }}
+      >
         <div className="max-w-4xl mx-auto px-6 py-3.5 flex items-center gap-3 flex-wrap">
           <span className="term-mono text-[11px] tracking-[0.12em]" style={{ color: INK_SOFT }}>
             CAMPUS&nbsp;ARCHIVE&nbsp;//&nbsp;TERMINAL&nbsp;v3
@@ -55,7 +65,7 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
 
       <div className="relative z-10 flex-1 w-full max-w-4xl mx-auto px-6 py-10">
         <div className="atmo-panel rounded-sm px-7 py-9 sm:px-10 sm:py-11">
-          <MonoTag>CAMPUS INSIGHT · 你的大学平行宇宙</MonoTag>
+          <MonoTag style={{ color: INK_SOFT }}>CAMPUS INSIGHT · 你的大学平行宇宙</MonoTag>
 
           <h1 className="text-[30px] font-semibold mt-5 leading-[1.35] tracking-[-0.01em]" style={{ color: INK }}>
             把大学四年，算成一份能看懂的数据叙事
@@ -69,9 +79,9 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
           <div className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-1 term-mono text-[10.5px] tracking-[0.14em]"
                style={{ color: INK_SOFT }}>
             <span>数据</span>
-            <span style={{ color: BRAND }}>→</span>
+            <span style={{ color: BRAND_ON_DARK }}>→</span>
             <span>图表大盘</span>
-            <span style={{ color: BRAND }}>→</span>
+            <span style={{ color: BRAND_ON_DARK }}>→</span>
             <span>AI 解读</span>
             <span className="ml-1">（两条路都走完这三段）</span>
           </div>
@@ -84,10 +94,10 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
               onClick={onGoUpload}
               className="glass-card relative text-left px-5 py-5"
             >
-              <span className="term-mono text-[10px] tracking-[0.25em]" style={{ color: BRAND }}>
+              <span className="term-mono text-[10px] tracking-[0.25em]" style={{ color: BRAND_ON_DARK }}>
                 01 · DATA BOARD
               </span>
-              <span className="term-mono absolute right-4 top-4 text-[10px]" style={{ color: BRAND }}>
+              <span className="term-mono absolute right-4 top-4 text-[10px]" style={{ color: BRAND_ON_DARK }}>
                 3 步
               </span>
               <span className="block text-[15px] font-semibold mt-2" style={{ color: INK }}>
@@ -124,7 +134,7 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
               附加体验 · 不参与测评结果
             </p>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[12.5px]">
-              <button type="button" onClick={onGoMap} style={{ color: BRAND }}>
+              <button type="button" onClick={onGoMap} style={{ color: BRAND_ON_DARK }}>
                 去校园里走走（行动地图）→
               </button>
               <a
@@ -156,7 +166,7 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
 function FooterNote({ title, body }) {
   return (
     <div>
-      <p className="term-mono text-[10px] tracking-[0.16em]" style={{ color: BRAND }}>{title}</p>
+      <p className="term-mono text-[10px] tracking-[0.16em]" style={{ color: BRAND_ON_DARK }}>{title}</p>
       <p className="mt-1 text-[11.5px] leading-relaxed" style={{ color: INK_SOFT }}>{body}</p>
     </div>
   );

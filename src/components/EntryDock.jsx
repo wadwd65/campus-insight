@@ -41,7 +41,7 @@ import { QUESTIONS } from '../lib/surveySchema.js';
  * 不引入第三种色：三色以上就分不出主次了。
  */
 function DockItem({ no, title, desc, meta, tone = 'quiet', onClick, disabled, cta }) {
-  const accent = tone === 'primary' ? '#4fa8d8' : 'var(--term-ink-soft)';
+  const accent = tone === 'primary' ? 'var(--term-ark)' : 'var(--term-ink-soft)';
 
   return (
     <button
@@ -69,7 +69,7 @@ function DockItem({ no, title, desc, meta, tone = 'quiet', onClick, disabled, ct
           {title}
         </span>
         <span
-          className="block text-[10.5px] leading-relaxed mt-0.5"
+          className="block text-[11px] leading-relaxed mt-0.5"
           style={{ color: 'var(--term-ink-soft)' }}
         >
           {desc}
@@ -77,7 +77,7 @@ function DockItem({ no, title, desc, meta, tone = 'quiet', onClick, disabled, ct
         {meta && (
           <span
             className="term-mono block text-[9.5px] mt-1.5 tracking-[0.08em]"
-            style={{ color: disabled ? '#5d6b7a' : accent }}
+            style={{ color: disabled ? 'var(--term-ink-dim)' : accent }}
           >
             {meta}
           </span>
@@ -87,7 +87,7 @@ function DockItem({ no, title, desc, meta, tone = 'quiet', onClick, disabled, ct
       {cta && (
         <span
           className="term-mono text-[13px] shrink-0 self-center transition-transform group-hover:translate-x-0.5"
-          style={{ color: disabled ? '#5d6b7a' : accent }}
+          style={{ color: disabled ? 'var(--term-ink-dim)' : accent }}
         >
           →
         </span>
@@ -102,10 +102,10 @@ export default function EntryDock({ onGoQuiz, onUpload, onGoReport, canReport })
       {/* 坞的标题。用"这台机器能做什么"的口吻，而不是"请选择功能"——
           后者读起来像表单，前者读起来像仪表盘。 */}
       <div className="flex items-center justify-between">
-        <p className="term-mono text-[10px] tracking-[0.25em]" style={{ color: 'var(--term-ink-soft)' }}>
+        <p className="term-mono text-[11px] tracking-[0.25em]" style={{ color: 'var(--term-ink-soft)' }}>
           ACTIONS
         </p>
-        <p className="term-mono text-[10px]" style={{ color: '#5d6b7a' }}>
+        <p className="term-mono text-[11px]" style={{ color: 'var(--term-ink-dim)' }}>
           三个入口 · 同一本账
         </p>
       </div>

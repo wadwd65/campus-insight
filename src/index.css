@@ -2,15 +2,107 @@
 
 /* 全站基调：浅色、克制。配色统一在这里改。 */
 :root {
-  --ink: #1f2937;
-  --ink-soft: #6b7280;
-  --line: #e5e7eb;
-  --surface: #ffffff;
-  --canvas: #f8fafc;
+  /* ── 基础层（保留原有五个名字，别处仍在引用）────────────────────── */
+  --ink: #1f2937;      /* 正文主色   on #f7fafb 13.5 ✓ */
+
+  /* ★★ 10-15：次级文字整体加深一档。
+     起因是用户一句很准的观察：「有一些字体跟背景融合在一起了，很透明的，看不清」。
+     查下来不是某个元素的 bug —— 是**判据本身在这套背景上不成立**：
+     WCAG 的 4.5 阈值假设背景是**纯色**，而我们的背景是**有纹理的天空照片**。
+     同样 4.54 的灰压在平整白纸上清楚，压在云上就糊了。
+     ⇒ 对着纹理背景的小字，目标提到 **≥6**：
+       ink-soft #6b7280(4.61) → #4f5a68(6.69)
+       ink-dim  #64748b(4.54) → #5b6675(5.56)
+     两级仍保持"soft 深于 dim"的层次，没有压平。 */
+  --ink-soft: #4f5a68; /* 次级文字   on #f7fafb  6.69 ✓（纹理背景目标 ≥6）*/
+  --ink-dim: #5b6675;  /* 三级文字   on #f7fafb  5.56 ✓ */
+  --line: #e5e7eb;     /* 描边 */
+  --surface: #fbfdfe;  /* 卡片底（比页面底亮一档，仍是"浮起来的白"）*/
+  --canvas: #f7fafb;   /* 页面底 */
+
+  /* ★ 10-14 v5：页面底从「中性灰白 #f8fafc」换成「极淡紫 #faf9ff」。
+     用户反馈「周围还是太素」—— 素的不只是装饰少，还有**整页是一张中性白纸**：
+     中性灰白没有任何色相倾向，再好的几何浮上去也像"贴上去的"。
+     换底有硬约束：**亮度不能低于旧底**，否则所有浅色文字一起掉对比度。
+     实测（on #faf9ff）：ink-dim 4.55 / ink-soft 4.62 / ink-mid 6.93 / accent 5.85
+     —— 与旧底 #f8fafc 完全持平，没有一项退化。
+     （试过更明显的 #f6f4fc，ink-dim 掉到 4.37 不合格，故不采用。） */
 
   /* 品牌主色 —— 与 src/lib/theme.js 里的 BRAND 是同一个值。
-     ECharts 读不到 CSS 变量，所以那边只能重复一次；改色时两处一起改。 */
-  --brand: #4f46e5;
+     ECharts 读不到 CSS 变量，所以那边只能重复一次；改色时两处一起改。
+
+     ★ 10-14 二次改（参考《明日方舟》SideStory「众生行记」）：
+       原来 #4f46e5（Tailwind 默认 indigo）→ 曾改深青 #0e7490，
+       现在是**通透蓝紫 #156b7a**。
+       众生行记的视觉语言是「科技神学」：数学逻辑 × 宗教仪式感，
+       主色是通透的蓝紫（刻意避开深色和黑，用亮度造神圣感）。
+       选 #156b7a 而不是更亮的 #46a9b8：亮版在浅底上只有 3.24，读不清；
+       这个值 on #f8fafc = 6.09 ✓、白字 on 它 = 6.37 ✓，两个方向都达标。 */
+  --brand: #156b7a;
+  --brand-strong: #0b5a6b; /* hover / active；白字 8.46 ✓ */
+
+  /* ── 众生行记：通透蓝紫家族 ────────────────────────────────────
+     为什么单独一套而不复用 --accent：蓝紫在这个作品里是**主色**，
+     青（#0e7490）与琥珀（#b45309）退为辅助色 —— 三方舟系界面
+     「一个主色 + 两个点缀」的秩序，全站一个主色才不会花。 */
+  --ark: #156b7a;        /* 浅底主强调  6.09 ✓ */
+  --ark-deep: #0b5a6b;   /* 渐变深端    8.09 ✓ */
+  --ark-soft: #46a9b8;   /* 深底上的主色（5.66 ✓）*/
+  --ark-pale: #7ed0dc;   /* 深底上的亮版（9.64 ✓）*/
+  --ark-wash: rgba(21, 107, 122, 0.055);  /* 极淡的底，给"被标出的区域" */
+  --ark-line: rgba(21, 107, 122, 0.34);  /* 蓝紫描边 */
+  --shadow-ark: 0 8px 22px -8px rgba(21, 107, 122, 0.5);
+  --grad-ark: linear-gradient(100deg, var(--ark-deep), var(--ark));
+
+  /* ── 10-14 新增：内容层语义令牌 ──────────────────────────────────
+     为什么要加这一层：原来只有「一个灰 + 一个强调色」，
+     页面里真正需要区分的是**四档深度**（标题 / 正文 / 次级 / 弱化）
+     和**两个底色家族**（浅色内容区 / 深色外壳）。
+     原来那一套没区分，于是顶栏直接拿浅色区的灰去画深底 —— 对比度 3.97。
+     这一层就是给"哪个底色用哪个值"定死规则。 */
+
+  /* 浅色内容区的四档文字深度（底 #f8fafc / #ffffff）*/
+  --ink-strong: #0f172a; /* 大标题   17.06 ✓ */
+  --ink-mid: #4b5563;    /* 次级正文  7.22 ✓ */
+  --ink-dim: #64748b;    /* 弱化/辅助 4.55 ✓（最短的及格线，别再浅了）*/
+
+  /* 强调（浅底可读版）—— 众生行记是「蓝紫主导 + 青/琥珀点缀」，
+     所以 --accent 现在指向蓝紫，青与琥珀只在该强调的地方出现 */
+  --accent: #156b7a;     /* 蓝紫·主      5.12→6.09 ✓ */
+  --accent-deep: #0b5a6b;/* 蓝紫·强调     6.95→8.09 ✓ */
+  --accent-warm: #b45309;/* 琥珀·点缀     4.80 ✓ */
+  --accent-warm-deep: #92400e; /* 琥珀·深  6.78 ✓ */
+  --accent-cool: #0e7490;/* 青·点缀       5.12 ✓ */
+  --accent-cool-deep: #155e75; /* 青·深     6.95 ✓ */
+  --line-soft: #eef2f6;  /* 更细的分隔（纯装饰，别放文字）*/
+  --line-strong: #cbd5e1;/* 需要被看见的边框 */
+
+  /* 深色外壳（底 #0b0f14 / #0a0f16）*/
+  --on-dark-ink: #e8edf2;   /* 主文字  16.32 ✓ */
+  --on-dark-soft: #8a98a8;  /* 次级     6.53 ✓ */
+  --on-dark-dim: #9aa8b8;   /* 弱化     7.93 ✓ */
+  --on-dark-line: #2e4152;  /* 空槽/描边（1.83，够"看得见轮廓"）*/
+
+  /* ── 层次：阴影 / 渐变 ──────────────────────────────────────────
+     「素」的一大来源是**所有卡片都是同一张平白纸**：没有上下关系。
+     四级阴影把「页面底 → 卡片 → 浮起的卡 → 弹层」分开。 */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 6px 16px -4px rgba(15, 23, 42, 0.1), 0 2px 6px -2px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 18px 40px -12px rgba(15, 23, 42, 0.18), 0 6px 14px -6px rgba(15, 23, 42, 0.1);
+  --shadow-accent: 0 8px 22px -8px rgba(21, 107, 122, 0.5);
+  --shadow-warm: 0 8px 22px -8px rgba(180, 83, 9, 0.5);
+
+  /* 渐变：细线用（从实到透，比纯灰线"有方向"）*/
+  --grad-hair: linear-gradient(90deg, var(--accent), rgba(21, 107, 122, 0));
+  --grad-warm-hair: linear-gradient(90deg, var(--accent-warm), rgba(180, 83, 9, 0));
+  --grad-surface: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
+  --grad-panel: linear-gradient(160deg, #ffffff 0%, #f2f9fa 100%);
+
+  /* 焦点环：浅底用蓝、深底用亮青 —— 原来的浏览器默认环是近黑的，
+     画在深色顶栏上等于没有（实测对比 1.1）。 */
+  --focus-ring: #1d4ed8;      /* on #f8fafc 6.41 ✓ */
+  --focus-ring-dark: #7dd3fc; /* on #0b0f14 11.53 ✓ */
 }
 
 html,
@@ -77,26 +169,62 @@ button {
    在低端机上也不会掉帧；降级统一交给文末的 prefers-reduced-motion。 */
 
 .term-canvas {
-  --term-bg: #0b0f14;
-  --term-panel: #141c25;
-  --term-line: #243040;
+  --term-bg: #0f0c1a;
+  --term-panel: #171327;
+  --term-line: #2e2842;
   --term-ink: #e8edf2;
   --term-ink-soft: #8a98a8;
   --term-amber: #f5a623;
   --term-cyan: #4fa8d8;
+  /* ★ 10-14：蓝紫在深色外壳上的版本（on #0b0f14 = 5.66 ✓）。
+     众生行记主色是通透蓝紫，深色外壳这一侧也跟着换，
+     这样顶栏与内容区是同一个主色，而不是"外壳青、内容紫"两张皮。 */
+  --term-ark: #46a9b8;
+
+  /* ★ 10-14：把 :root 里那套「深色专用」令牌在本作用域内**映射到 term-* 上**。
+     这样顶栏组件写 `var(--ink-soft)` 也能拿到深底可读的值 ——
+     原来它拿到的是浅色区的 #6b7280，在 #0b0f14 上只有 3.97。
+     这是「令牌串台」最省力的根治法：**让作用域决定取值**，而不是靠每个组件记。 */
+  --ink: var(--term-ink);
+  --ink-soft: var(--term-ink-soft);
+  --line: var(--term-line);
+  --accent: var(--term-ark);
+  --accent-warm: var(--term-amber);
+
   background: var(--term-bg);
   color: var(--term-ink);
 }
 
 /* 网格底：用两组 1px 的重复渐变画，比背景图便宜，也不会随分辨率发虚。
    边缘用 radial 遮罩收掉，免得整屏都是格子显得吵。 */
+/* ── 浅色作用域（2026-10-15）────────────────────────────────────
+   地图页原本靠 .term-canvas 拿到一整套深色变量。整站提亮之后它成了唯一的暗屏，
+   与另三页气质割裂。这里给它一套**镜像变量** —— 组件一行不改，
+   只把作用域类从 .term-canvas 换成 .term-light，整页跟着变浅。
+   ★ 这正是 10-14 那次"作用域变量重映射"的用法复用：
+     同一个组件在不同作用域下取到不同的值，不需要为深浅各写一份。 */
+.term-light {
+  --term-bg: transparent;
+  --term-panel: rgba(255, 255, 255, 0.90);
+  --term-line: rgba(21, 107, 122, 0.18);
+  --term-ink: #0f172a;
+  --term-ink-soft: #4b5563;
+  --term-ink-dim: #64748b;
+  --term-amber: #b45309;
+  --term-ark: #156b7a;
+  --term-slot: rgba(16, 42, 78, 0.14);
+}
+
 .term-grid::before {
   content: "";
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(to right, rgba(79, 168, 216, 0.07) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(79, 168, 216, 0.07) 1px, transparent 1px);
+    /* ★ 10-15：网格线原来是"深底上的亮青"(rgba(79,168,216,.07))。
+       浅底上它完全看不见 —— 换成深的青 (rgba(21,107,122,.10))，
+       保留"这是一张坐标图"的暗示，又不会抢内容。 */
+    linear-gradient(to right, rgba(21, 107, 122, 0.10) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(21, 107, 122, 0.10) 1px, transparent 1px);
   background-size: 48px 48px;
   -webkit-mask-image: radial-gradient(ellipse at 50% 45%, #000 35%, transparent 78%);
   mask-image: radial-gradient(ellipse at 50% 45%, #000 35%, transparent 78%);
@@ -725,6 +853,484 @@ button:not(:disabled):active {
   transform: scale(0.96) translateZ(0);
 }
 
+
+/* ── 内容层美化（2026-10-14）──────────────────────────────────────
+   「素」的三个来源，各给一条规则，全站一次性解决：
+     ① 所有卡片都是同一张平白纸（没有上下关系）→ 阴影分级
+     ② 强调色只有一处、其余全灰 → 渐变细线 / 徽标 / 数字分级
+     ③ 键盘焦点在深色外壳上不可见 → 按作用域分流焦点环
+   ────────────────────────────────────────────────────────────── */
+
+/* ① 焦点环。浏览器默认是近黑的 rgb(16,16,16)：画在浅底上清楚，
+      画在 #0b0f14 的顶栏上对比只有约 1.1 —— 等于没有。
+      这里按作用域分流：浅底用蓝、深色外壳用亮青。 */
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.term-canvas :where(button, a, [tabindex]):focus-visible {
+  outline-color: var(--focus-ring-dark);
+}
+
+/* ② 小按钮的触控热区。实测顶栏那几颗只有 39×17 / 24×17，
+      手机上点不中（WCAG 2.5.8 要求 ≥24）。这里只撑热区、不撑视觉。 */
+button.term-mono {
+  min-height: 28px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  display: inline-flex;
+  align-items: center;
+}
+button.text-xs,
+button.text-sm {
+  min-height: 30px;
+}
+
+/* ③ 卡片分级：页面底 → 卡片 → 浮起。 */
+.ci-card {
+  background: var(--grad-surface);
+  box-shadow: var(--shadow-sm);
+}
+.ci-lift {
+  transition:
+    box-shadow 180ms ease,
+    transform 180ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.ci-lift:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* 渐变细线：从左到右由实到透。比等宽灰线"有方向"，
+   用来分隔标题与内容、或标出一段重点。 */
+.ci-rule {
+  display: block;
+  height: 1px;
+  background: var(--grad-hair);
+}
+.ci-rule-warm {
+  display: block;
+  height: 1px;
+  background: var(--grad-warm-hair);
+}
+
+/* 等宽数字：报告/班级页里所有要被"读出来"的数都用它 ——
+   等宽能让上下两行的数字对齐，比较大小不用数位数。 */
+.ci-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.01em;
+}
+
+/* 大数字：KPI 卡里的主角。原来 17px 常规字，和标签一样大 ——
+   没有主次，就分不出"这是结论"还是"这是说明"。 */
+.ci-stat {
+  font-size: 26px;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* 徽标：小块的等宽标签。给"状态""类别"这类短词一个容器，
+   比裸文字更容易扫读。 */
+.ci-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-mid);
+  background: var(--surface);
+}
+.ci-chip-accent {
+  border-color: rgba(14, 116, 144, 0.35);
+  color: var(--accent-deep);
+  background: rgba(14, 116, 144, 0.07);
+}
+.ci-chip-warm {
+  border-color: rgba(180, 83, 9, 0.35);
+  color: var(--accent-warm-deep);
+  background: rgba(180, 83, 9, 0.07);
+}
+
+/* ── 众生行记：通透天光（2026-10-14 v2）─────────────────────────
+   那个活动的主色是"通透的蓝紫"，而且**刻意避开深色与黑，用亮度造神圣感**。
+   原来整页是一张平白纸（#f8fafc）—— 没有空间感，这是"素"的根因之一。
+   这里在页面顶部铺两层极淡的径向光：右上亮一点、左上更淡，
+   整页立刻从"一张纸"变成"一个有方向的空间"。
+   总不透明度压在 0.10 以下 —— 再高就会开始吃掉正文的对比度。 */
+.ark-sky {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 62vh;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(120% 78% at 72% -14%, rgba(70, 169, 184, 0.15), transparent 62%),
+    radial-gradient(92% 62% at 10% -10%, rgba(21, 107, 122, 0.08), transparent 60%);
+}
+
+/* 内容必须显式压到装饰层之上。
+   ⚠️ 原来靠 DOM 顺序碰巧成立（.term-enter 有 transform 会建层），
+   但那是运气不是设计 —— 谁把顺序一换，文字就被几何层盖住。 */
+.term-enter {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── 方舟式角标（2026-10-14 v2）────────────────────────────────
+   四角各一段短 L 线。它比一圈完整的描边"轻"，但比什么都没有"贵" ——
+   一眼就知道这块是"被框住的仪表"，而不是一张普通卡片。
+   只在 TermBlock（整行宽的块）上用，列表里的小卡不用，否则满页都是角。 */
+.ark-bracket {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+}
+.ark-bracket-tl {
+  left: -1px;
+  top: -1px;
+  border-left: 2px solid var(--ark);
+  border-top: 2px solid var(--ark);
+}
+.ark-bracket-tr {
+  right: -1px;
+  top: -1px;
+  border-right: 2px solid var(--ark);
+  border-top: 2px solid var(--ark);
+}
+.ark-bracket-bl {
+  left: -1px;
+  bottom: -1px;
+  border-left: 2px solid var(--ark);
+  border-bottom: 2px solid var(--ark);
+}
+.ark-bracket-br {
+  right: -1px;
+  bottom: -1px;
+  border-right: 2px solid var(--ark);
+  border-bottom: 2px solid var(--ark);
+}
+
+/* ── ArkOption：方舟式选项（2026-10-14 v3）──────────────────────
+   用户原话：「这些选项都一点意思都没有，那框框和那些触发特效都没有」。
+   这里补三样：常驻角标（悬停展开）、选中扫描线、悬停整体响应。 */
+
+/* 常驻角标：静止时淡，悬停/选中时亮起并向外张开 3px。
+   用 transform 位移而不是改 left/top —— 位移走合成器，不触发布局。 */
+.ark-opt-brk {
+  opacity: 0.5;
+  transition:
+    opacity 150ms ease,
+    transform 150ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.group:hover .ark-opt-brk,
+.group:focus-visible .ark-opt-brk {
+  opacity: 0.9;
+}
+.ark-opt-brk-tl { transform: translate(2px, 2px); }
+.ark-opt-brk-tr { transform: translate(-2px, 2px); }
+.ark-opt-brk-bl { transform: translate(2px, -2px); }
+.ark-opt-brk-br { transform: translate(-2px, -2px); }
+.group:hover .ark-opt-brk-tl,
+.group:focus-visible .ark-opt-brk-tl { transform: translate(-2px, -2px); }
+.group:hover .ark-opt-brk-tr,
+.group:focus-visible .ark-opt-brk-tr { transform: translate(2px, -2px); }
+.group:hover .ark-opt-brk-bl,
+.group:focus-visible .ark-opt-brk-bl { transform: translate(-2px, 2px); }
+.group:hover .ark-opt-brk-br,
+.group:focus-visible .ark-opt-brk-br { transform: translate(2px, 2px); }
+
+/* 选中扫描线：一道亮线从左掠到右，420ms 后淡出。
+   它给"我选中了这一项"一个**瞬时**的确认 ——
+   问卷是点一下 160ms 就跳下一题的，没有这个特效，
+   用户根本看不清自己刚点了什么。 */
+.ark-scanline {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 80%
+  );
+  animation: ark-scan 420ms ease-out 1;
+}
+@keyframes ark-scan {
+  0%   { transform: translateX(-100%); opacity: 0.95; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+/* 斜切面的高光边：切角处一道 45° 的亮线。
+   斜切角如果没有高光，看起来只是"缺了一块"而不是"切过"；
+   这一道线让它读作"抛光过的切面"。两处切角各一道。
+   用 linear-gradient 画 1px 的斜线，比 rotate 一个 span 省一次变换。 */
+.ark-cut-edge-tr,
+.ark-cut-edge-bl {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+  opacity: 0.55;
+}
+.ark-cut-edge-tr {
+  right: 0;
+  top: 0;
+  background: linear-gradient(
+    225deg,
+    rgba(21, 107, 122, 0.55) 0,
+    rgba(21, 107, 122, 0.55) 1px,
+    transparent 1px
+  );
+}
+.ark-cut-edge-bl {
+  left: 0;
+  bottom: 0;
+  background: linear-gradient(
+    45deg,
+    rgba(21, 107, 122, 0.55) 0,
+    rgba(21, 107, 122, 0.55) 1px,
+    transparent 1px
+  );
+}
+.group:hover .ark-cut-edge-tr,
+.group:hover .ark-cut-edge-bl { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ark-scanline { animation-duration: 0.01ms; }
+  .ark-opt-brk { transition-duration: 0.01ms; }
+}
+
+/* ── 答题页天空背景（2026-10-14 v6）────────────────────────────
+   见 SkyBackdrop.jsx 的头部注释（三条约束的来历都在那里）。
+   核心取巧：**色彩全压在明度高位，只让色相变** ——
+   眼睛读到"一片天"，但每一点的亮度都还在浅底区间，
+   正文那套深色文字一个色号都不用改，对比度零风险。
+   动画只有 transform、周期 110~170 秒。 */
+.sky-backdrop {
+  position: fixed;
+  inset: 0;
+  /* ★ 必须是 -1，不能是 0。
+     顶栏 HubHud 没有 position，属于"常规流、非定位"元素；
+     而定位元素（含 z-index:0）在层叠顺序里**画在常规流内容之上** ——
+     用 0 的后果是天空把整条顶栏盖住（第一次截图就是这样，顶部空了一大片）。
+     -1 让它在 .term-enter 这个层叠上下文里落到"背景之上、内容之下"。 */
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 兜底渐变：图没加载出来时顶上，保证任何情况下都不是白板 */
+.sky-base {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    #cde2f6 0%,
+    #d9e9f7 22%,
+    #e3eff5 44%,
+    #ecf1ec 64%,
+    #f2ead9 84%,
+    #f6f0e2 100%
+  );
+}
+
+/* ★ 真天空（绘世出的 sky.webp）。
+   为什么不用纯 CSS 渐变：渐变做不出**云的质感与层次** ——
+   第一版渐变版截图里它就是一条"褪色的灰蓝"，读不出"天"。
+   图上叠一层冷-暖渐变压色调，让它和界面的蓝/暖沙收在同一个色温里。
+
+   ⚠️ inset:-5% 是必须的：动画会横向位移 ±3%，
+      不留余量的话平移到头时边缘会露出底色（一条硬边）。 */
+.sky-photo {
+  position: absolute;
+  inset: -5%;
+  background-image: url("/art/ark/sky.webp");
+  background-size: cover;
+  background-position: center 38%;
+  background-repeat: no-repeat;
+  animation: sky-drift-photo 170s ease-in-out infinite alternate;
+  will-change: transform;
+  /* ★ 10-15：用户反馈「天太白」⇒ 上一版 0.66 + 一层降饱和把动漫天空洗成了灰白。
+     现在提到 0.95（vivid），降饱和那层删掉，改由下方的 .sky-scrim 控制可读性 ——
+     **"让天空够艳"和"让文字够清楚"是两件事，不该由同一个参数兼顾**：
+     前者是图的不透明度，后者是内容区上方的一层光幕。分开调，两个目标才都拿得到。 */
+  opacity: 0.95;
+}
+/* 色调校准层：上冷下暖，把照片收进界面的色温 */
+.sky-photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    /* 只留一点点冷蓝，把天空顶部收进界面主色；**不再降饱和** */
+    linear-gradient(180deg, rgba(70, 169, 184, 0.16) 0%, transparent 42%);
+}
+
+/* 云：用两团极淡的白色径向渐变当"云带"。
+   radial-gradient 的柔边本身就是云的形状，不需要位图。 */
+.sky-clouds {
+  position: absolute;
+  left: -12%;
+  right: -12%;
+  background-repeat: no-repeat;
+  will-change: transform;
+}
+.sky-clouds-a {
+  top: 2%;
+  height: 42%;
+  background-image:
+    radial-gradient(38% 58% at 22% 62%, rgba(255, 255, 255, 0.85), transparent 70%),
+    radial-gradient(30% 46% at 58% 40%, rgba(255, 255, 255, 0.62), transparent 72%),
+    radial-gradient(26% 40% at 84% 70%, rgba(255, 255, 255, 0.5), transparent 70%);
+  animation: sky-drift-a 150s ease-in-out infinite alternate;
+}
+.sky-clouds-b {
+  top: 22%;
+  height: 36%;
+  background-image:
+    radial-gradient(34% 52% at 12% 46%, rgba(255, 255, 255, 0.55), transparent 72%),
+    radial-gradient(40% 60% at 68% 58%, rgba(255, 255, 255, 0.42), transparent 74%);
+  animation: sky-drift-b 110s ease-in-out infinite alternate;
+}
+
+/* 近地暖光：一片极淡的琥珀，托住选项卡片那一带 */
+.sky-glow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 46%;
+  background: radial-gradient(84% 100% at 50% 116%, rgba(214, 160, 96, 0.18), transparent 68%);
+}
+
+/* ★ 光幕（10-15 新增）：天空存在感提上去之后，可读性靠这一层兜。
+   从顶部透明 → 底部接近页面色，让天空"从上往下渐隐进内容"。
+   这与"把天空调淡"是两回事：调淡是**全局**削弱（用户说太白就是被这么削的），
+   光幕是**局部**让位（上头该艳的地方照样艳）。
+   ⚠️ 中段必须留出一段"半透明区"（34%~72%），不能从 0 直接跳到 0.9 ——
+   那会在页面上切出一条能看见的横线。 */
+.sky-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(251, 251, 253, 0.14) 34%,
+    rgba(251, 251, 253, 0.58) 56%,
+    rgba(251, 251, 253, 0.86) 74%,
+    rgba(251, 251, 253, 0.93) 100%
+  );
+}
+
+/* ★ 微动态：只动 transform（GPU 合成，零重绘）。
+   幅度 3% 上下、周期 110~170 秒 —— 是"云在慢慢走"，不是"有东西在动"。 */
+@keyframes sky-drift-a {
+  from { transform: translate3d(-3%, 0, 0); }
+  to   { transform: translate3d(3%, 0, 0); }
+}
+@keyframes sky-drift-b {
+  from { transform: translate3d(2%, 0, 0); }
+  to   { transform: translate3d(-2.4%, 0, 0); }
+}
+/* 照片本体的漂移：170 秒走 ±2.6% + 极缓的缩放。
+   这就是用户要的"微动态"——像云在慢慢走，而不是"有个东西在动"。 */
+@keyframes sky-drift-photo {
+  from { transform: translate3d(-2.6%, -0.8%, 0) scale(1.02); }
+  to   { transform: translate3d(2.6%, 0.8%, 0) scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-clouds-a,
+  .sky-clouds-b,
+  .sky-photo { animation: none !important; }
+}
+
+/* ── 亮天空下的"浅色玻璃"容器（2026-10-15）─────────────────────
+   背景从"浅灰纸"换成了**动漫天空**，容器就不能再是"白底描边"了 ——
+   在云上，白色描边的卡片会失去边界，深色块又会像贴在画面上的黑砖。
+   这一组规则统一给出第三种做法：**半透明白 + 一层可见的冷色边**。
+
+   ★ 刻意**不用 backdrop-filter: blur()**。
+     这个项目有过"多层实时模糊 + 持续动画 → 帧数狂掉"的教训（见 .atmo-panel 注释）。
+     半透明白 + 足够对比的描边，视觉上已经够"玻璃"，成本却近乎零。 */
+.sky-glass {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(21, 107, 122, 0.16);
+  box-shadow:
+    0 10px 30px -14px rgba(16, 42, 78, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+/* 压在天空上的"条"：进度行、底部提示这类窄条。
+   它们没有卡片那样的体量，靠一条半透明的底把自己与云分开。 */
+.sky-strip {
+  background: rgba(252, 252, 254, 0.72);
+  border: 1px solid rgba(21, 107, 122, 0.12);
+}
+
+/* ── 装饰层互斥（2026-10-14 v6）────────────────────────────────
+   答题页已经有天空背景了。再叠一层几何螺旋/三角形 = **两套装饰语言互相打架**：
+   看图后确认，那样出来的画面是"一张照片 + 一堆线"，谁都读不清是谁的。
+   规则：页面里存在 .sky-backdrop 时，几何层与天光层自动让位。
+   用 :has() 而不是加 prop —— 装饰层的互斥是**版面规则**，
+   放在 CSS 里，新增页面时不会有人忘掉（放 JS 就会）。 */
+.term-enter:has(.sky-backdrop) .ark-backdrop,
+.term-enter:has(.sky-backdrop) .ark-sky {
+  display: none;
+}
+/* 深→浅的过渡带同理：顶栏已经提亮，那条"从黑化进白"的带子没有存在的理由了 */
+.term-enter:has(.sky-backdrop) .term-seam {
+  display: none;
+}
+
+/* ── 素材图色相校准（2026-10-14 v6）────────────────────────────
+   用户原话：「紫色元素可以稍微少一点，我不想看到太多的紫色元素」。
+   绘世出的那批图是蓝紫调（hue≈247°），而界面主色已经换成靛蓝（hue≈215°）——
+   不校准的话，图与界面是两种蓝，接缝处会互相打架。
+   用 hue-rotate(-30deg) 把整批图一次性转到蓝侧，成本为零、不重出图。
+   saturate 略降一点：出图时饱和度偏高，压到 0.92 更贴界面的"通透"。
+   ⚠️ 只作用于装饰性配图（全部 aria-hidden），不影响任何功能性图形。 */
+.ark-art {
+  filter: hue-rotate(-30deg) saturate(0.92);
+}
+
+/* ── 众生行记：几何装饰层（2026-10-14）─────────────────────────
+   见 GeometricBackdrop.jsx 的头部注释（三条硬规则的来历都在那里）。
+   这里只放容器规则 —— 图形本身在组件里，因为螺旋线的路径是算出来的。 */
+.ark-backdrop {
+  position: fixed;
+  inset: 0;
+  pointer-events: none; /* 纯装饰：不挡任何点击 */
+  z-index: 0;
+  overflow: hidden;
+}
+.ark-backdrop svg {
+  display: block;
+}
+
+/* 厚重非衬线体标题。众生行记的排版要点是"标题与几何色块争夺视觉分量"，
+   所以标题要**重**而不只是大 —— 800 字重 + 负字距，
+   笔画末端的装饰减到最少，观感直接、理性。 */
+.ci-title-hero {
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.14;
+}
+
+/* 蓝紫洗色：给"被标出的区域"一层极淡的底（6% 不透明度）。
+   它比纯白多一层方向感，又不会重到像一张彩色卡片。 */
+.ark-wash {
+  background: var(--ark-wash);
+}
+
+/* 章节标题下的渐变细线，主色换成蓝紫（沿用 --grad-hair）*/
 
 /* ── 吉祥物（Mascot）────────────────────────────────────────────
    三件事：一直漂浮（idle）/ 点一下跳一下 + 冒星（poke）/ 说一句话（bubble）。

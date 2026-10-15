@@ -26,10 +26,10 @@ export default function TimeDonut({ data }) {
       series: [
         {
           type: 'pie',
-          radius: ['54%', '80%'],
+          radius: ['58%', '84%'],
           center: ['50%', '50%'],
           avoidLabelOverlap: true,
-          itemStyle: { borderColor: '#ffffff', borderWidth: 2 },
+          itemStyle: { borderColor: '#ffffff', borderWidth: 3 },
           label: {
             color: INK_SOFT,
             fontSize: 12,

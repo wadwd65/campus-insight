@@ -31,6 +31,7 @@ import { buildSummaryRequest, buildSummaryFacts } from './buildSummary.js';
 import { fallbackText } from './fallback.js';
 import { consumeSseStream } from './sse.js';
 import { validateSummary } from './validateSummary.js';
+import { validateCohortSummary, COHORT_HARD_ISSUE_TYPES } from './validateCohortSummary.js';
 
 const DEFAULT_TIMEOUT_MS = 25000;
 /** 上限只防跑飞：正常输出 320 字，900 字已经是很长的余量。 */
@@ -117,6 +118,11 @@ export async function streamSummary({
      而不必再抄一份 fetch/超时/中断/降级逻辑。
      不传时行为与以前完全一致（个人版 summary）。 */
   request, fallback,
+  /* ★ 10-14（任务书 P0：群体链路缺数字校验）。
+     群体画像走的是"自定义链路"（传 request/fallback），此时 report 为 null，
+     以前校验会自动跳过数字白名单那一项 —— 等于班级解读的数字没人把关。
+     现在多传一个 cohort，校验就切到群体版那套（三张白名单 + 口径混淆）。 */
+  cohort = null,
 }) {
   const cfg = { ...envConfig(), ...endpoint };
   const degrade = (reason) => ({
@@ -174,11 +180,25 @@ export async function streamSummary({
     //   硬伤（编造数字 / 心理诊断口吻 / 空）**整段降级** —— 一段错的话比没有话更糟：
     //   用户不会去核对，但答辩时评委一读就发现数字对不上。
     //   软问题（格式符号、禁用词）照常显示，只把清单带回给调用方（可记控制台）。
-    // ★ 群体链路（cohortSummary）传 report: null —— 此时不传 facts，
-    //   校验自动跳过"数字白名单"那一项，只查格式 / 诊断口吻 / 禁用词。
-    const facts = report ? buildSummaryFacts(report) : null;
-    const verdict = validateSummary(text, { facts });
-    const hard = verdict.issues.filter((i) => HARD_ISSUE_TYPES.has(i.type));
+    //
+    // ★ 10-14（任务书 P0）：两条链路用**各自那套**校验。
+    //   · 个人版（report）：百分数白名单（validateSummary）
+    //   · 群体版（cohort）：人数 / 占比 / 分数三张白名单 + 口径混淆（validateCohortSummary）
+    //   以前群体链路传 report:null，数字那一项被整个跳过 —— 班级解读的数字没人把关。
+    let verdict;
+    let hardTypes;
+    if (report) {
+      const facts = buildSummaryFacts(report);
+      verdict = validateSummary(text, { facts });
+      hardTypes = HARD_ISSUE_TYPES;
+    } else if (cohort) {
+      verdict = validateCohortSummary(text, { cohort });
+      hardTypes = COHORT_HARD_ISSUE_TYPES;
+    } else {
+      verdict = validateSummary(text, {});
+      hardTypes = HARD_ISSUE_TYPES;
+    }
+    const hard = verdict.issues.filter((i) => hardTypes.has(i.type));
     if (hard.length) return degrade('invalid-summary');
 
     return { text, degraded: false, reason: null, issues: verdict.issues };

@@ -29,7 +29,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
   const headline = useMemo(() => cohortHeadline(cohort), [cohort]);
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       {/* 状态行 —— 与报告页的 `REPORT // GENERATED` 同句式，让"这是另一份档案"一眼成立 */}
       <div className="flex items-baseline justify-between gap-3 mb-6">
         <MonoTag>COHORT // COMPUTED</MonoTag>
@@ -39,6 +39,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
       <div className="mb-10">
         <SectionHead
           index={1}
+          level={1}
           title={`${cohort.size} 个人的大学，落在这些位置`}
           hint="结论优先 —— 下面这句可以直接念出来"
         />
@@ -46,11 +47,11 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
           <p
             className="text-[17px] leading-8 text-[var(--ink)] mt-3"
             style={{
-              borderLeft: `2px solid ${TERM_INK.cyan}`,
+              borderLeft: '3px solid var(--ark)',
               paddingLeft: '1rem',
-              paddingTop: '0.5rem',
-              paddingBottom: '0.5rem',
-              background: 'linear-gradient(90deg, rgba(106,169,255,.07), rgba(106,169,255,0) 70%)',
+              paddingTop: '0.6rem',
+              paddingBottom: '0.6rem',
+              background: 'linear-gradient(90deg, rgba(21,107,122,.10), rgba(21,107,122,0) 72%)',
             }}
           >
             {headline}
@@ -59,7 +60,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
 
         {/* ★ 10-08：三个关键数字先摆出来（结论优先的视觉化）——
             教师扫一眼就能记住的三件事：多少人、最多是哪类、分歧在哪。 */}
-        <div className="grid grid-cols-3 gap-3 mt-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
           <Kpi label="有效样本" value={cohort.size} unit="人" />
           <Kpi
             label="最多的一类"
@@ -100,7 +101,10 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
             {cohort.axes.map((a) => (
               <li key={a.key} className="flex items-baseline gap-3 text-sm">
                 <span className="w-20 shrink-0 text-[var(--ink-soft)]">{a.axis}</span>
-                <span className="tabular-nums font-medium" style={{ color: BRAND }}>
+                <span
+                  className="ci-num text-[15px] font-semibold"
+                  style={{ color: BRAND, minWidth: 28, display: 'inline-block' }}
+                >
                   {a.median}
                 </span>
                 <span className="text-xs text-[var(--ink-soft)] tabular-nums">
@@ -157,7 +161,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
                 type="button"
                 onClick={onGoQuiz}
                 className="px-4 py-2 text-sm text-white transition hover:opacity-90"
-                style={{ background: BRAND }}
+                style={{ background: 'var(--grad-ark)', boxShadow: 'var(--shadow-ark)' }}
               >
                 先答完一轮，再回来看
               </button>
@@ -210,6 +214,21 @@ function Section({ n, title, hint, children }) {
   );
 }
 
+/**
+ * 把颜色往白色里混一点（0 = 原色，1 = 纯白）。
+ * 条形图末端要变浅，而这一组色是 cohort.js 里给死的十六进制，
+ * 这里就地算一个浅版，不去动那边的数据。
+ */
+function mixWhite(hex, amount) {
+  const m = /^#?([\da-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) =>
+    Math.round(v + (255 - v) * amount),
+  );
+  return `rgb(${ch[0]}, ${ch[1]}, ${ch[2]})`;
+}
+
 /** 类型分布条形图。用条形而不是饼：五类的占比要能直接比长短，饼里比角度要费劲得多。 */
 function GroupBars({ groups, size }) {
   const option = useMemo(() => {
@@ -246,7 +265,19 @@ function GroupBars({ groups, size }) {
           barWidth: 16,
           data: shown.map((g) => ({
             value: g.count,
-            itemStyle: { color: g.color, borderRadius: [0, 4, 4, 0] },
+            itemStyle: {
+              borderRadius: [0, 4, 4, 0],
+              // 每一根条从"本色"渐变到"本色混白"。不只是好看：
+              // 长条和短条在末端都变浅，视觉上不会像纯色块那样"顶到头"。
+              color: {
+                type: 'linear',
+                x: 0, y: 0, x2: 1, y2: 0,
+                colorStops: [
+                  { offset: 0, color: g.color },
+                  { offset: 1, color: mixWhite(g.color, 0.4) },
+                ],
+              },
+            },
           })),
           label: {
             show: true,
@@ -262,28 +293,55 @@ function GroupBars({ groups, size }) {
   return <Chart option={option} height={190} ariaLabel="班级类型分布条形图" />;
 }
 
-/** 结论优先的三个关键数字：一个标签 + 一个值 + 一行单位说明 */
+/**
+ * 结论优先的三个关键数字：一个标签 + 一个值 + 一行单位说明。
+ *
+ * ★★ 10-14 二次修（**看图才发现**）：value 不一定是数字。
+ *   「最多的一类」的值是「学术型」，「分歧最大」的值是「社交力」——
+ *   四字中文在 26px 下几乎占满 216px 的卡宽，单位「12 人 · 25%」被一路
+ *   挤到右边缘、几乎贴上边框。现在按值分档：
+ *     数字 → 26px 大号 + 单位同行
+ *     中文 → 20px + **单位换到下一行**，两者不再抢同一行宽度
+ */
 function Kpi({ label, value, unit, accent = false }) {
+  const isText = typeof value === 'string' && !/^\d+(\.\d+)?$/.test(value);
+
   return (
-    <TermPanel style={{ padding: '13px 14px 12px' }}>
-      <p className="term-mono text-[10px] tracking-[0.18em] text-[var(--ink-soft)]">{label}</p>
-      {/* 数值 + 单位同行：单位小一号、跟随基线 —— 避免"48"下面只剩一个"人"字 */
-      }
-      <p className="mt-1.5 flex items-baseline gap-1" title={String(value)}>
+    <TermPanel
+      tick={accent ? 'accent' : null}
+      lift
+      style={{ padding: '14px 15px 12px' }}
+    >
+      <p
+        className="term-mono text-[11px] tracking-[0.16em]"
+        style={{ color: 'var(--ink-dim)' }}
+      >
+        {label}
+      </p>
+      <p className="mt-2" title={String(value)}>
         <span
-          className="text-[17px] font-semibold leading-tight truncate"
-          style={{ color: accent ? BRAND : 'var(--ink)' }}
+          className={isText ? 'block leading-tight font-semibold' : 'ci-stat ci-num block leading-tight'}
+          style={
+            isText
+              ? { fontSize: 20, letterSpacing: '-0.01em', color: accent ? BRAND : 'var(--ink-strong)' }
+              : { color: accent ? BRAND : 'var(--ink-strong)' }
+          }
         >
           {value}
         </span>
         {unit ? (
-          <span className="text-[11px] tabular-nums shrink-0 text-[var(--ink-soft)]">{unit}</span>
+          <span
+            className="text-[11px] tabular-nums block mt-1"
+            style={{ color: 'var(--ink-dim)' }}
+          >
+            {unit}
+          </span>
         ) : null}
       </p>
-      {/* 底部一根细色条：让三张卡在视觉上"有重量"，也把强调项标出来 */}
+      {/* 底部细条：强调项用品牌渐变，普通项用灰 —— 一眼分得出哪张是重点 */}
       <span
-        className="mt-2.5 block h-[2px] rounded-full"
-        style={{ background: accent ? BRAND : 'var(--line)' }}
+        className="mt-3 block h-[2px]"
+        style={{ background: accent ? 'var(--grad-hair)' : 'var(--line)' }}
       />
     </TermPanel>
   );

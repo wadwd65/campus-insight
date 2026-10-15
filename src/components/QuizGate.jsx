@@ -36,14 +36,14 @@ export default function QuizGate({ onStart, onBack }) {
   const qn = QUESTIONS.length;
 
   return (
-    <div className="max-w-2xl mx-auto py-6">
+    <div className="max-w-3xl mx-auto py-6">
       {/* 顶部：告诉用户"你在哪一层"。用等宽小标与整个项目一致，
           而不是一个"返回"按钮 —— 后者会让这一屏读起来像错误页。 */}
       <div className="flex items-center justify-between mb-8">
         <button
           type="button"
           onClick={onBack}
-          className="term-mono text-[10.5px] tracking-[0.12em] transition-colors"
+          className="term-mono text-[11px] tracking-[0.12em] transition-colors"
           style={{ color: 'var(--ink-soft)' }}
         >
           ← 回到地图
@@ -88,7 +88,7 @@ export default function QuizGate({ onStart, onBack }) {
         />
 
         <div className="relative">
-          <p className="term-mono text-[10px] tracking-[0.32em]" style={{ color: 'var(--ink-soft)' }}>
+          <p className="term-mono text-[11px] tracking-[0.32em]" style={{ color: 'var(--ink-soft)' }}>
             QUESTIONNAIRE · {qn} ITEMS
           </p>
 
@@ -109,7 +109,7 @@ export default function QuizGate({ onStart, onBack }) {
             ].map(([k, v]) => (
               <div key={k} className="flex gap-3 items-baseline">
                 <span
-                  className="term-mono text-[10px] tracking-[0.14em] shrink-0"
+                  className="term-mono text-[11px] tracking-[0.14em] shrink-0"
                   style={{ color: 'var(--ink-soft)', minWidth: 40 }}
                 >
                   {k}

@@ -21,19 +21,20 @@
  * 不抓行文风格。原因是一个爱误报的闸门会被关掉，而关掉之后连硬伤也没人看了。
  */
 
-/** 提示词里明令禁止出现的词（写了就说明模型没照做）。 */
-const FORBIDDEN_WORDS = [
+/** 提示词里明令禁止出现的词（写了就说明模型没照做）。
+ *  ★ 10-14 导出：群体版校验器（validateCohortSummary.js）要复用同一份词表。
+ *    只加 export，不改值、不改行为 —— 两份校验器用不同词表，
+ *    等于同一个禁忌在不同页面有不同标准，早晚有一边漏。 */
+export const FORBIDDEN_WORDS = [
   '雷达图', '百分位', '算法', '模型', '报告显示', '数据显示', '根据数据',
 ];
 
-/** 心理诊断类口吻 —— 产品明确不做评估，出现即为越界。 */
-const DIAGNOSIS_WORDS = [
+export const DIAGNOSIS_WORDS = [
   '心理诊断', '人格障碍', '焦虑型', '回避型', '抑郁倾向', '心理疾病',
   '你其实是', '你的潜意识', '测试结果说明你', '评估结果',
 ];
 
-/** markdown / 排版符号 —— 提示词要求纯正文。 */
-const MARKDOWN_PATTERNS = [
+export const MARKDOWN_PATTERNS = [
   { re: /^\s*#{1,6}\s/m, name: '标题符号 #' },
   { re: /^\s*[-*+]\s+/m, name: '列表符号' },
   { re: /\*\*[^*]+\*\*/, name: '加粗 **' },
@@ -45,7 +46,7 @@ const MARKDOWN_PATTERNS = [
  * 只查百分数是刻意的：它是这个产品唯一对外报出的数字形态，
  * 也是最容易被编造、且一编就露馅的一类。普通数字（"三段""两个人"）不查，避免误报。
  */
-function percentsIn(text) {
+export function percentsIn(text) {
   return [...String(text).matchAll(/(\d+(?:\.\d+)?)\s*%/g)].map((m) => Number(m[1]));
 }
 

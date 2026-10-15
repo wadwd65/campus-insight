@@ -38,6 +38,9 @@ export default function CohortAi({ cohort, className = '' }) {
       report: null,                                   // 群体链路不用个人报告
       request: buildCohortRequest(cohort, { className }),
       fallback: () => cohortFallbackText(cohort),
+      // ★ 10-14（任务书 P0）：把 cohort 传进去，让 llm.js 切到群体版数字校验。
+      //   不传的话这条链路只查格式/诊断，编造的占比与超限的人数没人拦。
+      cohort,
       onDelta: (d) => { if (alive) setBody((b) => b + d); },
       signal: ctrl.signal,
     }).then((res) => {
@@ -63,12 +66,12 @@ export default function CohortAi({ cohort, className = '' }) {
       {/* 标头：让"这段是 AI 写的"一眼成立（官方体验项要求的"状态可感知"）*/}
       <div className="flex items-center gap-2 mb-3">
         <span
-          className="term-mono text-[10px] tracking-[0.2em] px-1.5 py-0.5"
+          className="term-mono text-[11px] tracking-[0.2em] px-1.5 py-0.5"
           style={{ color: '#fff', background: BRAND }}
         >
           AI
         </span>
-        <span className="term-mono text-[10px] tracking-[0.18em] text-[var(--ink-soft)]">
+        <span className="term-mono text-[11px] tracking-[0.18em] text-[var(--ink-soft)]">
           群体解读 · COHORT SUMMARY
         </span>
         <span

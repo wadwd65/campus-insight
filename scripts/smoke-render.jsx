@@ -106,6 +106,7 @@ check(
 console.log('\n2 · 结果页（快入口）');
 const reportHtml = render('结果页', h(ReportView, { answers: myAnswers, baseline, name: '陈', onRestart: () => {} }));
 const reportText = plain(reportHtml);
+
 check('渲染出称号', reportText.includes('你的称号'));
 check(
   '结果页五个 section 标题都在',
@@ -181,8 +182,17 @@ console.log('\n4.5 · 主站 HUD（空态）');
   const hudHtml = render('主站 HUD（空态）', h(HubHud, { onRestart: () => {} }));
   const hudText = plain(hudHtml);
   check('空态下显示「待采集」', hudText.includes('待采集'));
-  check('空态下给出「怎么开始长数据」的提示', hudText.includes('这里开始长数据'));
+  check('空态下给出「怎么开始长数据」的提示', hudText.includes('这里会开始长数据'));
   check('空态下没有「已采集」字样', !hudText.includes('已采集'));
+
+  // ★ 10-15 新增（用户：「上面那一排东西可以修改一下，那些小字也可以把它删掉了」）：
+  //   空态下**八列占位槽整排不渲染**。
+  //   改之前空态是：八个 5px 矮条 + 八根零线 + 八个 11px 短标签（学/社/运/美/夜/计/尝/抗）。
+  //   它们想说的"这里将来会长数据"完全由下面那行提示说清了 —— 纯噪音。
+  //   判据用列容器的 class 而不是那八个单字：单字（学/社/…）在别处也可能出现，
+  //   一个字面判断会误报。`flex flex-col items-center` 在 HubHud 里只属于那八列。
+  const slotCols = (hudHtml.match(/flex flex-col items-center/g) || []).length;
+  check('空态下不渲染八列占位槽（用户要求删掉那一排）', slotCols === 0, `实际 ${slotCols} 列`);
 
   const bad = ['undefined', 'NaN', '[object Object]'].filter((s) => hudHtml.includes(s));
   check('HUD：HTML 里没有 undefined / NaN / [object Object]', bad.length === 0, bad.join(' '));
@@ -267,14 +277,40 @@ console.log('\n4.8 · 从地图生成报告（走账本，不走问卷）');
       mapReportText.includes(t),
     ),
   );
-  check('地图路径多出「你走过的路」这一块', mapReportText.includes('你走过的路'));
+  // ★ 10-14 B+C 改版：这一块从「你走过的路」改名成「这一轮你是怎么走的」，
+  //   而且**问卷路径现在也有了**（问卷的每一题同样 applyChoice 进账本）。
+  //   原来那条"问卷路径不出现「你走过的路」"断言钉的是旧设计 ——
+  //   它的前提"问卷没有轨迹"已经被 B3 有意改掉了，所以不能原样保留。
+  //   换成**更强**的两条：不只查"在不在"，还查来源标签分得对不对。
+  check('地图路径多出「这一轮你是怎么走的」这一块', mapReportText.includes('这一轮你是怎么走的'));
   check('轨迹里出现了去过的地点名', mapReportText.includes('图书馆'));
+  check('地图路径的轨迹条目标着「地图」', mapReportText.includes('地图'));
 
-  // 反过来：问卷路径不该出现"你走过的路"（它没有轨迹这个概念）
-  const quizReportText = plain(
-    render('问卷报告页（不应有轨迹块）', h(ReportView, { answers: myAnswers, baseline, onRestart: () => {} })),
+  // 反过来：问卷路径现在**也**显示时间线（B3 的目的就是让两个玩法互相看得见），
+  // 但里面的条目必须全部标着「问卷」—— 一条「地图」都不能有。
+  //
+  // ⚠️ 判据必须走 HTML 而不是纯文本：报告页的复测按钮文案里也含"地图"两个字
+  //   （"想去地图上走一遍"），用 innerText.includes('地图') 会把按钮文案误判成轨迹标签。
+  //   两个来源标签在 HTML 里的描边色不同，且全项目唯一：
+  //     问卷 → var(--ark-line)      地图 → rgba(180, 83, 9, 0.35)
+  const quizTrailHtml = render(
+    '问卷报告页（带作答轨迹）',
+    h(ReportView, {
+      answers: myAnswers,
+      // 问卷的每一题在 App.finishQuiz 里也会 applyChoice 进账本，
+      // 所以真实运行时 trail 里躺着 10 条不带 at 的作答记录。
+      trail: [{ id: 'q1', label: myAnswers[Object.keys(myAnswers)[0]], at: null }],
+      baseline,
+      onRestart: () => {},
+    }),
   );
-  check('问卷路径不出现「你走过的路」', !quizReportText.includes('你走过的路'));
+  const quizTrailReportText = plain(quizTrailHtml);
+  check('问卷路径也显示时间线（B3：两个玩法互相看得见）', quizTrailReportText.includes('这一轮你是怎么走的'));
+  check('问卷路径的轨迹条目标着「问卷」', quizTrailReportText.includes('问卷'));
+  check(
+    '问卷路径的轨迹里不会混进「地图」标签（按描边色判，不受按钮文案干扰）',
+    !quizTrailHtml.includes('rgba(180, 83, 9, 0.35)'),
+  );
 
   const mapBad = ['undefined', 'NaN', '[object Object]'].filter((s) => mapReportHtml.includes(s));
   check('地图报告：HTML 里没有 undefined / NaN / [object Object]', mapBad.length === 0, mapBad.join(' '));
