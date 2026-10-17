@@ -250,7 +250,17 @@ export default function App() {
           不加它，这条边界就是一条硬切的黑白线。 */}
       <div className="term-seam" aria-hidden="true" />
 
-      <main className="flex-1 w-full max-w-5xl mx-auto px-6 py-12">
+      {/* ★ 10-17：档案页自己控宽。
+          全站其它页用 max-w-5xl + px-6 py-12，但档案页的"纸面"必须通栏 ——
+          否则纸张只占中间 976px，两侧露出页面底色，看起来像"纸贴在一块板上"。
+          所以这一页把 main 的宽度/padding 交给 .archive 自己处理。 */}
+      <main
+        className={
+          stage === 'report'
+            ? 'flex-1 w-full'
+            : 'flex-1 w-full max-w-5xl mx-auto px-6 py-12'
+        }
+      >
         {error ? (
           <ErrorBlock message={error} onRetry={loadBaselineData} />
         ) : !baseline ? (

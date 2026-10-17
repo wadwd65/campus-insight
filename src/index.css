@@ -1489,3 +1489,320 @@ button.text-sm {
     transform: none !important;
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   档案页视觉系统（2026-10-17 美术重做）
+   ──────────────────────────────────────────────────────────────
+   为什么另立一套，而不是沿用全站的「玻璃 + 切角」：
+     用户的原话是「美术质量不达标」「不要再用已完成设计系统来证明达标」。
+     那套玻璃语言本身没错，但它被用在了**所有页面**上，于是五页长成了
+     同一个模板 —— 换内容不换版式。档案页需要一个**只属于档案**的构图。
+
+   档案语汇取三条：
+     ① **纸**：不是"白色圆角卡片"，而是页面底色本身就是一张纸；
+     ② **脊**：真实档案夹的左侧脊标 —— 编号/姓名/时间竖排，细线与刻度；
+     ③ **版心**：正文像印刷品一样有栏宽、细线与字号层级，而不是一堆卡片。
+
+   ⚠️ 纸不是"加一层纸色卡片"。这里**没有**给内容套新的圆角容器：
+     纸是页面底色，内容直接落在纸上，靠细线与留白分区。
+   ══════════════════════════════════════════════════════════════ */
+
+.archive {
+  /* 纸色：偏暖的米白。冷白会失去"档案"的年代感，纯白则回到模板观感。
+     文字对比度已复算：#1a1a17 on #f4f1e8 = 15.2；#5b6675 = 5.4 —— 均达标。 */
+  --paper: #f4f1e8;
+  --paper-deep: #ece7da;
+  --ink-on-paper: #1a1a17;
+  --ink-on-paper-soft: #4a4842;
+  --rule: rgba(26, 26, 23, 0.16);
+  --rule-strong: rgba(26, 26, 23, 0.34);
+  --stamp: #8a2f28; /* 印章红：全页唯一的高饱和色，只用于编号与极少数标记 */
+
+  position: relative;
+  background: var(--paper);
+  min-height: 100%;
+  color: var(--ink-on-paper);
+  padding-bottom: 72px;
+  /* 纸面通栏：main 在档案页已放开宽度，这里只需保证至少占满视口宽 */
+  width: 100%;
+}
+
+/* 档案页不要全站天空与立绘 —— 它有自己的背景语言。
+   用 :has() 做页面级互斥，避免为一页去改 App 的分支结构。 */
+.term-enter:has(.archive) .sky-backdrop,
+.term-enter:has(.archive) .mascot,
+.term-enter:has(.archive) .ark-sky,
+.term-enter:has(.archive) .ark-backdrop {
+  display: none;
+}
+
+/* 页首的天空窗：只占页面上方，用 mask 渐隐进纸色。
+   为什么用 mask 而不是"渐变块"：渐变色块在照片上容易拉出可见色带边，
+   mask 是逐像素衰减，过渡天然平滑。 */
+.archive-sky {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 42vh;
+  min-height: 300px;
+  background-image: url('/art/ark/sky.webp');
+  background-size: cover;
+  background-position: center 26%;
+  background-repeat: no-repeat;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 52%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 52%, transparent 100%);
+  pointer-events: none;
+}
+
+/* 版心：左侧脊标 + 右侧主栏。24%~30% 之间的比例，
+   用 grid 的 minmax 让窄屏自动折叠成单栏（不写死百分比）。 */
+.archive-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+  /* ★★ 10-17 第二版修正：内容必须**落在纸面上**，不能压在天空上。
+     第一版让主栏从页面顶端开始，结果称号直接压在大朵云上 ——
+     脊标小字完全读不清，正是用户禁止的"照片级天空压过文本"。
+     ⇒ 天空只做页首的"窗"（42vh），版心整体下移，从窗台以下开始排版。 */
+  padding-top: 40vh;
+}
+
+@media (max-width: 899px) {
+  .archive-grid {
+    /* 窄屏天空窗矮一些，否则首屏全是天，内容要滑很久才出现 */
+    padding-top: 26vh;
+  }
+}
+
+@media (min-width: 900px) {
+  .archive-grid {
+    grid-template-columns: 208px minmax(0, 1fr);
+    column-gap: 52px;
+    /* ★ 注意：这里必须**同步**写 padding-top，否则会覆盖上面那条 40vh。
+       本轮就踩了：基础规则写 40vh、这里残留 34px，后写的赢，
+       于是内容又压回天空上 —— 截图立刻暴露，但“构建通过”完全看不出来。 */
+    padding-top: 40vh;
+  }
+}
+
+/* ── 脊标 ─────────────────────────────────────────────────── */
+.archive-spine {
+  position: relative;
+  padding: 0 0 24px;
+}
+
+@media (min-width: 900px) {
+  .archive-spine {
+    padding-top: 8px;
+    border-right: 1px solid var(--rule);
+    padding-right: 26px;
+    /* 吸附：滚动时脊标跟着走，像档案夹的侧脊 */
+    position: sticky;
+    top: 28px;
+    align-self: start;
+    max-height: calc(100vh - 56px);
+  }
+}
+
+.archive-spine-kicker {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--ink-on-paper-soft);
+  margin-bottom: 18px;
+}
+
+/* 编号：印章红的细长数字。它是全页唯一的"红色"，
+   所以一眼就能认出"这是这份档案的身份"。 */
+.archive-spine-id {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--stamp);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule-strong);
+  margin-bottom: 18px;
+}
+
+.archive-spine-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.archive-spine-key {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--ink-on-paper-soft);
+}
+
+.archive-spine-val {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-on-paper);
+  word-break: break-word;
+}
+
+/* 刻度尺：编号系统的视觉延伸。
+   它不是随机装饰 —— 每一格对应档案页的一个章节，有实际索引作用（见 JSX 注释）。 */
+.archive-ticks {
+  display: flex;
+  gap: 3px;
+  margin-top: 20px;
+}
+.archive-ticks i {
+  display: block;
+  width: 2px;
+  height: 16px;
+  background: var(--rule-strong);
+  font-style: normal;
+}
+.archive-ticks i.is-long {
+  height: 24px;
+  background: var(--stamp);
+}
+
+/* ── 主栏 ─────────────────────────────────────────────────── */
+.archive-main {
+  min-width: 0;
+  padding-top: 18px;
+}
+
+@media (min-width: 900px) {
+  .archive-main {
+    padding-top: 0;
+  }
+}
+
+/* 称号区：不再是一张居中的卡片，而是**版面上的一行字**。
+   上方只有一枚极小的元信息，下方一条细线 —— 层级靠字号与留白，不靠容器。 */
+.archive-head {
+  padding: .5rem 0 26px;
+}
+
+.archive-head-kicker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10.5px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink-on-paper-soft);
+  margin-bottom: 14px;
+}
+.archive-head-kicker::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+/* 称号：clamp 保证小屏不溢出；JS 再按字数降一档（见 ReportView 的 titleSize）。 */
+.archive-title {
+  margin: 0;
+  color: var(--ink-on-paper);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+.archive-head-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 18px;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule-strong);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--ink-on-paper-soft);
+}
+
+/* ── 章节头：新的语言 ──────────────────────────────────────
+   旧的是"青色实心方块 + // + 标题"（全站五页都一样）。
+   这里是**编号坐在一条细线上**，标题在下方 —— 更像印刷品的节次标记。 */
+.archive-sec {
+  margin: 44px 0 18px;
+  /* 脊标刻度可点跳转，落点要留出顶栏高度，否则标题会被遮住 */
+  scroll-margin-top: 28px;
+}
+.archive-sec-rule {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.archive-sec-num {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--stamp);
+}
+.archive-sec-line {
+  flex: 1;
+  height: 1px;
+  background: var(--rule-strong);
+}
+.archive-sec-title {
+  margin: 12px 0 0;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink-on-paper);
+}
+.archive-sec-hint {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--ink-on-paper-soft);
+  max-width: 62ch;
+}
+
+/* 印刷式图版：不是卡片 —— 无圆角、无阴影、无边框，只有一层极薄的纸色加深。
+   它表达的是"这一块是一个图版"，而不是"这是一张卡"。 */
+.archive-plate {
+  background: rgba(255, 255, 255, 0.46);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 20px 18px;
+}
+
+/* 并置：图与解释左右各半；窄屏折成上下。 */
+.archive-duo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px 28px;
+}
+@media (min-width: 760px) {
+  .archive-duo {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    align-items: start;
+  }
+}
+
+/* 档案页正文：行长收紧到 62ch（印刷品经验值），行高放宽。 */
+.archive-prose {
+  font-size: 14px;
+  line-height: 1.95;
+  color: var(--ink-on-paper-soft);
+}
+.archive-prose strong {
+  color: var(--ink-on-paper);
+  font-weight: 650;
+}

@@ -19,8 +19,8 @@ import TimeDonut from './TimeDonut.jsx';
 import MoodCurve from './MoodCurve.jsx';
 import FactsCard from './FactsCard.jsx';
 import AiSummary from './AiSummary.jsx';
-import { MonoTag, SectionHead } from './TermHead.jsx';
-import { TermBlock } from './TermPanel.jsx';
+import { MonoTag, ArchiveSectionHead } from './TermHead.jsx';
+import { labelOf } from '../lib/surveySchema.js';
 import GeometricBackdrop from './GeometricBackdrop.jsx';
 import NavButton from './NavButton.jsx';
 import { buildProfileCsv, makeProfileId, downloadText } from '../lib/exportProfile.js';
@@ -128,121 +128,160 @@ export default function ReportView({
     }
   }
 
+  /**
+   * 档案编号与时间（2026-10-17 美术重做新增）。
+   *
+   * ★ 编号是**从答案派生**的稳定 id，不是伪造的学号/学籍号：
+   *   同一份答案永远得到同一个编号，换一份答案就不同。
+   *   useMemo 依赖 answers/name，所以重渲染不会变；页面刷新才重新算。
+   *   真实时间同理 —— 在首次渲染时定格，不会每帧跳。
+   *
+   * 为什么不用随机数：随机会让"同一份档案"每次刷新都换编号，
+   * 那它就只是个装饰。派生 id 才有"这是这一份"的含义。
+   */
+  const meta = useMemo(() => {
+    const seed = JSON.stringify(answers ?? {}) + (name || '') + (attributes ? 'map' : 'quiz');
+    let h = 2166136261;
+    for (let i = 0; i < seed.length; i += 1) {
+      h ^= seed.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    const code = (h >>> 0).toString(36).toUpperCase().padStart(7, '0').slice(0, 7);
+    const now = new Date();
+    const p2 = (n) => String(n).padStart(2, '0');
+    return {
+      id: `CI-${code.slice(0, 3)}-${code.slice(3)}`,
+      time: `${now.getFullYear()}.${p2(now.getMonth() + 1)}.${p2(now.getDate())} ${p2(now.getHours())}:${p2(now.getMinutes())}`,
+    };
+  }, [answers, name, attributes]);
+
+  /**
+   * 称号字号：按字数分档。
+   * 用户要求「桌面端 64–72px 作为初始范围，短称号更有冲击力，长称号必须避免溢出」。
+   * 用 clamp 兜住小屏，再用字数分档兜住长标题 —— 两者职责不同，都要有。
+   */
+  const titleSize = useMemo(() => {
+    const len = [...(report.facts.title || '')].length;
+    if (len <= 5) return 'clamp(46px, 7.6vw, 72px)';
+    if (len <= 8) return 'clamp(38px, 6.2vw, 62px)';
+    if (len <= 12) return 'clamp(31px, 5.0vw, 52px)';
+    return 'clamp(25px, 4.0vw, 42px)';
+  }, [report.facts.title]);
+
+  /** 章节索引：脊标下的刻度条，每一格是**可点的锚点**（不是装饰）。 */
+  const sections = useMemo(
+    () =>
+      [
+        { n: 1, title: '这一轮你是怎么走的' },
+        { n: 2, title: '大学生活者画像' },
+        { n: 3, title: '时间去哪了' },
+        { n: 4, title: '四年心情曲线' },
+        { n: 5, title: '人群冷知识' },
+        { n: 6, title: '给你的话' },
+      ].filter((x) => x.n !== 1 || (trail?.length ?? 0) > 0),
+    [trail],
+  );
+
   return (
-    <div className="max-w-3xl mx-auto">
-      {/* 报告也长得像终端：顶部一条状态行，和入场/地图同一种语言。
-          "REPORT // GENERATED" 这句不是装饰 ——
-          它把"你刚刚的二十次点击已经被算完了"这件事讲出来，
-          这正好是入场那句"等待和你的答案对上"的兑现。 */}
-      <div className="flex items-center justify-between mb-8">
-        <MonoTag>REPORT&nbsp;//&nbsp;GENERATED</MonoTag>
-        <MonoTag tone="cyan">
-          {fromMap ? `轨道 ${trail?.length ?? 0} 步` : `采集 ${Object.keys(answers ?? {}).length} 项`}
-        </MonoTag>
-      </div>
+    <div className="archive">
+      {/* 页首天空窗：只占上方，mask 渐隐进纸面。全站那层 fixed 天空在本页被 :has() 关掉。 */}
+      <div className="archive-sky" aria-hidden="true" />
 
-      {/* 称号区。原先是一行大字纯文本，现在是「纹章 + 等宽小标 + 称号」，
-          纹章直接复刻入场那个六边形 ——
-          同一台机器在入场认一次、在报告再认一次，四页才算一个作品。
-          称号用琥珀色：那是入场立绘右侧（运动）的颜色，也是终端里"结果出来了"的色。
+      <div className="archive-grid">
+        {/* ── 档案脊标 ────────────────────────────────────── */}
+        <aside className="archive-spine" aria-label="档案元信息">
+          <p className="archive-spine-kicker">STUDENT&nbsp;RECORD</p>
+          <p className="archive-spine-id">{meta.id}</p>
 
-          ★ 10-14 美化：原来这一块是"居中的小图标 + 一行小标 + 一行大字"，
-             三样东西各占一行、间距均等 —— 没有主次，读起来像三行互不相干的文字。
-             这里把层次做出来：
-               ① 纹章后面垫一层径向光晕 —— 它变成"一个光源"，而不是一个图标
-               ② 称号字号 30 → 38px、字重加粗、字距收紧 —— 这是全页最重要的一句话
-               ③ 称号下方补一条左右对称的渐变细线，把"标题区"和"正文区"分开
-               ④ 上下留白从均等改成上紧下松，视觉重心落回称号本身 */}
-      {/* ★★★ 10-15：称号区从"深色主视觉带"改成**浅色玻璃 + 圆形纹章**。
-          10-14 那版是把 crest 铺满整条、压暗、称号反白 —— 在浅灰纸上很成立。
-          但背景换成动漫天空之后，它变成了"贴在亮画面上的黑砖"（见 10-15 截图），
-          和题干区当初是同一个病。
-          这一版：**纹章当徽章立在玻璃上**，称号用深色。
+          <div className="archive-spine-row">
+            <span className="archive-spine-key">姓名</span>
+            <span className="archive-spine-val">{name?.trim() || '未署名'}</span>
+          </div>
+          <div className="archive-spine-row">
+            <span className="archive-spine-key">生成</span>
+            <span className="archive-spine-val">{meta.time}</span>
+          </div>
+          <div className="archive-spine-row">
+            <span className="archive-spine-key">来源</span>
+            <span className="archive-spine-val">
+              {fromMap ? `地图轨迹 ${trail?.length ?? 0} 步` : `问卷 ${Object.keys(answers ?? {}).length} 题`}
+            </span>
+          </div>
+          <div className="archive-spine-row">
+            <span className="archive-spine-key">基准</span>
+            <span className="archive-spine-val">2000 人模拟人群</span>
+          </div>
 
-          ⚠️ 徽章的形状踩过一次：第一版做成 `rounded-full` 圆形（想着"径向对称、
-             圆裁不切坏构图"），结果截图里是一枚几乎看不见的白圈 ——
-             因为**这张纹章的暗部恰好在四角**，圆形裁切把暗部全切掉了，
-             只剩中间那团亮芯。
-             ⇒ 换成**切角方形**：暗角留下来，徽章立刻读得出来，
-               而且与全站的斜切角语言同源。
+          {/* 章节索引：刻度即目录。每一格可点，跳到对应章节 ——
+              这是"原创符号系统"该有的样子：有稳定用途，不是角落里的装饰。 */}
+          <nav className="archive-ticks" aria-label="章节索引">
+            {sections.map((sec) => (
+              <a
+                key={sec.n}
+                href={`#sec-${sec.n}`}
+                title={sec.title}
+                aria-label={`跳到第 ${sec.n} 节：${sec.title}`}
+                className={sec.n <= step + 1 ? 'is-long' : ''}
+              >
+                <i />
+              </a>
+            ))}
+          </nav>
+        </aside>
 
-      ⚠️⚠️ 这个注释块必须写全闭合符（斜杠星号 + 右花括号）。
-        本轮踩过两次，都值得记：
-          一、漏了闭合符 ⇒ 注释一路吞到下一个星号斜杠，
-             把整个称号区 JSX 变成注释文本 —— **构建不报错**
-             （语法上只是一个很长的注释），是 smoke 的「渲染出称号」抓出来的。
-             没有那道闸门，交付出去就是一页没有标题的报告。
-          二、修的时候把闭合符号本身写进了注释正文 ⇒ 那个右花括号
-             会**提前关掉 JSX 表达式容器**，构建立刻报
-             「Unexpected token」。⇒ 注释里不要出现花括号字面量。 */}
-      <div className="mb-10">
-        <div
-          className="sky-glass relative overflow-hidden px-6 py-8 text-center sm:px-10 sm:py-10"
-          style={{
-            clipPath:
-              'polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px))',
-          }}
-        >
-          <span
-            className="mx-auto mb-5 block h-[136px] w-[136px] overflow-hidden sm:h-[156px] sm:w-[156px]"
-            style={{
-              clipPath:
-                'polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px))',
-              boxShadow: '0 12px 30px -12px rgba(11, 90, 107, 0.5)',
-            }}
-          >
-            <img
-              src={`${import.meta.env.BASE_URL}art/ark/crest.webp`}
-              alt=""
-              aria-hidden="true"
-              className="ark-art h-full w-full object-cover"
-              decoding="async"
-            />
-          </span>
-          <MonoTag tone="amber">// 你的称号</MonoTag>
-          <h1
-            className="ci-title-hero mx-auto mt-2.5 max-w-[560px] text-[36px] sm:text-[44px]"
-            style={{ color: 'var(--ark-deep)' }}
-          >
-            {report.facts.title}
-          </h1>
-          <span
-            aria-hidden="true"
-            className="mx-auto mt-5 block h-[2px] w-[220px]"
-            style={{
-              background:
-                'linear-gradient(90deg, transparent, rgba(21,107,122,0.55) 22%, rgba(21,107,122,0.55) 78%, transparent)',
-            }}
-          />
-        </div>
-      </div>
+        {/* ── 主栏 ────────────────────────────────────────── */}
+        <main className="archive-main">
+          <header className="archive-head">
+            <p className="archive-head-kicker">你的称号&nbsp;/&nbsp;DESIGNATION</p>
+            <h1 className="archive-title" style={{ fontSize: titleSize }}>
+              {report.facts.title}
+            </h1>
+            <div className="archive-head-meta">
+              <span>
+                {fromMap
+                  ? `由 ${trail?.length ?? 0} 步地图轨迹推算`
+                  : `由 ${Object.keys(answers ?? {}).length} 个答案推算`}
+              </span>
+              <span aria-hidden="true">·</span>
+              <span>基准为 2000 条模拟数据，非真实调查</span>
+            </div>
+          </header>
 
       {/* ★ B+C（C1）：从问卷报告去地图"复测"。
-          只在问卷路径出现（App 传 onGoMap；地图来的报告不传）。
-          措辞刻意用"看看会不会走出同一个你"而不是"再去测一次" ——
-          前者是邀请，后者像复查，而这里要的是让人想去。 */}
+          ★ 10-17 美术返工：原来是"淡青底 + 左粗边 + 实心青色按钮"，
+            那是全站旧语言，也是这一屏最后一处"模板感"。
+            纸面上的强调不该靠色块，而该靠**一条细线 + 一枚印章红的文字链接**。
+          ★ 同时删掉了原来的 "REPORT // GENERATED" 状态行：
+            脊标里已有「生成时间 / 来源 / 基准」，那一行是重复信息 + 旧语言。 */}
       {onGoMap && (
-        <div
-          className="mb-10 px-5 py-4 flex flex-wrap items-center gap-4"
-          style={{ background: 'var(--ark-wash)', borderLeft: '3px solid var(--ark)' }}
-        >
-          <div className="flex-1 min-w-[220px]">
-            <p className="text-[15px] font-semibold" style={{ color: 'var(--ink-strong)' }}>
-              这份报告来自你的 {Object.keys(answers ?? {}).length} 个答案
-            </p>
-            <p className="text-xs mt-1 leading-5" style={{ color: 'var(--ink-mid)' }}>
-              想去地图上走一遍，看看会不会走出同一个你？地图的每一步都会叠在同一本账上，
-              走完回来可以并排对比两次测量。
-            </p>
+        <div className="mt-9 pt-5" style={{ borderTop: '1px solid var(--rule-strong)' }}>
+          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-3">
+            <div className="flex-1" style={{ minWidth: 260 }}>
+              <p className="text-[14px] font-semibold" style={{ color: 'var(--ink-on-paper)' }}>
+                这份报告来自你的 {Object.keys(answers ?? {}).length} 个答案
+              </p>
+              <p
+                className="text-[12.5px] mt-1.5 leading-[1.8]"
+                style={{ color: 'var(--ink-on-paper-soft)', maxWidth: '56ch' }}
+              >
+                想去地图上走一遍，看看会不会走出同一个你？地图的每一步都会叠在同一本账上，
+                走完回来可以并排对比两次测量。
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onGoMap}
+              className="shrink-0 text-[13px] font-semibold"
+              style={{
+                color: 'var(--stamp)',
+                borderBottom: '1px solid var(--stamp)',
+                paddingBottom: 2,
+                background: 'none',
+              }}
+            >
+              去地图上走一遍 →
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onGoMap}
-            className="ci-lift px-5 py-2.5 text-sm font-medium text-white"
-            style={{ background: 'var(--grad-ark)', boxShadow: 'var(--shadow-ark)' }}
-          >
-            去地图上走一遍 →
-          </button>
         </div>
       )}
 
@@ -270,9 +309,53 @@ export default function ReportView({
           title="大学生活者画像"
           hint="每个数字的意思是：你超过了多少比例的大学生（基准人群为模拟数据，见页脚说明）"
           art={ART('sec-profile.webp')}
-          boxed
         >
-          <RadarChart data={report.radar} />
+          {/* ★ 10-17 美术返工：原来是"雷达图独占一块图版"。
+              用户要求「雷达图与解释文字采用有明确关系的并置布局」——
+              图解释不了自己，必须有人给它一句话。
+              ★ 右侧那段**不是编的**：前三项由 report.radar 现算排序得出，
+                数字就是图上那几个值；口径说明也是既有事实（映射矩阵 + 百分位）。 */}
+          <div className="archive-plate">
+            <div className="archive-duo">
+              <div>
+                <RadarChart data={report.radar} />
+              </div>
+              <div className="archive-prose">
+                <p className="mb-3">
+                  这张网画的是你在六个维度上的相对位置：0 是基准人群里最低的那一头，
+                  100 是最高。它读的是"你在同代人里站哪"，不是"你有多强"。
+                </p>
+                <p
+                  className="archive-spine-kicker"
+                  style={{ marginBottom: 8, letterSpacing: '0.24em' }}
+                >
+                  突出的三项
+                </p>
+                <ul className="space-y-1.5 mb-4" style={{ listStyle: 'none', paddingLeft: 0 }}>
+                  {[...report.radar]
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 3)
+                    .map((d) => (
+                      <li
+                        key={d.key ?? d.label}
+                        className="flex items-baseline gap-3 tabular-nums"
+                      >
+                        <span style={{ color: 'var(--stamp)', fontFamily: 'ui-monospace, monospace', fontSize: 12 }}>
+                          {String(d.value).padStart(2, '0')}
+                        </span>
+                        <span style={{ color: 'var(--ink-on-paper)', fontSize: 13.5 }}>
+                          {labelOf(d.key)}
+                        </span>
+                      </li>
+                    ))}
+                </ul>
+                <p style={{ fontSize: 12.5 }}>
+                  数值来自映射矩阵 + 百分位归一化，在你的浏览器里本地算出，
+                  不经过服务器；基准是 2000 条模拟数据。
+                </p>
+              </div>
+            </div>
+          </div>
         </Section>
 
         {/* ★ 10-13 审查补注（任务书 P2#7）：时间分配与四年曲线都由百分位经固定公式
@@ -395,6 +478,8 @@ export default function ReportView({
           换个答案，报告的走向会完全不同
         </span>
       </div>
+        </main>
+      </div>
     </div>
   );
 }
@@ -412,8 +497,12 @@ function Section({ n, show, title, hint, children, boxed = false, art = null }) 
       className="transition-all duration-500 ease-out"
       style={{ opacity: show ? 1 : 0, transform: show ? 'none' : 'translateY(14px)' }}
     >
-      <SectionHead index={n} title={title} hint={hint} art={art} />
-      {boxed ? <TermBlock style={{ padding: '16px 14px' }}>{children}</TermBlock> : children}
+      <ArchiveSectionHead index={n} title={title} hint={hint} />
+      {/* ★ 10-17：`boxed` 原来是 TermBlock（白底圆角卡片）。
+          在纸面上再套一张白卡，等于把"模板"换个颜色继续用 —— 用户明令禁止。
+          改成 archive-plate：无圆角、无阴影，只有上下细线与极薄的纸色加深，
+          读作"一块印刷图版"，而不是"一张卡片"。 */}
+      {boxed ? <div className="archive-plate">{children}</div> : children}
     </section>
   );
 }

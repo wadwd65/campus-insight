@@ -205,3 +205,30 @@ export function SectionHead({ index, title, hint, art = null, level = 3 }) {
     </div>
   );
 }
+
+/**
+ * ArchiveSectionHead —— **档案页专用**的章节头（2026-10-17 美术重做新增）。
+ *
+ * 为什么不能复用 SectionHead：
+ *   SectionHead 是"青色实心方块 + // + 标题"。它是全站统一语言，
+ *   而用户这轮明确禁止"给每个内容区块继续套用统一的「青色方块 + // + 标题」"，
+ *   理由是五页因此长成同一个模板。
+ *
+ * 这里的语言来自**印刷品的节次标记**：
+ *   编号（印章红、极小、等宽）坐在一条细线上 → 标题 → 提示。
+ *   没有色块、没有剑号、没有插图小方块 —— 层级靠"线 + 字号 + 留白"。
+ *
+ * `id` 用于脊标刻度条的锚点跳转（`#sec-N`），所以它是**功能**不是标记。
+ */
+export function ArchiveSectionHead({ index, title, hint }) {
+  return (
+    <div className="archive-sec" id={`sec-${index}`}>
+      <div className="archive-sec-rule">
+        <span className="archive-sec-num">{String(index).padStart(2, '0')}</span>
+        <span className="archive-sec-line" />
+      </div>
+      <h3 className="archive-sec-title">{title}</h3>
+      {hint && <p className="archive-sec-hint">{hint}</p>}
+    </div>
+  );
+}
