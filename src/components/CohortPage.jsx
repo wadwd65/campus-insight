@@ -60,35 +60,33 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
 
         {/* ★ 10-08：三个关键数字先摆出来（结论优先的视觉化）——
             教师扫一眼就能记住的三件事：多少人、最多是哪类、分歧在哪。 */}
+        {/* ★ 10-17：三个 KPI 从"三个等权方块"改成"一主两次"。
+            原来三张一样大，扫一眼分不清哪个是重点；而"这个班有 48 人"
+            是唯一决定下面所有图表意义的数字，它该占主位。
+            主导占 2 列、数字放大；两个次级竖排在第 3 列。 */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
-          <Kpi label="有效样本" value={cohort.size} unit="人" />
-          <Kpi
-            label="最多的一类"
-            value={cohort.most.name}
-            unit={`${cohort.most.count} 人 · ${cohort.most.pct}%`}
-            accent
-          />
-          <Kpi
-            label="分歧最大"
-            value={cohort.divergent ? cohort.divergent.axis : '—'}
-            unit={cohort.divergent ? `一半人落在 ${cohort.divergent.q1}~${cohort.divergent.q3}` : ''}
-          />
+          <div className="sm:col-span-2">
+            <Kpi label="有效样本" value={cohort.size} unit="人" hero />
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            <Kpi
+              label="最多的一类"
+              value={cohort.most.name}
+              unit={`${cohort.most.count} 人 · ${cohort.most.pct}%`}
+              accent
+            />
+            <Kpi
+              label="分歧最大"
+              value={cohort.divergent ? cohort.divergent.axis : '—'}
+              unit={cohort.divergent ? `一半人落在 ${cohort.divergent.q1}~${cohort.divergent.q3}` : ''}
+            />
+          </div>
         </div>
       </div>
 
       <div className="space-y-12">
-        {/* ★ 10-08：大模型解读 —— 官方链路三段里的第三段（数据 → 图表 → 解读）。
-            放在"结论"之后，因为它就是这份数据的人话版结论。 */}
         <Section
           n={2}
-          title="这份数据说了什么"
-          hint="大模型读上面的分布写的三段话；没有配置密钥时，由本地规则按同一套数字生成"
-        >
-          <CohortAi cohort={cohort} />
-        </Section>
-
-        <Section
-          n={3}
           title="这个班的位置"
           hint="实线是班里每个人的百分位的中位数；虚线圈是全体大学生 50% 的位置。同标尺，可以直接和快入口的报告对比"
         >
@@ -115,7 +113,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
           </ul>
         </Section>
 
-        <Section n={4} title="这个班分成几类" hint="按每个人最突出的那一维归组，一个人只会进一个组">
+        <Section n={3} title="这个班分成几类" hint="按每个人最突出的那一维归组，一个人只会进一个组">
           <GroupBars groups={cohort.groups} size={cohort.size} />
           <ul className="mt-3 space-y-1">
             {cohort.groups.map((g) => (
@@ -126,6 +124,17 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
             ))}
           </ul>
         </Section>
+
+        {/* ★ 10-08：大模型解读 —— 官方链路三段里的第三段（数据 → 图表 → 解读）。
+            放在"结论"之后，因为它就是这份数据的人话版结论。 */}
+        <Section
+          n={4}
+          title="这份数据说了什么"
+          hint="大模型读上面的分布写的三段话；没有配置密钥时，由本地规则按同一套数字生成"
+        >
+          <CohortAi cohort={cohort} />
+        </Section>
+
 
         <Section n={5} title="班里和你最像的人" hint="按九维属性算距离。需要一个『你』做参照">
           {cohort.similar ? (
@@ -303,7 +312,7 @@ function GroupBars({ groups, size }) {
  *     数字 → 26px 大号 + 单位同行
  *     中文 → 20px + **单位换到下一行**，两者不再抢同一行宽度
  */
-function Kpi({ label, value, unit, accent = false }) {
+function Kpi({ label, value, unit, accent = false, hero = false }) {
   const isText = typeof value === 'string' && !/^\d+(\.\d+)?$/.test(value);
 
   return (
@@ -318,13 +327,19 @@ function Kpi({ label, value, unit, accent = false }) {
       >
         {label}
       </p>
-      <p className="mt-2" title={String(value)}>
+      <p className={hero ? 'mt-1' : 'mt-2'} title={String(value)}>
         <span
-          className={isText ? 'block leading-tight font-semibold' : 'ci-stat ci-num block leading-tight'}
+          className={
+            isText
+              ? 'block leading-tight font-semibold'
+              : hero
+                ? 'ci-stat ci-num block leading-tight'
+                : 'ci-stat ci-num block leading-tight'
+          }
           style={
             isText
-              ? { fontSize: 20, letterSpacing: '-0.01em', color: accent ? BRAND : 'var(--ink-strong)' }
-              : { color: accent ? BRAND : 'var(--ink-strong)' }
+              ? { fontSize: hero ? 26 : 20, letterSpacing: '-0.01em', color: accent ? BRAND : 'var(--ink-strong)' }
+              : { fontSize: hero ? 64 : undefined, color: accent ? BRAND : 'var(--ink-strong)' }
           }
         >
           {value}
