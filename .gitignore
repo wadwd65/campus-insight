@@ -12,6 +12,12 @@ dist-ssr/
 # 调试用浏览器的用户数据目录（含登录态，绝不提交）
 # 同时已在 vite.config.js 的 watch.ignored 里排除 —— 不排除会导致 HMR 死循环
 .browser-profile*/
+/* ★ 10-17：调试浏览器的用户数据目录一律不进仓库。
+   上面那条只挡住 .browser-profile-* 前缀，而我实际用了
+   .browser-neg / .browser-shot / .browser-v6 / .browser-noproxy 等名字，
+   又一次 `git add -A` 差点把 1.2GB 浏览器缓存提交进去。
+   改成 `.browser-*` 通配，以后随便起名都挡得住。 */
+.browser-*/
 
 # 本机跑图/抠图的临时脚本与中间产物（只为生成素材，不属于产品代码）
 .workbuddy-gen/

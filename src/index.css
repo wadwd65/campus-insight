@@ -1451,6 +1451,19 @@ button.text-sm {
   .mascot-bubble { max-width: 176px; font-size: 11.5px; }
 }
 
+/* ★★ 10-17 自检抓到的真 bug：**窄屏立绘遮挡选项**。
+   390px 实测截图里，立绘身体压住了「D 食堂窗口」那一行的右半边 ——
+   选项行在窄屏是满宽的，任何 fixed 在右侧的装饰都会盖住内容列。
+   上一版只把它从默认宽缩到 96px，仍然盖住约 1/4 行宽，不够。
+
+   ⇒ 窄屏直接隐藏。理由：**立绘是纯装饰，内容可读性优先。**
+   桌面端它待在右侧留白里不碍事；窄屏没有留白，就只能让位。
+   （想改回来的话，把 display 那行删掉即可，但必须先解决遮挡。）
+   同时把 pointer-events 也关掉 —— 它不该抢任何点击。 */
+@media (max-width: 720px) {
+  .mascot { display: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition-duration: 0.01ms !important;
