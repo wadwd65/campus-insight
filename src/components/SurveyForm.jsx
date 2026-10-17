@@ -43,12 +43,16 @@ export default function SurveyForm({ onComplete, onCancel }) {
 
     const next = { ...answers, [question.field]: text };
 
+    // ★ 10-17：160ms → 420ms。原来 160ms 时 .ark-sweep 的 260ms 动画只播到
+    // 62% 就被翻题打断 —— 用户要的"触发效果"等于只看了半截。
+    // 现在 0~260ms 扫光播完、260~420ms 选中态停留，再翻题。
+    // 代价：每题多 260ms × 10 题 = 全流程 +2.6s，可接受。
     window.setTimeout(() => {
       setFlash(null);
       setAnswers(next);
       if (isLast) onComplete(next);
       else setIndex((i) => i + 1);
-    }, 160);
+    }, 420);
   }
 
   return (

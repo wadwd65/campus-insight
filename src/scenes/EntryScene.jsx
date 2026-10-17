@@ -27,9 +27,18 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
 
   return (
     <div className="relative min-h-full flex flex-col">
-      {/* 四周：动漫场景 + 粒子（懒加载，失败也不影响正文）*/}
+      {/* ★ 10-17 背景重做：深色场景图 → **明亮动漫天空**。
+          用户原话：「主界面他就很怪……他自己看他那个背景黑的，然后中间一全部是吐的白，
+          然后中间还有两个白，它是亮的」。
+          截图确认：旧背景是三张**深色**场景图（左侧废墟、右侧藤蔓），
+          内容却压在 0.92 不透明度的惨白上，两张入口卡又是亮白 ——
+          **三档亮度硬碰**，像在一张黑纸上贴了三块白纸片。
+
+          换成绘世出的 sky.webp（明度 164，晨空、青蓝 + 暖白云），
+          用 mask 从底部渐隐进页面底色，让天空和内容自然过渡。 */}
+      <div className="entry-sky" aria-hidden="true" />
       <Suspense fallback={null}>
-        <Atmosphere variant="scene" />
+        <Atmosphere variant="plain" />
       </Suspense>
 
       {/* 吉祥物：右下角，点一下会跳一下并说话（换图只改 public/art/mascot.webp）*/}
@@ -56,15 +65,16 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
       </header>
 
       <div className="relative z-10 flex-1 w-full max-w-4xl mx-auto px-6 py-10">
-        {/* 柔白衬底：藤蔓是深色剪影，正文直接压上去会和它打架。
-            这层只铺在内容区背后，四周仍露出藤蔓 ——
-            既保住氛围又保住可读性，比"整页盖一块深色玻璃"明艳得多。 */}
+        {/* ★ 10-17：衬底从"惨白一块"改成**几乎透明的暖纱**。
+            0.92 的白在亮天空上就是一块惨白的补丁；
+            现在只留 0.30 上下的暖白，让天空的蓝透出来，
+            文字仍有足够对比（天空下部本就接近白）。 */}
         <span
           aria-hidden="true"
           className="pointer-events-none absolute -inset-x-6 -inset-y-10"
           style={{
             background:
-              'radial-gradient(78% 70% at 50% 42%, rgba(255,255,255,0.92), rgba(255,255,255,0.58) 100%)',
+              'radial-gradient(80% 72% at 50% 40%, rgba(255,253,247,0.34), rgba(255,250,240,0.12) 100%)',
           }}
         />
 
@@ -116,13 +126,10 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
             <button
               type="button"
               onClick={onGoQuiz}
-              className="ci-lift relative text-left px-5 py-5 transition-transform"
+              className="ios-glass ci-lift relative text-left px-5 py-5 transition-transform"
               style={{
-                background: 'rgba(255, 255, 255, 0.92)',
-                border: '1px solid rgba(44, 90, 160, 0.20)',
                 clipPath:
                   'polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))',
-                boxShadow: '0 10px 28px -14px rgba(16, 42, 78, 0.35)',
               }}
             >
               <span className="term-mono text-[10px] tracking-[0.25em]" style={{ color: 'var(--accent)' }}>
@@ -145,13 +152,10 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
             <button
               type="button"
               onClick={onGoMap}
-              className="ci-lift relative text-left px-5 py-5 transition-transform"
+              className="ios-glass ci-lift relative text-left px-5 py-5 transition-transform"
               style={{
-                background: 'rgba(255, 255, 255, 0.92)',
-                border: '1px solid rgba(44, 90, 160, 0.16)',
                 clipPath:
                   'polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))',
-                boxShadow: '0 10px 28px -14px rgba(16, 42, 78, 0.28)',
               }}
             >
               <span className="term-mono text-[10px] tracking-[0.25em]" style={{ color: 'var(--ink-dim)' }}>

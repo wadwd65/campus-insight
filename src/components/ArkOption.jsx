@@ -1,159 +1,179 @@
 /**
- * ArkOption —— 问卷选项（参考《明日方舟》的面板语言重做）。
+ * ArkOption —— 问卷选项行（iPhone 磨砂玻璃 + 天空色 + 触发反馈）
  *
- * 用户 10-14 的原话：「这些选项都一点意思都没有，没有什么特色，
- * 那框框和那些触发特效都没有。」—— 说得对。改之前它就是一个
- * 「白底描边矩形 + 一个紫方块字母」，既没有框的造型，也没有任何反馈。
+ * ── 版本史 ──────────────────────────────────────────────────
+ * 10-14 v2：参考《明日方舟》面板语言重做 —— 斜切角 + 常驻角标 + 选中扫描线。
+ *            当时的理由是"方舟系界面长这样"。
+ * 10-17 v3：用户三条指令，全部推翻配色与质感：
+ *   ① 「把选项的颜色换一下，不要那个色，太难看了，那种青蓝的，使用天空的颜色」
+ *   ② 「再出一个效果，一些触发效果」
+ *   ③ 「每个按钮都做成像那种 iPhone 的那种玻璃感」
  *
- * 方舟系面板的三个特征，这里全做上：
+ * ── v3 的三处判断 ───────────────────────────────────────────
  *
- *   ① **斜切角**（右上 + 左下各切 14px）。矩形是"网页控件"，
- *      斜切角是"仪表面板"—— 这个项目里 TermPanel 已经用了同一套几何，
- *      选项却还是矩形，所以它在一整页斜切语言里像个外来物。
+ * ① **强调色从青蓝换成天空的暖橙**。
+ *    这不是拍脑袋换色：天空的色卡是量出来的（sky.webp 量化，见 ark-gen.py 注释）——
+ *    顶部蓝、中部青、**近地暖橙**。以前界面主色是青蓝，选项跟着青蓝，
+ *    于是"选项=青蓝"变成默认，用户看腻了。
+ *    现在强调色取自天空的另一端（暖），冷色只留在天空本身 ——
+ *    冷暖各占一头，选项在页面上才是"被选中的那一个"，而不是"第 N 个蓝块"。
  *
- *   ② **常驻角标 + 悬停展开**。四个角各一段短 L 线，静止时淡（0.35），
- *      悬停时亮起并向外张开 3px。它是"这个框是活的"最省力的表达，
- *      而且不占布局、不引入图片。
+ * ② **三层触发反馈，全部 CSS 驱动**（无 JS 定时器，避免多一个状态源）：
+ *      · hover  —— 卡片浮起、右侧刻度提亮
+ *      · select —— 一道暖光从左扫到右（`.ark-sweep`，260ms 只播一次）
+ *      · focus  —— 键盘焦点环，看得见但不抢
+ *    选中态同时用**颜色 + ✓ + 一道扫光**三种方式表达，不靠单一色彩传达
+ *    （色弱用户和黑白打印都还能读出状态）。
  *
- *   ③ **选中扫描线**。点下去的那一瞬间，一道亮线从左掠到右
- *      （420ms，只播一次）。这是"触发特效"—— 原来选中只是底色变紫，
- *      而 160ms 后就跳下一题了，用户根本看不清自己选了什么。
+ * ③ **iOS 磨砂玻璃**（`.ios-glass`）：半透明白 + `backdrop-filter` 模糊 + 内侧高光。
+ *    代价说明：实时模糊很贵，但**一行选项面积很小**，且背后是慢速漂移的天空 ——
+ *    本项目踩过的坑是"大面板 + 持续动画 + 实时模糊"导致帧数狂掉，小按钮不在此列。
  *
- * 实现上的两个坑（都踩过）：
- *   - **clip-path 会连 box-shadow 一起裁掉**，所以阴影必须用
- *     `filter: drop-shadow()`（它跟裁剪后的实际形状走）。
- *   - 悬停的边框/底色变化要用**两层绝对定位的 span**（外框层 + 内芯层，
- *     内芯各方向内缩 1px），不能给 button 直接设 border ——
- *     border 在切角处会被裁掉一截，看起来像渲染出错。
+ * 实现上的两个老坑（仍然成立，别改回去）：
+ *   - **clip-path 会连 box-shadow 一起裁掉**，所以阴影要用 `filter: drop-shadow()`
+ *   - 切角处的描边必须用**两层绝对定位 span**（外框 + 内芯内缩 1px），
+ *     不能给 button 直接设 border —— border 在切角处会被裁掉一截
  */
 
 import { monoTag } from '../lib/surface.js';
 
-const shape = (n) =>
-  `polygon(0 0, calc(100% - ${n}px) 0, 100% ${n}px, 100% 100%, ${n}px 100%, 0 calc(100% - ${n}px))`;
+/** 天空色卡（从 sky.webp 量化得出）。暖端 = 云被照亮的那一面。 */
+const SKY_WARM = '#c98a5a';
+const SKY_WARM_DEEP = '#b45309';
 
-const CUT = 14;
+/**
+ * 未选态的描边/刻度色 —— **不是旧 ark 蓝，是天空图里云影的中性灰**。
+ * 10-17 用户原话：「不要那个色，太难看了，那种青蓝的」。
+ * 旧值 rgba(44,90,160,·) 是 #2c5aa0 一族（azure 蓝），压在青蓝天空上
+ * 就是"一片蓝"—— 每张卡片都像一块蓝，正是被否定的观感。
+ * 新值从 sky.webp 的低饱和像素量出（云影均值 #6c7069、最深 #474d4b），
+ * 取 #474d4b 作基色：中性灰描边 + 白玻璃，未选态读作"素玻璃卡"；
+ * 选中态的暖橙因此是页面上唯一的彩色强调，冷暖分明。
+ */
+const SKY_SHADOW = '71, 77, 75';
 
-export default function ArkOption({ letter, children, active = false, onClick }) {
-  const clip = shape(CUT);
-
+/**
+ * ⚠️ props 契约（10-17 踩过，别改）：
+ *   `letter`   —— 字母（A/B/C…），调用方传 `String.fromCharCode(65+i)`
+ *   `children` —— 选项正文，调用方用 children 传，不是 `text` prop
+ * 我曾把这两个改名为 label/text，结果选项文字全变空、冒烟测试立刻报
+ * 「渲染出第一题的全部选项」—— 而构建是过的。改名 props 前先看调用方。
+ */
+export default function ArkOption({
+  letter,
+  children,
+  hint,
+  active = false,
+  flash = null,
+  disabled = false,
+  onClick,
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group relative w-full text-left transition-transform duration-150 ci-lift"
-      style={{
-        clipPath: clip,
-        filter: active ? 'drop-shadow(0 8px 22px -8px rgba(21,107,122,0.55))' : 'none',
-        transform: active ? 'translateY(-2px)' : undefined,
-      }}
+      disabled={disabled}
+      aria-pressed={active}
+      className={`group relative w-full text-left transition-all duration-200 ${
+        active ? 'is-active' : ''
+      } ${disabled ? 'opacity-40' : 'ci-lift cursor-pointer'}`}
     >
-      {/* ① 外框层：1px 描边。悬停/选中时换成主色 */}
+      {/* 外框层：斜切角描边。选中时换成暖色，不靠颜色也能读出"被选中" */}
       <span
         aria-hidden="true"
-        className="absolute inset-0 transition-colors duration-150"
+        className="absolute inset-0 transition-all duration-200"
         style={{
-          // ★ 10-15：描边从 #e5e7eb 换成可见的冷蓝。
-          //   白纸时代 #e5e7eb 够用；压在云上时它和云一样亮，卡片边界就消失了。
-          background: active ? 'var(--ark)' : 'rgba(21, 107, 122, 0.22)',
-          clipPath: clip,
-        }}
-      />
-      {/* ② 内芯层：装内容的底。各方向内缩 1px 让外框露出来 */}
-      <span
-        aria-hidden="true"
-        className="absolute inset-[1px] transition-all duration-150"
-        style={{
-          // ★ 10-15：背景换成动漫天空后，这张卡的定位变了 ——
-          //   它不再需要"从白纸上跳出来"，而是**要浮在画面之上但不遮住画面**。
-          //   所以从"实心白 + 斜纹"改成 0.9 的**玻璃白**：
-          //   天空仍在底下透一口气，而 0.9 的不透明度足以让任何一句选项都读得清。
-          //   斜纹同时删掉 —— 云本身是斜的，斜纹压在云上会被吃掉，放大看只觉得脏。
-          background: active ? 'var(--grad-ark)' : 'rgba(255, 255, 255, 0.90)',
-          clipPath: clip,
+          background: active ? SKY_WARM_DEEP : `rgba(${SKY_SHADOW}, 0.22)`,
+          clipPath:
+            'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))',
         }}
       />
 
-      {/* ③ 切面高光：斜切角处一道 45° 亮线。
-              斜切角如果没有高光，看起来只是"缺了一块"而不是"切过"。
-              这道线让它读作"抛光过的切面" —— 方舟面板的立体感全靠它。 */}
-      <span aria-hidden="true" className="ark-cut-edge-tr" />
-      <span aria-hidden="true" className="ark-cut-edge-bl" />
+      {/* 内容层：iOS 磨砂玻璃 */}
+      <span
+        aria-hidden="true"
+        className="ios-glass absolute inset-[1px] transition-all duration-200"
+        style={{
+          clipPath:
+            'polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 11px 100%, 0 calc(100% - 11px))',
+          background: active ? 'rgba(255, 246, 236, 0.68)' : undefined,
+        }}
+      />
 
-      {/* ④ 常驻角标：四段短 L 线。静止 0.5，悬停/选中 1 并向外张开 */}
-      {[
-        'ark-bracket-tl',
-        'ark-bracket-tr',
-        'ark-bracket-bl',
-        'ark-bracket-br',
-      ].map((pos) => (
+      {/* 触发效果：选中时一道暖光从左扫到右 */}
+      {active && <span aria-hidden="true" className="ark-sweep" />}
+
+      <span className="relative flex items-start gap-3.5 px-4 py-4 sm:px-5 sm:py-[18px]">
+        {/* 字母块：未选中时是磨砂玻璃 + 深字（不填色）；
+            选中才变成天空的暖橙渐变。这样"没选"和"选了"是两回事，
+            不是"两种蓝"—— 那正是用户说难看的地方。 */}
         <span
-          key={pos}
-          aria-hidden="true"
-          className={`ark-bracket ark-opt-brk ark-opt-brk-${pos}`}
-        />
-      ))}
-
-      {/* ④ 选中扫描线：一道亮线从左掠到右，只播一次。
-            用 active 做 key 的前缀不行（React 复用同一个节点就不会重播），
-            所以这里靠 CSS animation + 只在 active 时挂载来实现"每次选中都播"。 */}
-      {active && <span aria-hidden="true" className="ark-scanline" />}
-
-      {/* ⑤ 右侧刻度带。
-          ★ 10-15：原来是 45° 斜纹（方舟的"警示带"）。换到天空底之后它失效了 ——
-            云本身是斜向的、有明暗的，斜纹压在云上会被"吃掉"，
-            放大看只觉得脏。换成**等距的竖刻度**：它不模仿任何自然纹理，
-            是纯人造的记号，在任何背景上都不会被误读成"画面的一部分"。
-            选中时淡出，把位置让给渐变底。 */}
-      <span
-        aria-hidden="true"
-        className="absolute right-0 top-0 bottom-0 w-[10px] transition-opacity duration-150"
-        style={{
-          background:
-            'repeating-linear-gradient(90deg, rgba(21,107,122,0.42) 0 1px, transparent 1px 5px)',
-          opacity: active ? 0.2 : 1,
-        }}
-      />
-
-      {/* ⑥ 左侧常驻主色竖条：3px。它是这一行"被框住的仪表"的锚点，
-              静止时就有，悬停/选中时加亮。 */}
-      <span
-        aria-hidden="true"
-        className="absolute left-0 top-0 bottom-0 w-[3px] transition-opacity duration-150"
-        style={{ background: 'var(--grad-ark)', opacity: active ? 1 : 0.55 }}
-      />
-
-      {/* ⑦ 内容 */}
-      <span className="relative flex items-center gap-4 px-4 py-4">
-        <span
-          className="inline-flex h-8 w-8 shrink-0 items-center justify-center transition-all duration-150"
+          className="flex h-11 w-11 shrink-0 items-center justify-center transition-all duration-200"
           style={{
-            ...monoTag({ fontSize: 14, letterSpacing: '0', fontWeight: 700 }),
-            background: active ? 'rgba(255,255,255,0.24)' : 'var(--grad-ark)',
-            color: '#ffffff',
-            boxShadow: active ? 'none' : 'var(--shadow-ark)',
-            transform: active ? 'scale(1.08)' : undefined,
+            ...monoTag({ fontSize: 16, fontWeight: 700, letterSpacing: '0' }),
+            color: active ? '#ffffff' : 'var(--ink-mid)',
+            background: active
+              ? `linear-gradient(135deg, ${SKY_WARM}, ${SKY_WARM_DEEP})`
+              : 'rgba(255, 255, 255, 0.62)',
+            border: active ? 'none' : `1px solid rgba(${SKY_SHADOW}, 0.28)`,
+            clipPath:
+              'polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px))',
+            boxShadow: active ? '0 8px 20px -8px rgba(180, 83, 9, 0.5)' : 'none',
           }}
         >
           {letter}
         </span>
-        <span
-          className="flex-1 text-[16px] transition-colors duration-150"
-          style={{ color: active ? '#ffffff' : 'var(--ink)' }}
-        >
-          {children}
+
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline gap-2">
+            <span
+              className="text-[16px] font-semibold leading-[1.5]"
+              style={{ color: active ? 'var(--accent-warm-deep)' : 'var(--ink-strong)' }}
+            >
+              {children}
+            </span>
+            {active && (
+              <span
+                aria-hidden="true"
+                style={{ ...monoTag({ fontSize: 13, fontWeight: 700 }), color: SKY_WARM_DEEP }}
+              >
+                ✓
+              </span>
+            )}
+          </span>
+          {hint && (
+            <span
+              className="mt-1 block text-[12.5px] leading-[1.7]"
+              style={{ color: active ? 'var(--accent-warm)' : 'var(--ink-soft)' }}
+            >
+              {hint}
+            </span>
+          )}
         </span>
+
+        {/* 右侧刻度带：等距竖线（不是斜纹 —— 斜纹会被天空的纹理"吃掉"）。
+            选中时淡出，把位置让给暖色。 */}
         <span
           aria-hidden="true"
-          className="shrink-0 text-sm transition-all duration-150"
+          className="absolute bottom-0 right-0 top-0 w-[10px] transition-opacity duration-200"
           style={{
-            color: active ? 'rgba(255,255,255,0.9)' : 'var(--ark)',
-            opacity: active ? 1 : 0.35,
-            transform: active ? 'translateX(3px)' : undefined,
+            background:
+              `repeating-linear-gradient(90deg, rgba(${SKY_SHADOW},0.38) 0 1px, transparent 1px 5px)`,
+            opacity: active ? 0 : 1,
           }}
-        >
-          →
-        </span>
+        />
+
+        {/* 选中时右下角浮出的暖色小角标 */}
+        {active && (
+          <span
+            aria-hidden="true"
+            className="absolute bottom-0 right-0 h-0 w-0"
+            style={{
+              borderLeft: '14px solid transparent',
+              borderBottom: `14px solid ${SKY_WARM_DEEP}`,
+            }}
+          />
+        )}
       </span>
     </button>
   );

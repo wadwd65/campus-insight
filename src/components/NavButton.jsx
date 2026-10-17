@@ -48,7 +48,7 @@ export default function NavButton({
       type="button"
       onClick={onClick}
       title={title}
-      className={`inline-flex items-center gap-2 px-4 transition-all duration-150 ci-lift ${className}`}
+      className={`inline-flex items-center gap-2 px-4 transition-all duration-150 ci-lift ${primary ? '' : 'ios-glass'} ${className}`}
       style={{
         minHeight: h,
         // 斜切角：与全站面板同一套几何语言

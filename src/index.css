@@ -1017,97 +1017,6 @@ button.text-sm {
   border-bottom: 2px solid var(--ark);
 }
 
-/* ── ArkOption：方舟式选项（2026-10-14 v3）──────────────────────
-   用户原话：「这些选项都一点意思都没有，那框框和那些触发特效都没有」。
-   这里补三样：常驻角标（悬停展开）、选中扫描线、悬停整体响应。 */
-
-/* 常驻角标：静止时淡，悬停/选中时亮起并向外张开 3px。
-   用 transform 位移而不是改 left/top —— 位移走合成器，不触发布局。 */
-.ark-opt-brk {
-  opacity: 0.5;
-  transition:
-    opacity 150ms ease,
-    transform 150ms cubic-bezier(0.34, 1.4, 0.64, 1);
-}
-.group:hover .ark-opt-brk,
-.group:focus-visible .ark-opt-brk {
-  opacity: 0.9;
-}
-.ark-opt-brk-tl { transform: translate(2px, 2px); }
-.ark-opt-brk-tr { transform: translate(-2px, 2px); }
-.ark-opt-brk-bl { transform: translate(2px, -2px); }
-.ark-opt-brk-br { transform: translate(-2px, -2px); }
-.group:hover .ark-opt-brk-tl,
-.group:focus-visible .ark-opt-brk-tl { transform: translate(-2px, -2px); }
-.group:hover .ark-opt-brk-tr,
-.group:focus-visible .ark-opt-brk-tr { transform: translate(2px, -2px); }
-.group:hover .ark-opt-brk-bl,
-.group:focus-visible .ark-opt-brk-bl { transform: translate(-2px, 2px); }
-.group:hover .ark-opt-brk-br,
-.group:focus-visible .ark-opt-brk-br { transform: translate(2px, 2px); }
-
-/* 选中扫描线：一道亮线从左掠到右，420ms 后淡出。
-   它给"我选中了这一项"一个**瞬时**的确认 ——
-   问卷是点一下 160ms 就跳下一题的，没有这个特效，
-   用户根本看不清自己刚点了什么。 */
-.ark-scanline {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    100deg,
-    transparent 20%,
-    rgba(255, 255, 255, 0.6) 50%,
-    transparent 80%
-  );
-  animation: ark-scan 420ms ease-out 1;
-}
-@keyframes ark-scan {
-  0%   { transform: translateX(-100%); opacity: 0.95; }
-  100% { transform: translateX(100%); opacity: 0; }
-}
-
-/* 斜切面的高光边：切角处一道 45° 的亮线。
-   斜切角如果没有高光，看起来只是"缺了一块"而不是"切过"；
-   这一道线让它读作"抛光过的切面"。两处切角各一道。
-   用 linear-gradient 画 1px 的斜线，比 rotate 一个 span 省一次变换。 */
-.ark-cut-edge-tr,
-.ark-cut-edge-bl {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  pointer-events: none;
-  transition: opacity 150ms ease;
-  opacity: 0.55;
-}
-.ark-cut-edge-tr {
-  right: 0;
-  top: 0;
-  background: linear-gradient(
-    225deg,
-    rgba(21, 107, 122, 0.55) 0,
-    rgba(21, 107, 122, 0.55) 1px,
-    transparent 1px
-  );
-}
-.ark-cut-edge-bl {
-  left: 0;
-  bottom: 0;
-  background: linear-gradient(
-    45deg,
-    rgba(21, 107, 122, 0.55) 0,
-    rgba(21, 107, 122, 0.55) 1px,
-    transparent 1px
-  );
-}
-.group:hover .ark-cut-edge-tr,
-.group:hover .ark-cut-edge-bl { opacity: 1; }
-
-@media (prefers-reduced-motion: reduce) {
-  .ark-scanline { animation-duration: 0.01ms; }
-  .ark-opt-brk { transition-duration: 0.01ms; }
-}
-
 /* ── 答题页天空背景（2026-10-14 v6）────────────────────────────
    见 SkyBackdrop.jsx 的头部注释（三条约束的来历都在那里）。
    核心取巧：**色彩全压在明度高位，只让色相变** ——
@@ -1251,6 +1160,84 @@ button.text-sm {
   .sky-clouds-a,
   .sky-clouds-b,
   .sky-photo { animation: none !important; }
+}
+
+/* ── 选项的选中扫光（2026-10-17 v3）──────────────────────────
+   用户要"触发效果"。这一道是选中瞬间从左侧扫过的暖光 ——
+   原来选中只是底色变一下，而 160ms 后就跳下一题了，用户根本看不清自己选了什么。
+   纯 CSS 动画（animation，非 transition），所以只播一次、不需要 JS 计时器。 */
+.ark-sweep {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+.ark-sweep::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 40%;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.72) 45%,
+    rgba(255, 246, 236, 0.9) 55%,
+    transparent 100%
+  );
+  animation: ark-sweep-run 260ms cubic-bezier(0.22, 0.61, 0.36, 1) 1;
+}
+@keyframes ark-sweep-run {
+  from { transform: translateX(0); }
+  to   { transform: translateX(360%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ark-sweep::before { animation-duration: 0.01ms !important; }
+}
+
+/* ── 主菜单的明亮天空（2026-10-17）────────────────────────────
+   用绘世的 sky.webp，不用那三张深色场景图（废墟/藤蔓）——
+   它们在亮内容后面就是三块黑斑。mask 从底部渐隐，天空与页面底色接上。 */
+.entry-sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image: url('/art/ark/sky.webp');
+  background-size: cover;
+  background-position: center 30%;
+  background-repeat: no-repeat;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 62%, transparent 96%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 62%, transparent 96%);
+  pointer-events: none;
+}
+
+/* ── iPhone 式磨砂玻璃（2026-10-17）──────────────────────────
+   用户原话：「每个按钮都做成像那种 iPhone 的那种玻璃感」。
+   配方是 iOS 毛玻璃的四件套：半透明白底 + 背景模糊 + 饱和提升 + 内侧高光。
+   ⚠️ backdrop-filter 很贵，但只用在**小面积按钮**上可以接受。
+   这个项目踩过的坑是"大面板 + 持续动画背景 + 实时模糊 → 帧数狂掉"，
+   按钮面积小、且背后是慢速漂移的天空，代价可控。 */
+.ios-glass {
+  background: rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(18px) saturate(1.7);
+  -webkit-backdrop-filter: blur(18px) saturate(1.7);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.28),
+    0 10px 28px -12px rgba(20, 50, 90, 0.34);
+}
+.ios-glass:hover {
+  background: rgba(255, 255, 255, 0.64);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 14px 34px -12px rgba(20, 50, 90, 0.4);
+}
+.ios-glass:active {
+  transform: scale(0.985);
 }
 
 /* ── 亮天空下的"浅色玻璃"容器（2026-10-15）─────────────────────
