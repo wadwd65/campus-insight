@@ -101,8 +101,15 @@ export default function Atmosphere({ variant = 'scene' }) {
     };
   }, []);
 
-  /* variant='scene'：完整场景（天空 + 拱门 + 藤蔓框）
-     variant='plain'：只留粒子（留给将来的浅色数据页，默认不用） */
+  /* variant='scene'：完整场景（天空 + 拱门 + 藤蔓框 + 深色压幕）
+     variant='plain'：**只留粒子**（留给浅色数据页，默认不用）
+
+     ★ 10-17 修：`.atmo-scrim` 原来是无条件渲染的 —— 它是一条
+     rgba(7,11,18,0.58~0.86) 的深色幕布，本来是给深色场景图压对比用的。
+     plain 模式下它没有场景图可压，就变成**整页盖一层 70% 的黑**：
+     入口页的亮天空被压成"黑乎乎贴上去"的样子，根因就在这一行。
+     ⇒ 只在 scene 下渲染。这个 bug 靠读代码看不出来（组件本身"看起来没毛病"），
+        是靠计算样式 + 截图才定位到的。 */
   return (
     <div className={`atmo atmo-${variant}`} aria-hidden="true">
       {variant === 'scene' && (
@@ -110,9 +117,9 @@ export default function Atmosphere({ variant = 'scene' }) {
           <span className="atmo-layer atmo-sky" />
           <span className="atmo-layer atmo-arch" />
           <span className="atmo-layer atmo-vine" />
+          <span className="atmo-scrim" />
         </>
       )}
-      <span className="atmo-scrim" />
       {particlesOn && (
         <div className="atmo-particles">
           <ParticlesProvider init={initEngine}>
