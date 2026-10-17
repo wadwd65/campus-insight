@@ -43,6 +43,9 @@ import { MonoTag } from './components/TermHead.jsx';
 import IntroScene from './scenes/IntroScene.jsx';
 import MapScene from './scenes/MapScene.jsx';
 import EntryScene from './scenes/EntryScene.jsx';
+
+/** 粒子层懒加载：@tsparticles 单独成 chunk，不拖首屏（与入场页同一份配置） */
+const Atmosphere = lazy(() => import('./components/Atmosphere.jsx'));
 import { loadBaseline } from './data/loadSample.js';
 import { useGameStore } from './store/useGameStore.js';
 import { QUESTIONS, vectorOf } from './lib/surveySchema.js';
@@ -239,6 +242,16 @@ export default function App() {
           ⚠️ 与几何层互斥（见 index.css 的 :has() 规则）：
              有天空时几何自动让位 —— 两套装饰叠在一起是"一张照片 + 一堆线"。 */}
       <SkyBackdrop />
+      {/* ★ 10-17 夜：答题流程补粒子层。
+          用户原话：「答题的那个界面也没有那个一些动态粒子效果，这得也得加上去」。
+          · 只挂 gate/quiz 两站（答题这条线），档案页是"纸"，纸上有浮尘不合逻辑
+          · zIndex=-1：压在天空之上、正文之下 —— 粒子在字后面飘，不糊字、不挡点击
+          · 组件内部已处理：prefers-reduced-motion / 软渲染环境直接不渲染 */}
+      {(stage === 'gate' || stage === 'quiz') && (
+        <Suspense fallback={null}>
+          <Atmosphere variant="plain" zIndex={-1} />
+        </Suspense>
+      )}
       {/* ★ 10-15：立绘小人常驻全站（用户：「除了那个动开场动画那里」）。
           入场页是 early return，天然不经过这里 —— 正好符合"除了开场动画"。
           入口页由 EntryScene 自带一份，不在这里重复挂（同页会出现两个）。

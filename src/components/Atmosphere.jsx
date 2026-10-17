@@ -26,7 +26,7 @@ const initEngine = async (engine) => {
   await loadSlim(engine);
 };
 
-export default function Atmosphere({ variant = 'scene' }) {
+export default function Atmosphere({ variant = 'scene', zIndex = 0 }) {
   const [particlesOn, setParticlesOn] = useState(false);
 
   /* 检测软件渲染（SwiftShader 等）：软渲染下 canvas 粒子逐帧绘制极吃 CPU，
@@ -111,7 +111,7 @@ export default function Atmosphere({ variant = 'scene' }) {
      ⇒ 只在 scene 下渲染。这个 bug 靠读代码看不出来（组件本身"看起来没毛病"），
         是靠计算样式 + 截图才定位到的。 */
   return (
-    <div className={`atmo atmo-${variant}`} aria-hidden="true">
+    <div className={`atmo atmo-${variant}`} style={{ zIndex }} aria-hidden="true">
       {variant === 'scene' && (
         <>
           <span className="atmo-layer atmo-sky" />
