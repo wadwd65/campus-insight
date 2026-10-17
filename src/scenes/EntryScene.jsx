@@ -58,7 +58,7 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
           </span>
           <span className="flex-1" />
           <span className="term-mono text-[11px]" style={{ color: INK_SOFT }}>
-            未配置密钥也能走完三段
+            不需要注册，也不需要密钥
           </span>
         </div>
       </header>
@@ -71,8 +71,9 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
             把大学四年，算成一份能看懂的数据叙事
           </h1>
           <p className="mt-3.5 text-[13.5px] leading-[1.9]" style={{ color: INK_SOFT }}>
-            一条主线：一份问卷 CSV 进来，图表大盘与 AI 解读出去。没有数据也能玩 ——
-            答 {qn} 道有画面感的选择题，约 1 分钟，同样出档案。
+          {/* 10-17：文案跟着布局改 —— 主路径是测评，上传已降级到页脚。 */}
+            答 {qn} 道有画面感的选择题，约 1 分钟，得到一份八维画像、四年曲线与 AI 解读。
+            手上正好有班级数据？也可以传一份 CSV，看整个群体的分布。
           </p>
 
           {/* 官方链路：让"这是个数据分析产品"一眼成立 */}
@@ -83,59 +84,71 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
             <span>图表大盘</span>
             <span style={{ color: BRAND_ON_DARK }}>→</span>
             <span>AI 解读</span>
-            <span className="ml-1">（两条路都走完这三段）</span>
+            <span className="ml-1">（答题与上传，都走完这三段）</span>
           </div>
 
-          {/* 一级入口（★ 10-10 玻璃化：参考 BV1RMorB7E1K 的毛玻璃卡片，
-              点击反馈由 .glass-card:active 的回弹+提亮承担） */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
-            <button
-              type="button"
-              onClick={onGoUpload}
-              className="glass-card relative text-left px-5 py-5"
-            >
-              <span className="term-mono text-[10px] tracking-[0.25em]" style={{ color: BRAND_ON_DARK }}>
-                01 · DATA BOARD
-              </span>
-              <span className="term-mono absolute right-4 top-4 text-[10px]" style={{ color: BRAND_ON_DARK }}>
-                3 步
-              </span>
-              <span className="block text-[15px] font-semibold mt-2" style={{ color: INK }}>
-                上传数据看板 →
-              </span>
-              <span className="block text-[12px] mt-2 leading-relaxed" style={{ color: INK_SOFT }}>
-                一份问卷 CSV → 分布 / 雷达 / 分位 + AI 解读
-              </span>
-            </button>
+          {/* ★★ 10-17 布局重排（用户指令）：
+                「主界面保留一个开始测评，上传数据面板放在右下角或者左下角，作为一个小的，
+                  而不是放在核心……上传数据面板，可以跟那个地图那个界面进行一个对调。」
 
+              改之前：左=上传数据看板（主位）右=开始测评；地图屈居页脚小字。
+              改之后：**左=开始测评（主位）**，右=行动地图，**上传降到页脚**。
+
+              为什么这么排（不是纯听指令，是有一个判断）：
+                上传要求用户先有「10 道题、48 种约定答案、固定列名」的班级 CSV ——
+                对陌生访客等于不可用（实测门槛见日志）。它不配占主位；
+                但它背后的「群体分析」能力仍值得保留，所以降到页脚而不是删掉。
+              而测评是唯一「零门槛、1 分钟出结果」的闭环，必须是第一眼看得到的。 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
             <button
               type="button"
               onClick={onGoQuiz}
               className="glass-card relative text-left px-5 py-5"
             >
-              <span className="term-mono text-[10px] tracking-[0.25em]" style={{ color: INK_SOFT }}>
-                02 · ASSESSMENT
+              <span className="term-mono text-[10px] tracking-[0.25em]" style={{ color: BRAND_ON_DARK }}>
+                01 · ASSESSMENT
               </span>
-              <span className="term-mono absolute right-4 top-4 text-[10px]" style={{ color: INK_SOFT }}>
+              <span className="term-mono absolute right-4 top-4 text-[10px]" style={{ color: BRAND_ON_DARK }}>
                 1 分钟
               </span>
               <span className="block text-[15px] font-semibold mt-2" style={{ color: INK }}>
                 开始测评 →
               </span>
               <span className="block text-[12px] mt-2 leading-relaxed" style={{ color: INK_SOFT }}>
-                {qn} 道题 · 没有数据也能玩，立刻出个人档案
+                {qn} 道题 · 不需要任何数据，立刻出个人档案
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onGoMap}
+              className="glass-card relative text-left px-5 py-5"
+            >
+              <span className="term-mono text-[10px] tracking-[0.25em]" style={{ color: INK_SOFT }}>
+                02 · ACTION MAP
+              </span>
+              <span className="term-mono absolute right-4 top-4 text-[10px]" style={{ color: INK_SOFT }}>
+                17 个地点
+              </span>
+              <span className="block text-[15px] font-semibold mt-2" style={{ color: INK }}>
+                去校园里走走 →
+              </span>
+              <span className="block text-[12px] mt-2 leading-relaxed" style={{ color: INK_SOFT }}>
+                点一个地方 · 看它给你的八维加多少分
               </span>
             </button>
           </div>
 
-          {/* 二级入口：附加体验 */}
+          {/* 二级入口：工具与附加体验。
+              ★ 10-17：上传从主位降到这里 —— 它需要「按模板收集好的班级 CSV」，
+                对第一次来的人不是入口，是进阶工具。如实标注门槛，比藏起来好。 */}
           <div className="mt-9 pt-5" style={{ borderTop: `1px solid ${LINE}` }}>
             <p className="term-mono text-[10px] tracking-[0.25em] mb-3" style={{ color: INK_SOFT }}>
-              附加体验 · 不参与测评结果
+              工具与附加 · 不影响测评结果
             </p>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[12.5px]">
-              <button type="button" onClick={onGoMap} style={{ color: BRAND_ON_DARK }}>
-                去校园里走走（行动地图）→
+              <button type="button" onClick={onGoUpload} style={{ color: BRAND_ON_DARK }}>
+                上传班级问卷（已有数据时用）→
               </button>
               <a
                 href={`${import.meta.env.BASE_URL}map/校园地图-3D实景.html`}

@@ -20,7 +20,8 @@
     "test:stats": "node scripts/test-statistical-validity.mjs",
     "test:ai": "node scripts/test-ai-grounding.mjs",
     "test:csv": "node scripts/test-csv-quality.mjs",
-    "check": "npm run selftest && npm run selftest:store && npm run selftest:map && npm run selftest:intro && npm run smoke && npm run smoke:csv && npm run build && npm run verify:dist && npm run test:privacy && npm run test:stats && npm run test:ai && npm run test:csv",
+    "test:export": "node scripts/test-export-profile.mjs",
+    "check": "npm run selftest && npm run selftest:store && npm run selftest:map && npm run selftest:intro && npm run smoke && npm run smoke:csv && npm run build && npm run verify:dist && npm run test:privacy && npm run test:stats && npm run test:ai && npm run test:csv && npm run test:export",
     "gen:data": "python scripts/generate-survey-data.py",
     "gen:cohort": "python scripts/generate-survey-data.py -n 48 --seed 20261001 --out public/data/示例-班级问卷.csv"
   },

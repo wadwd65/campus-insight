@@ -23,6 +23,7 @@ import { MonoTag, SectionHead } from './TermHead.jsx';
 import { TermBlock } from './TermPanel.jsx';
 import GeometricBackdrop from './GeometricBackdrop.jsx';
 import NavButton from './NavButton.jsx';
+import { buildProfileCsv, makeProfileId, downloadText } from '../lib/exportProfile.js';
 
 /** 插图路径统一走这里：换目录只改一行，且 base 路径交给 Vite（部署到子路径也不会 404）。 */
 const ART = (f) => `${import.meta.env.BASE_URL}art/ark/${f}`;
@@ -74,6 +75,7 @@ export default function ReportView({
 
   const [step, setStep] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [exported, setExported] = useState(false);
 
   useEffect(() => {
     const timers = [1, 2, 3, 4].map((n, i) =>
@@ -101,6 +103,20 @@ export default function ReportView({
     ];
     return lines.join('\n');
   }, [report, closing, aiText, name, fromMap, trail]);
+
+  /**
+   * ★ 10-17 新增：把这份档案导成一个文件，用户可以直接发到班群。
+   * 这是「子端」的出口 —— 母端（管理员）收齐这些文件后导入，
+   * 走的是与上传 CSV 完全相同的管线（见 exportProfile.js 的说明）。
+   *
+   * 只在问卷路径可用：地图路径没有 answers（只有一本累加的账），
+   * 而档案文件里要写的是"这个人选了哪些选项"，账本给不出这个。
+   */
+  function exportProfile() {
+    const id = makeProfileId();
+    downloadText(`campus-insight-档案-${id}.csv`, buildProfileCsv(answers, { id }));
+    setExported(true);
+  }
 
   async function copyText() {
     try {
@@ -340,6 +356,25 @@ export default function ReportView({
         >
           {copied ? '已复制 ✓' : '复制文字版'}
         </button>
+
+        {/* ★ 10-17：子端的出口。只在问卷路径出现（地图路径没有 answers）。
+            它比"复制文字版"更重要 —— 复制出去是一段话，导出出去是一份
+            **能被别人汇总的数据**，这是"班级画像"这条链路的起点。 */}
+        {answers && (
+          <button
+            type="button"
+            onClick={exportProfile}
+            className="ci-lift border px-4 py-2.5 text-sm font-medium transition-colors"
+            style={{
+              borderColor: 'var(--ark-line)',
+              color: 'var(--ark-deep)',
+              background: 'rgba(255,255,255,0.9)',
+            }}
+            title="导出一份 CSV，发到班群；管理员收齐后可在「上传」页导入"
+          >
+            {exported ? '已生成 ✓ 发到班群' : '生成我的档案（可发群）'}
+          </button>
+        )}
         <button
           type="button"
           onClick={onRestart}

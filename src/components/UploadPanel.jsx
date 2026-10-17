@@ -29,6 +29,7 @@ import { BRAND } from '../lib/theme.js';
 import TermPanel from './TermPanel.jsx';
 import { MonoTag, SectionHead } from './TermHead.jsx';
 import NavButton from './NavButton.jsx';
+import { mergeCsvTexts } from '../lib/exportProfile.js';
 
 const SAMPLE_FILE = '示例-班级问卷.csv';
 
@@ -69,22 +70,51 @@ export default function UploadPanel({ onReady, onBack }) {
     });
   }
 
-  async function readFile(file) {
-    if (!file) return;
+  /**
+   * 读文件。★ 10-17：从「一个文件」扩成「一批文件」。
+   *
+   * 为什么需要一批：子端导出的档案是**每人一份**（一个人 1 行）。
+   * 管理员收齐一个班就是 40 个文件 —— 一次只能传一个的话，这个功能等于不可用。
+   *
+   * ★ 合并用 `mergeCsvTexts` 而不是直接拼接：每份档案都自带表头，
+   *   简单相加会把表头夹进数据中间，parseCsv 会把它们当无效行剔除，
+   *   于是"导入 40 份"变成"导入 1 份 + 39 行被丢弃"，**而且不报错**。
+   */
+  async function readFiles(input) {
+    const list = [...(input || [])].filter(Boolean);
+    if (!list.length) return;
+
+    // 上限：一个班的规模。防的是"拖进整个文件夹"导致逐份读取卡死。
+    if (list.length > 300) {
+      setError({ title: '一次最多 300 份', message: `你选了 ${list.length} 个文件。分批导入，结果会累加吗？—— 不会，每次导入是覆盖。请分批后合成一份。` });
+      return;
+    }
+
     // ★ 10-14 审查新增（任务书 P4#2）：**读取前**先看大小。
     //   `file.text()` 会把整个文件读进内存，一个误选的视频能直接把页面卡死 ——
     //   所以要在读之前挡，而不是读完再判断。
-    const sizeCheck = checkFileSize(file);
-    if (!sizeCheck.ok) {
-      setError({ title: '这个文件太大了', message: sizeCheck.message });
-      return;
+    for (const f of list) {
+      const sizeCheck = checkFileSize(f);
+      if (!sizeCheck.ok) {
+        setError({ title: '这个文件太大了', message: `${f.name}：${sizeCheck.message}` });
+        return;
+      }
     }
+
     setBusy(true);
     try {
       // 文件用 UTF-8 读。Excel 另存的 GBK CSV 在这里会读出乱码，
       // 但那种情况下每个值都不在选项内，会被逐行剔除并明确报出来 —— 不会静默出错
-      const text = await file.text();
-      ingest(text, file.name);
+      if (list.length === 1) {
+        ingest(await list[0].text(), list[0].name);
+      } else {
+        const texts = await Promise.all(list.map((f) => f.text()));
+        const label =
+          list.every((f) => /档案/.test(f.name))
+            ? `${list.length} 份同学档案`
+            : `${list.length} 个文件合并`;
+        ingest(mergeCsvTexts(texts), label);
+      }
     } catch {
       setError({ title: '读不到这个文件', message: '文件可能正在被其他程序占用，或没有读取权限。换一个文件试试。' });
     } finally {
@@ -157,7 +187,7 @@ export default function UploadPanel({ onReady, onBack }) {
             onDrop={(e) => {
               e.preventDefault();
               setDragging(false);
-              readFile(e.dataTransfer?.files?.[0]);
+              readFiles(e.dataTransfer?.files);
             }}
             className="relative overflow-hidden px-6 py-14 text-center transition-all duration-200"
             style={{
@@ -222,10 +252,10 @@ export default function UploadPanel({ onReady, onBack }) {
                 className="text-[15px] font-semibold mb-1"
                 style={{ color: busy ? 'var(--ink-mid)' : 'var(--ink-strong)' }}
               >
-                {busy ? '正在读取…' : '把 CSV 拖到这里'}
+                {busy ? '正在读取…' : '把 CSV 或同学档案拖到这里'}
               </p>
               <p className="text-xs mb-6" style={{ color: 'var(--ink-mid)' }}>
-                或者
+                可以多选 —— 一次拖进整个班的档案
               </p>
             <button
               type="button"
@@ -246,9 +276,10 @@ export default function UploadPanel({ onReady, onBack }) {
               id="csv-file-input"
               type="file"
               accept=".csv,text/csv"
+              multiple
               className="hidden"
               aria-label="上传班级问卷 CSV 文件"
-              onChange={(e) => readFile(e.target.files?.[0])}
+              onChange={(e) => readFiles(e.target.files)}
             />
             <p className="text-xs mt-7" style={{ color: 'var(--ink-mid)' }}>
               没有现成的数据？
