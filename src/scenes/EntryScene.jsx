@@ -22,7 +22,12 @@ const Atmosphere = lazy(() => import('../components/Atmosphere.jsx'));
 import Mascot from '../components/Mascot.jsx';
 
 
-export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
+/**
+ * @param {Function} onGoQuiz / onGoUpload / onGoMap  三个一级入口
+ * @param {{text?:string}|null} [eggQuip]   立绘彩蛋的趣评（App 算好传进来，见 lib/egg.js）
+ * @param {{label:string, run:Function}} [eggAction] 彩蛋气泡里的按钮动作
+ */
+export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap, eggQuip, eggAction }) {
   const qn = QUESTIONS.length;
 
   return (
@@ -41,8 +46,15 @@ export default function EntryScene({ onGoQuiz, onGoUpload, onGoMap }) {
         <Atmosphere variant="plain" />
       </Suspense>
 
-      {/* 吉祥物：右下角，点一下会跳一下并说话（换图只改 public/art/mascot.webp）*/}
-      <Mascot src={`${import.meta.env.BASE_URL}art/mascot.webp`} />
+      {/* 吉祥物：右下角，点一下会跳一下并说话（换图只改 public/art/mascot.webp）
+          ★ 10-17 夜：60 秒内点 10 次触发彩蛋 —— 趣评与按钮由 App 传进来
+            （入口页自己没有数据，不能算也不该编） */}
+      <Mascot
+        src={`${import.meta.env.BASE_URL}art/mascot.webp`}
+        quip={eggQuip?.text ?? null}
+        onQuipAction={eggAction?.run ?? null}
+        actionLabel={eggAction?.label}
+      />
 
       {/* ── 页头 ──────────────────────────────────────────────
           ★ 10-17 提亮：原来是**深色底板 + 浅色小字**（`rgba(10,15,22,.62)`）。

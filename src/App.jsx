@@ -31,7 +31,7 @@
  *      而且"问卷"和"地图"从此进的是同一本账 —— 档案页不必关心数据从哪来。
  */
 
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import SurveyForm from './components/SurveyForm.jsx';
 import UploadPanel from './components/UploadPanel.jsx';
 import QuizGate from './components/QuizGate.jsx';
@@ -50,6 +50,8 @@ import { loadBaseline } from './data/loadSample.js';
 import { useGameStore } from './store/useGameStore.js';
 import { QUESTIONS, vectorOf } from './lib/surveySchema.js';
 import { cleanName } from './lib/text.js';
+import { buildEggQuip } from './lib/egg.js';
+import { buildProfileCsv, downloadText, makeProfileId } from './lib/exportProfile.js';
 
 const ReportView = lazy(() => import('./components/ReportView.jsx'));
 const CohortPage = lazy(() => import('./components/CohortPage.jsx'));
@@ -85,6 +87,40 @@ export default function App() {
   //   放在 App 而不是 store：它是一次性的历史快照，不该被后续行动改写
   //   （store 里的 player.attributes 是"当前值"，语义不同）。
   const [quizSnapshot, setQuizSnapshot] = useState(null);
+
+  // ── ★ 10-17 夜：立绘彩蛋的数据来源 ──────────────────────────────
+  //   60 秒内点立绘 10 次 ⇒ 小人歪头 + 气泡里给一句"专属数据解读"。
+  //   趣评走的是 buildReport / buildReportFromAttributes，与报告页**同一套计算**，
+  //   数字取自 percents（基准人群分位）—— 不是写死的一句漂亮话
+  //   （详见 lib/egg.js 的三条规矩）。
+  //   两条来路与报告页保持一致：问卷路线读 answers，地图路线读账本。
+  const eggQuip = useMemo(
+    () =>
+      buildEggQuip({
+        answers: mapRun ? undefined : answers,
+        attributes: player.attributes,
+        baseline,
+      }),
+    [answers, mapRun, player.attributes, baseline],
+  );
+
+  //   按钮必须是**真能按**的（彩蛋是"功能露出"，不是装饰）：
+  //   · 有作答 ⇒ 导出一份档案 CSV（格式与上传入口同构，见 exportProfile.js）
+  //   · 还没答 ⇒ 把人送去答题，而不是给一个按了没反应的按钮
+  const hasAnswers = Boolean(answers && Object.keys(answers).length);
+  const eggAction = useMemo(
+    () =>
+      hasAnswers
+        ? {
+            label: '写进我的档案 ↓',
+            run: () => {
+              const id = makeProfileId();
+              downloadText(`campus-insight-档案-${id}.csv`, buildProfileCsv(answers, { id }));
+            },
+          }
+        : { label: '先答十题 →', run: () => setStage('gate') },
+    [hasAnswers, answers],
+  );
 
   // ★ B+C：只有**从问卷直接来**的报告才显示「去地图复测」按钮。
   //   已经走过地图的报告再给一个"去地图"是循环邀请（点了又会回到同一页）。
@@ -191,6 +227,8 @@ export default function App() {
             onGoQuiz={() => setStage('quiz')}
             onGoUpload={() => setStage('upload')}
             onGoMap={() => setStage('map')}
+            eggQuip={eggQuip}
+            eggAction={eggAction}
           />
         </main>
       </div>
@@ -219,7 +257,12 @@ export default function App() {
             onGoEntry={() => setStage('entry')}
           />
         </main>
-        <Mascot src={`${import.meta.env.BASE_URL}art/mascot.webp`} />
+        <Mascot
+          src={`${import.meta.env.BASE_URL}art/mascot.webp`}
+          quip={eggQuip?.text ?? null}
+          onQuipAction={eggAction.run}
+          actionLabel={eggAction.label}
+        />
       </div>
     );
   }
@@ -256,7 +299,12 @@ export default function App() {
           入场页是 early return，天然不经过这里 —— 正好符合"除了开场动画"。
           入口页由 EntryScene 自带一份，不在这里重复挂（同页会出现两个）。
           z-index 在天空之上、内容之下由 .mascot 自身控制，pointer-events 只留可点区。 */}
-      <Mascot src={`${import.meta.env.BASE_URL}art/mascot.webp`} />
+      <Mascot
+        src={`${import.meta.env.BASE_URL}art/mascot.webp`}
+        quip={eggQuip?.text ?? null}
+        onQuipAction={eggAction.run}
+        actionLabel={eggAction.label}
+      />
 
       <HubHud onRestart={restart} onGoEntry={() => setStage('entry')} />
       {/* 深色 HUD → 浅色正文的过渡带。见 index.css 的 .term-seam 说明：

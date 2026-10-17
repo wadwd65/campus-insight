@@ -1444,6 +1444,62 @@ button.text-sm {
   transform: rotate(45deg);
 }
 
+/* ── 立绘彩蛋（2026-10-17 夜）──────────────────────────────────
+   触发：60 秒内点 10 次。表现只有两样：**歪一下头** + **一段真有用的话**。
+
+   为什么只给 8° 的歪头、不做大动作：
+     彩蛋要露的是"它在算你"这件事，不是特效。夸张动画会盖掉气泡里那句
+     带真实百分比的趣评 —— 用户记住了烟花，没记住产品。
+
+   ⚠️ 歪头包了一层 .mascot-tilt，**不**加在 img 上：
+     img 已经有 is-poked 的跳跃动画，一个元素同时只能跑一个 animation 名，
+     叠在同一个元素上会互相顶掉（跳跃时歪头消失）。 */
+.mascot-tilt {
+  display: block;
+  transform-origin: 50% 88%;   /* 支点压到脚底附近：转起来像"歪头"，不像"整体侧翻" */
+}
+.mascot-tilt.is-tilt {
+  animation: mascot-tilt 1.5s cubic-bezier(.34, 1.3, .5, 1) 1;
+}
+@keyframes mascot-tilt {
+  0%   { transform: rotate(0deg); }
+  18%  { transform: rotate(-9deg); }
+  46%  { transform: rotate(-7deg); }
+  72%  { transform: rotate(2deg); }
+  100% { transform: rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mascot-tilt.is-tilt { animation: none; }   /* 话照说，只是不歪头 */
+}
+
+/* 彩蛋气泡：比普通气泡宽（要放两句话 + 一个按钮），且必须能点 */
+.mascot-bubble--egg {
+  max-width: 268px;
+  pointer-events: auto;
+}
+.mascot-bubble .egg-quip {
+  display: block;
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(255, 255, 255, .16);
+  color: #FFE7A8;
+}
+.mascot-bubble .egg-go {
+  display: block;
+  width: 100%;
+  margin-top: 9px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0b1220;
+  background: #FFE7A8;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .18s ease;
+}
+.mascot-bubble .egg-go:hover { background: #ffd97a; }
+
 @keyframes mascot-float {
   0%, 100% { transform: translateY(0) rotate(-0.5deg); }
   50%      { transform: translateY(-9px) rotate(0.5deg); }
