@@ -1079,12 +1079,18 @@ button.text-sm {
   background-size: cover;
   background-position: center 38%;
   background-repeat: no-repeat;
-  animation: sky-drift-photo 170s ease-in-out infinite alternate;
-  will-change: transform;
-  /* ★ 10-15：用户反馈「天太白」⇒ 上一版 0.66 + 一层降饱和把动漫天空洗成了灰白。
-     现在提到 0.95（vivid），降饱和那层删掉，改由下方的 .sky-scrim 控制可读性 ——
-     **"让天空够艳"和"让文字够清楚"是两件事，不该由同一个参数兼顾**：
-     前者是图的不透明度，后者是内容区上方的一层光幕。分开调，两个目标才都拿得到。 */
+  /* ★ 10-17 深夜：**去掉漂移动画**。
+     用户原话：「每点一下，前几个题目中背景会稍微切一下……背景应该会固定下来，
+     然后有一些动态效果，而不是这样动」。
+     原动画是 170s 内 translate ±2.6% + scale 1.02→1.06 —— 设计意图是"云在走"，
+     但缩放那一段在视觉上就是**背景在缓慢推镜**，点选项时注意力回到画面，
+     就会被读成"背景切了一下"。
+     ⇒ 背景交给静态图层，动态只留给粒子（见 Atmosphere.jsx）。
+     同时去掉 will-change：不再动画，就没有必要常驻合成层。
+
+     ★ 10-15 的取值理由仍然有效：用户反馈「天太白」⇒ 0.66 + 降饱和会把动漫天空
+     洗成灰白。现在 0.95 保持鲜艳，"让天空够艳"和"让文字够清楚"分开管
+     （后者由下方 .sky-scrim 负责）。 */
   opacity: 0.95;
 }
 /* 色调校准层：上冷下暖，把照片收进界面的色温 */
@@ -1098,13 +1104,14 @@ button.text-sm {
 }
 
 /* 云：用两团极淡的白色径向渐变当"云带"。
-   radial-gradient 的柔边本身就是云的形状，不需要位图。 */
+   radial-gradient 的柔边本身就是云的形状，不需要位图。
+   ★ 10-17 深夜：**去掉漂移动画**（同 .sky-photo 的理由）——
+     背景保持完全静止，动效只由粒子承担。 */
 .sky-clouds {
   position: absolute;
   left: -12%;
   right: -12%;
   background-repeat: no-repeat;
-  will-change: transform;
 }
 .sky-clouds-a {
   top: 2%;
@@ -1113,7 +1120,6 @@ button.text-sm {
     radial-gradient(38% 58% at 22% 62%, rgba(255, 255, 255, 0.85), transparent 70%),
     radial-gradient(30% 46% at 58% 40%, rgba(255, 255, 255, 0.62), transparent 72%),
     radial-gradient(26% 40% at 84% 70%, rgba(255, 255, 255, 0.5), transparent 70%);
-  animation: sky-drift-a 150s ease-in-out infinite alternate;
 }
 .sky-clouds-b {
   top: 22%;
@@ -1121,7 +1127,6 @@ button.text-sm {
   background-image:
     radial-gradient(34% 52% at 12% 46%, rgba(255, 255, 255, 0.55), transparent 72%),
     radial-gradient(40% 60% at 68% 58%, rgba(255, 255, 255, 0.42), transparent 74%);
-  animation: sky-drift-b 110s ease-in-out infinite alternate;
 }
 
 /* 近地暖光：一片极淡的琥珀，托住选项卡片那一带 */
@@ -1153,28 +1158,9 @@ button.text-sm {
   );
 }
 
-/* ★ 微动态：只动 transform（GPU 合成，零重绘）。
-   幅度 3% 上下、周期 110~170 秒 —— 是"云在慢慢走"，不是"有东西在动"。 */
-@keyframes sky-drift-a {
-  from { transform: translate3d(-3%, 0, 0); }
-  to   { transform: translate3d(3%, 0, 0); }
-}
-@keyframes sky-drift-b {
-  from { transform: translate3d(2%, 0, 0); }
-  to   { transform: translate3d(-2.4%, 0, 0); }
-}
-/* 照片本体的漂移：170 秒走 ±2.6% + 极缓的缩放。
-   这就是用户要的"微动态"——像云在慢慢走，而不是"有个东西在动"。 */
-@keyframes sky-drift-photo {
-  from { transform: translate3d(-2.6%, -0.8%, 0) scale(1.02); }
-  to   { transform: translate3d(2.6%, 0.8%, 0) scale(1.06); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sky-clouds-a,
-  .sky-clouds-b,
-  .sky-photo { animation: none !important; }
-}
+/* ★ 10-17 深夜：sky-drift-a / sky-drift-b / sky-drift-photo 三条关键帧已删除。
+   用户明确要求"背景固定下来，动态效果由粒子承担"，动画没有调用点了，
+   留着只会误导下一个改样式的人。 */
 
 /* ── 选项的选中扫光（2026-10-17 v3）──────────────────────────
    用户要"触发效果"。这一道是选中瞬间从左侧扫过的暖光 ——

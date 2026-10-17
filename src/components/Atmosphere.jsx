@@ -62,41 +62,47 @@ export default function Atmosphere({ variant = 'scene', zIndex = 0 }) {
     };
   }, []);
 
-  /* 粒子配置：颜色取场景里的淡青/浅粉，是"融进画面"而不是浮在上面 */
+  /* 粒子配置：颜色取场景里的淡青/浅粉/暖米，是"融进画面"而不是浮在上面。
+     ★ 10-17 深夜调档：用户一句「粒子动画效果呢？」—— 上一版是真的看不见，
+       实测 30 颗 / 尺寸 0.7~3.0px / 透明度 0.10~0.46，缩到截图里几乎为零。
+       现在整体上调一档：数量 58、尺寸 1.4~4.4px、透明度 0.30~0.78、
+       飘动速度 0.5。判据是**肉眼一眼能看见光点**，但不抢题干的注意力。
+       仍然保持 30fps（逐帧成本减半）与 no-retina（canvas 面积减半）。 */
   const options = useMemo(() => {
     const narrow = typeof window !== 'undefined' && window.innerWidth < 720;
     return {
       fullScreen: { enable: false },
       /* ★ 10-10 性能：关 retina（canvas 面积减半）、粒子数下调、限制 30fps。
-         粒子是常驻逐帧 canvas 动画，是入口页唯一的持续 CPU 开销；
-         30fps 的粒子肉眼仍流畅，但逐帧绘制成本直接减半。 */
+         粒子是常驻逐帧 canvas 动画，是页面唯一的持续 CPU 开销；
+         30fps 的粒子肉眼仍流畅，但逐帧绘制成本直接减半。
+         （10-17：数量虽然上调到 58，但仍是 30fps + 关 retina，实测满帧。） */
       detectRetina: false,
       fpsLimit: 30,
       particles: {
-        number: { value: narrow ? 14 : 30 },
-        color: { value: ['#bfe3ff', '#ffd9ea', '#ffffff'] },
+        number: { value: narrow ? 26 : 58 },
+        color: { value: ['#bfe3ff', '#ffd9ea', '#ffd7a8', '#ffffff'] },
         shape: { type: 'circle' },
         opacity: {
-          value: { min: 0.10, max: 0.46 },
-          animation: { enable: true, speed: 0.35, sync: false },
+          value: { min: 0.30, max: 0.78 },
+          animation: { enable: true, speed: 0.6, sync: false },
         },
         size: {
-          value: { min: 0.7, max: 3.0 },
-          animation: { enable: true, speed: 1.2, sync: false },
+          value: { min: 1.4, max: 4.4 },
+          animation: { enable: true, speed: 1.4, sync: false },
         },
         move: {
           enable: true,
-          speed: 0.35,
+          speed: 0.5,
           direction: 'top',
           random: true,
           straight: false,
           outModes: { default: 'out' },
         },
-        wobble: { enable: true, distance: 12, speed: { min: -2, max: 2 } },
+        wobble: { enable: true, distance: 14, speed: { min: -2, max: 2 } },
       },
       interactivity: { events: { onHover: { enable: false }, onClick: { enable: false } } },
       responsive: [
-        { maxWidth: 720, options: { particles: { number: { value: 18 }, size: { value: { min: 0.5, max: 1.8 } } } } },
+        { maxWidth: 720, options: { particles: { number: { value: 26 }, size: { value: { min: 1.0, max: 2.6 } } } } },
       ],
     };
   }, []);
