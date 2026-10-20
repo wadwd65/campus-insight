@@ -9,3 +9,10 @@
 *.ico binary
 *.woff binary
 *.woff2 binary
+
+# Preserve document/image bytes; PDFs can look textual to Git.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
