@@ -1,0 +1,766 @@
+{
+  "version": 3,
+  "title": "晴川校园 · 导览图校准版",
+  "source": "按用户2026-10-20提供的校园导览图人工标定相对位置，参考高德截图核对围合关系。建筑外形艺术化简化，非测绘数据，不用于导航。",
+  "reference": {
+    "filename": "Image_1789184180762_286.jpg",
+    "width": 674,
+    "height": 536,
+    "coordinateSystem": "导览图像素，向右为x、向下为y；不是地理坐标",
+    "date": "2026-10-20"
+  },
+  "references": [
+    {
+      "title": "学校楼宇、道路、景观命名",
+      "url": "https://www.qcuwh.cn/info/1007/5212.htm"
+    }
+  ],
+  "transform": {
+    "k": 0.82,
+    "ox": 350,
+    "oz": 280
+  },
+  "boundary": [
+    [
+      25,
+      105
+    ],
+    [
+      65,
+      130
+    ],
+    [
+      230,
+      101
+    ],
+    [
+      430,
+      24
+    ],
+    [
+      588,
+      22
+    ],
+    [
+      613,
+      44
+    ],
+    [
+      623,
+      207
+    ],
+    [
+      674,
+      220
+    ],
+    [
+      674,
+      536
+    ],
+    [
+      100,
+      536
+    ],
+    [
+      80,
+      291
+    ],
+    [
+      65,
+      235
+    ],
+    [
+      25,
+      180
+    ]
+  ],
+  "lake": [
+    [
+      351,
+      277
+    ],
+    [
+      371,
+      280
+    ],
+    [
+      392,
+      282
+    ],
+    [
+      410,
+      292
+    ],
+    [
+      422,
+      308
+    ],
+    [
+      427,
+      329
+    ],
+    [
+      424,
+      348
+    ],
+    [
+      416,
+      364
+    ],
+    [
+      399,
+      377
+    ],
+    [
+      380,
+      384
+    ],
+    [
+      361,
+      386
+    ],
+    [
+      349,
+      380
+    ],
+    [
+      342,
+      369
+    ],
+    [
+      340,
+      351
+    ],
+    [
+      342,
+      336
+    ],
+    [
+      337,
+      322
+    ],
+    [
+      334,
+      307
+    ],
+    [
+      340,
+      289
+    ]
+  ],
+  "track": {
+    "px": 376,
+    "py": 150,
+    "L": 94,
+    "W": 164
+  },
+  "entrance": {
+    "px": 633,
+    "py": 270,
+    "rotation": 0
+  },
+  "deck": {
+    "px": 346,
+    "py": 372
+  },
+  "timberShore": [
+    11,
+    16
+  ],
+  "planting": [
+    [
+      323,
+      283,
+      4
+    ],
+    [
+      321,
+      380,
+      4.3
+    ],
+    [
+      438,
+      361,
+      4.5
+    ],
+    [
+      428,
+      387,
+      4.6
+    ],
+    [
+      318,
+      406,
+      4.2
+    ],
+    [
+      448,
+      270,
+      4.1
+    ]
+  ],
+  "roads": [
+    {
+      "id": "ring",
+      "name": "晴韵大道",
+      "w": 9,
+      "pts": [
+        [
+          104,
+          172
+        ],
+        [
+          231,
+          118
+        ],
+        [
+          432,
+          40
+        ],
+        [
+          583,
+          35
+        ],
+        [
+          597,
+          55
+        ],
+        [
+          601,
+          214
+        ],
+        [
+          622,
+          345
+        ],
+        [
+          659,
+          360
+        ],
+        [
+          667,
+          529
+        ],
+        [
+          525,
+          529
+        ],
+        [
+          299,
+          529
+        ],
+        [
+          110,
+          529
+        ],
+        [
+          97,
+          287
+        ],
+        [
+          104,
+          172
+        ]
+      ]
+    },
+    {
+      "id": "ruyu",
+      "name": "如玉路",
+      "w": 8,
+      "pts": [
+        [
+          231,
+          118
+        ],
+        [
+          231,
+          218
+        ],
+        [
+          246,
+          287
+        ],
+        [
+          263,
+          365
+        ],
+        [
+          282,
+          416
+        ],
+        [
+          296,
+          464
+        ],
+        [
+          299,
+          529
+        ]
+      ]
+    },
+    {
+      "id": "renai",
+      "name": "仁爱路",
+      "w": 9,
+      "pts": [
+        [
+          231,
+          218
+        ],
+        [
+          325,
+          246
+        ],
+        [
+          425,
+          233
+        ],
+        [
+          601,
+          214
+        ]
+      ]
+    },
+    {
+      "id": "feihua",
+      "name": "飞花路 / 观书路",
+      "w": 9,
+      "pts": [
+        [
+          425,
+          233
+        ],
+        [
+          461,
+          291
+        ],
+        [
+          488,
+          382
+        ],
+        [
+          510,
+          424
+        ],
+        [
+          525,
+          529
+        ]
+      ]
+    },
+    {
+      "id": "dexin",
+      "name": "德馨路",
+      "w": 8,
+      "pts": [
+        [
+          282,
+          416
+        ],
+        [
+          372,
+          410
+        ],
+        [
+          488,
+          382
+        ]
+      ]
+    },
+    {
+      "id": "gate",
+      "name": "东旭门入口",
+      "w": 9,
+      "pts": [
+        [
+          612,
+          282.6190476190476
+        ],
+        [
+          643,
+          277
+        ]
+      ]
+    }
+  ],
+  "places": [
+    {
+      "id": "gym",
+      "name": "凌云体育馆",
+      "type": "gym",
+      "px": 283,
+      "py": 150,
+      "rotation": 0
+    },
+    {
+      "id": "tennis-roof",
+      "name": "凌云网球场（体育馆楼顶）",
+      "type": "court",
+      "px": 283,
+      "py": 150,
+      "rotation": 0,
+      "elevated": true
+    },
+    {
+      "id": "lab-1",
+      "name": "实验楼一",
+      "type": "teaching",
+      "px": 471,
+      "py": 82,
+      "rotation": 0,
+      "massScale": 0.85
+    },
+    {
+      "id": "lab-2",
+      "name": "实验楼二",
+      "type": "teaching",
+      "px": 550,
+      "py": 78,
+      "rotation": 0,
+      "massScale": 0.85
+    },
+    {
+      "id": "cscenter",
+      "name": "计算机中心",
+      "type": "teaching",
+      "px": 550,
+      "py": 130,
+      "rotation": 0,
+      "massScale": 0.85
+    },
+    {
+      "id": "complex-2",
+      "name": "综合楼二",
+      "type": "teaching",
+      "px": 473,
+      "py": 186,
+      "rotation": 0,
+      "massScale": 0.85
+    },
+    {
+      "id": "complex-1",
+      "name": "综合楼一",
+      "type": "teaching",
+      "px": 551,
+      "py": 182,
+      "rotation": 0,
+      "massScale": 0.85
+    },
+    {
+      "id": "lib-north",
+      "name": "图书馆（桂香苑）",
+      "type": "library",
+      "px": 472,
+      "py": 135,
+      "rotation": 0,
+      "massScale": 0.55
+    },
+    {
+      "id": "lib",
+      "name": "图书馆（晴缘湖畔）",
+      "type": "library",
+      "px": 303,
+      "py": 333,
+      "rotation": -1.5707963267948966,
+      "massScale": 0.8
+    },
+    {
+      "id": "apt-10",
+      "name": "学生公寓10栋 · 枕霞苑",
+      "type": "dorm",
+      "px": 141,
+      "py": 184,
+      "rotation": 0,
+      "shape": "U",
+      "floors": 6,
+      "wingLength": 32,
+      "courtWidth": 16,
+      "massScale": 0.78
+    },
+    {
+      "id": "apt-9",
+      "name": "学生公寓9栋 · 枕霞苑",
+      "type": "dorm",
+      "px": 201,
+      "py": 162,
+      "rotation": 0,
+      "shape": "U",
+      "floors": 6,
+      "wingLength": 32,
+      "courtWidth": 16,
+      "massScale": 0.85
+    },
+    {
+      "id": "apt-8",
+      "name": "学生公寓8栋 · 枕霞苑",
+      "type": "dorm",
+      "px": 143,
+      "py": 251,
+      "rotation": 0,
+      "shape": "U",
+      "floors": 6,
+      "wingLength": 32,
+      "courtWidth": 16,
+      "massScale": 0.85
+    },
+    {
+      "id": "apt-7",
+      "name": "学生公寓7栋 · 枕霞苑",
+      "type": "dorm",
+      "px": 207,
+      "py": 246,
+      "rotation": 0,
+      "shape": "U",
+      "floors": 6,
+      "wingLength": 32,
+      "courtWidth": 16,
+      "massScale": 0.85
+    },
+    {
+      "id": "apt-6",
+      "name": "学生公寓6栋 · 梅香苑",
+      "type": "dorm",
+      "px": 185,
+      "py": 318,
+      "rotation": 0,
+      "shape": "U",
+      "floors": 6,
+      "wingLength": 32,
+      "courtWidth": 16,
+      "massScale": 0.85
+    },
+    {
+      "id": "apt-5",
+      "name": "学生公寓5栋 · 梅香苑",
+      "type": "dorm",
+      "px": 164,
+      "py": 381,
+      "rotation": 0,
+      "shape": "U",
+      "floors": 6,
+      "wingLength": 32,
+      "courtWidth": 16,
+      "massScale": 0.82
+    },
+    {
+      "id": "apt-mei",
+      "name": "学生公寓梅苑 · 梅香苑",
+      "type": "dorm",
+      "px": 234,
+      "py": 380,
+      "rotation": 0,
+      "shape": "U",
+      "floors": 6,
+      "wingLength": 32,
+      "courtWidth": 16,
+      "massScale": 0.82
+    },
+    {
+      "id": "apt-4",
+      "name": "学生公寓4栋 · 松涛苑",
+      "type": "dorm",
+      "px": 169,
+      "py": 443,
+      "rotation": 0,
+      "shape": "U",
+      "floors": 6,
+      "wingLength": 32,
+      "courtWidth": 16,
+      "massScale": 0.82
+    },
+    {
+      "id": "apt-1",
+      "name": "学生公寓1栋 · 松涛苑",
+      "type": "dorm",
+      "px": 234,
+      "py": 435,
+      "rotation": 0,
+      "shape": "U",
+      "floors": 6,
+      "wingLength": 32,
+      "courtWidth": 16,
+      "massScale": 0.82
+    },
+    {
+      "id": "apt-3",
+      "name": "学生公寓3栋 · 松涛苑",
+      "type": "dorm",
+      "px": 164,
+      "py": 501,
+      "rotation": 0,
+      "shape": "U",
+      "floors": 6,
+      "wingLength": 32,
+      "courtWidth": 16,
+      "massScale": 0.82
+    },
+    {
+      "id": "apt-2",
+      "name": "学生公寓2栋 · 松涛苑",
+      "type": "dorm",
+      "px": 253,
+      "py": 504,
+      "rotation": 0,
+      "shape": "U",
+      "floors": 6,
+      "wingLength": 32,
+      "courtWidth": 16,
+      "massScale": 0.82
+    },
+    {
+      "id": "canteen",
+      "name": "晴味堂",
+      "type": "canteen",
+      "px": 352,
+      "py": 493,
+      "rotation": 0
+    },
+    {
+      "id": "market",
+      "name": "超市周边商业区",
+      "type": "shop",
+      "px": 408,
+      "py": 510,
+      "rotation": 0,
+      "massScale": 1.7
+    },
+    {
+      "id": "tuoxin",
+      "name": "拓新楼",
+      "type": "teaching",
+      "px": 476,
+      "py": 509,
+      "rotation": 0,
+      "massScale": 0.85
+    },
+    {
+      "id": "tennis-ground",
+      "name": "凌跃网球场",
+      "type": "court",
+      "px": 450,
+      "py": 445,
+      "rotation": 0,
+      "massScale": 1.5
+    },
+    {
+      "id": "teach-1",
+      "name": "教学楼一 · 蕙兰苑",
+      "type": "teaching",
+      "px": 548,
+      "py": 401,
+      "rotation": 0,
+      "massScale": 0.78
+    },
+    {
+      "id": "teach-2",
+      "name": "教学楼二 · 蕙兰苑",
+      "type": "teaching",
+      "px": 620,
+      "py": 395,
+      "rotation": 0,
+      "massScale": 0.78
+    },
+    {
+      "id": "teach-4",
+      "name": "教学楼四 · 蕙兰苑",
+      "type": "teaching",
+      "px": 556,
+      "py": 507,
+      "rotation": 0,
+      "massScale": 0.78
+    },
+    {
+      "id": "teach-3",
+      "name": "教学楼三 · 蕙兰苑",
+      "type": "teaching",
+      "px": 638,
+      "py": 506,
+      "rotation": 0,
+      "massScale": 0.72
+    },
+    {
+      "id": "pav-yr",
+      "name": "迎日亭",
+      "type": "pavilion",
+      "px": 516,
+      "py": 247,
+      "rotation": 0
+    },
+    {
+      "id": "pav-wy",
+      "name": "望月亭",
+      "type": "pavilion",
+      "px": 558,
+      "py": 336,
+      "rotation": 0
+    },
+    {
+      "id": "pav-bp",
+      "name": "抱璞亭",
+      "type": "pavilion",
+      "px": 433,
+      "py": 344,
+      "rotation": 0
+    },
+    {
+      "id": "plaza-lake",
+      "name": "晴澜广场",
+      "type": "plaza",
+      "px": 332,
+      "py": 328,
+      "rotation": 0,
+      "width": 12,
+      "depth": 70
+    },
+    {
+      "id": "plaza-east",
+      "name": "晴樱广场",
+      "type": "plaza",
+      "px": 548,
+      "py": 292,
+      "rotation": -0.2,
+      "width": 75,
+      "depth": 67
+    },
+    {
+      "id": "plaza-maple",
+      "name": "晴枫广场",
+      "type": "plaza",
+      "px": 53,
+      "py": 139,
+      "rotation": 0,
+      "width": 48,
+      "depth": 41
+    }
+  ],
+  "views": {
+    "lake": {
+      "px": 349,
+      "py": 329,
+      "distance": 250,
+      "azimuth": 1.5707963267948966,
+      "elevation": 0.85
+    },
+    "teaching": {
+      "px": 580,
+      "py": 446,
+      "distance": 240,
+      "azimuth": 0.3,
+      "elevation": 1.0
+    },
+    "dorm": {
+      "px": 179,
+      "py": 359,
+      "distance": 320,
+      "azimuth": -0.3,
+      "elevation": 1.0
+    },
+    "sport": {
+      "px": 333,
+      "py": 153,
+      "distance": 245,
+      "azimuth": 0.2,
+      "elevation": 1.05
+    }
+  }
+}

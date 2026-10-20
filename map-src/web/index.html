@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#e9eee5"><title>晴川漫游 · 3D 校园示意</title>
+  <link rel="stylesheet" href="./campus.css">
+</head>
+<body>
+  <header class="topbar"><a class="back" href="../..">← <span>返回网站</span></a><div class="brand"><span>CAMPUS INSIGHT / EXPLORE</span><h1>校园漫游 <small>3D 示意</small></h1></div><button id="toggle-guide" class="guide-toggle" aria-expanded="true" aria-controls="campus-guide">收起导览 −</button><span class="edition">导览图人工标定 · 艺术化建筑 · 非导航模型</span></header>
+  <main class="explorer">
+    <aside class="sidebar" id="campus-guide">
+      <div class="sidebar-heading"><span class="eyebrow">QINGCHUAN / A LITTLE CLOSER</span><h2>把校园，<br>慢慢逛一遍。</h2><p>有花园的屋顶、通透的阅览厅，和藏在拱廊后的小小院落。</p></div>
+      <nav class="presets" aria-label="校园取景"><button data-preset="overview" aria-pressed="true"><span>01</span>校园全景 <b>↗</b></button><button data-preset="lake" aria-pressed="false"><span>02</span>书香湖畔 <b>↗</b></button><button data-preset="teaching" aria-pressed="false"><span>03</span>教学街区 <b>↗</b></button><button data-preset="dorm" aria-pressed="false"><span>04</span>生活院落 <b>↗</b></button><button data-preset="sport" aria-pressed="false"><span>05</span>运动日常 <b>↗</b></button><button data-preset="plan" aria-pressed="false"><span>06</span>俯瞰核对 <b>↗</b></button></nav>
+      <label class="place-picker">寻找一个地点<select id="place-picker" aria-label="选择校园建筑或地点"><option value="">选择地点…</option></select></label>
+      <details class="settings"><summary>画面与操作 <span>＋</span></summary><div class="settings-body"><label>画面质量<select id="quality" aria-label="画面质量"><option value="low">省电</option><option value="balanced">标准</option><option value="high">清晰</option></select></label><label>校园色调<select id="lighting" aria-label="校园色调"><option value="daylight">晴日校园</option><option value="golden">暖金傍晚</option></select></label><button id="shade" aria-pressed="true">静态阴影 <span>开启</span></button><label>日光方向<input id="sun" aria-label="日光方向" type="range" min="0" max="360" value="220"></label><button id="auto" aria-pressed="false">自动环绕 <span>关闭</span></button><p>鼠标拖拽旋转；右键或按住 Shift 拖拽平移；滚轮缩放。方向键转动，＋ / －缩放，Home 复位。三维场景仅在电脑端提供。</p><p>拖动时轻量绘制，停下后增强清晰度。阴影固定显示，仅调整日光方向后更新。</p><p class="diagnostic" id="runtime" data-frames="0">正在准备场景…</p></div></details>
+      <p class="source-note">布局参考你提供的校园导览图。<br>建筑按功能重新设计，非实景复刻。位置人工标定，不用于导航。<br><a href="https://www.qcuwh.cn/info/1007/5212.htm" target="_blank" rel="noopener noreferrer">查看学校命名说明 ↗</a></p>
+    </aside>
+    <section class="viewport" aria-label="交互式三维校园">
+      <div id="scene"><div id="loading" role="status"><span class="loading-symbol">◇</span><b>正在展开校园</b><p>模型在本机绘制，无需登录。</p></div></div>
+      <div class="view-badge"><i></i><span id="view-name">校园全景</span><small id="light-name">晴日校园</small></div>
+      <div class="compass" aria-hidden="true"><span>N</span><svg viewBox="0 0 40 40"><path d="M20 3 12 31 20 26 28 31Z" fill="#486b62"/><path d="M20 3V26L28 31Z" fill="#a8b9a5"/></svg></div>
+      <div id="selection-marker" aria-hidden="true" hidden><span></span><b></b></div>
+      <article id="place-card" class="place-card" aria-labelledby="place-title" hidden><button id="close-place" aria-label="收起地点详情">×</button><span class="eyebrow" id="place-category"></span><h2 id="place-title"></h2><p id="place-description"></p><details id="building-reference" class="building-reference" hidden><summary>建筑设计笔记</summary><p id="reference-detail"></p></details><div class="detail-actions"><button id="focus-place">靠近看看 <span>↗</span></button><button id="other-side">看看另一侧 ↻</button><button id="roof-view">俯看屋面 <span>↗</span></button></div></article>
+      <div class="map-controls" aria-label="视图操作"><button id="zoom-in" aria-label="放大地图">＋</button><button id="zoom-out" aria-label="缩小地图">－</button><span></span><button id="rotate-left" aria-label="向左旋转地图">↶</button><button id="reset" aria-label="恢复校园全景">⌂</button></div>
+      <div class="viewport-foot"><span><i></i> 拖动旋转 · 点选建筑</span><button id="labels" aria-pressed="true">地点标记 <span>开启</span></button></div>
+      <div id="landmarks" aria-label="校园地点标记"></div>
+      <p id="announce" class="sr-only" role="status"></p>
+    </section>
+  </main>
+  <section class="mobile-notice" id="mobile-notice" hidden aria-labelledby="mobile-title">
+    <span class="eyebrow">CAMPUS INSIGHT / DESKTOP VIEW</span>
+    <svg viewBox="0 0 160 110" width="160" height="110" aria-hidden="true"><path d="M24 87h112M41 87V35l39-18 39 18v52M65 87V66h30v21M35 35h90M49 48h8m19 0h8m19 0h8" fill="none" stroke="#83997d" stroke-width="2"/><circle cx="130" cy="20" r="8" fill="#d7dfc2"/></svg>
+    <h2 id="mobile-title">3D 校园留到电脑上看</h2>
+    <p>手机端不加载三维场景，减少耗电和卡顿。<br>你可以继续测评、查看报告或体验四时段行动地图。</p>
+    <a href="../..">返回网站，继续体验 →</a>
+  </section>
+  <noscript>请启用 JavaScript 以查看三维校园。<a href="../..">返回网站</a></noscript>
+  <script type="module" src="./campus-boot.js"></script>
+</body>
+</html>
