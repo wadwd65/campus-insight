@@ -13,17 +13,18 @@
  * 结尾那句是最可能被截图的一句话，不能出现"这次没生成好"。
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import RadarChart from './RadarChart.jsx';
 import TimeDonut from './TimeDonut.jsx';
 import MoodCurve from './MoodCurve.jsx';
 import FactsCard from './FactsCard.jsx';
 import AiSummary from './AiSummary.jsx';
 import { MonoTag, ArchiveSectionHead } from './TermHead.jsx';
-import { labelOf } from '../lib/surveySchema.js';
+import { labelOf, QUESTIONS } from '../lib/surveySchema.js';
 import GeometricBackdrop from './GeometricBackdrop.jsx';
 import NavButton from './NavButton.jsx';
 import { buildProfileCsv, makeProfileId, downloadText } from '../lib/exportProfile.js';
+import { downloadReportCard, reportIdentity } from '../lib/reportCard.js';
 
 /** 插图路径统一走这里：换目录只改一行，且 base 路径交给 Vite（部署到子路径也不会 404）。 */
 const ART = (f) => `${import.meta.env.BASE_URL}art/ark/${f}`;
@@ -75,9 +76,14 @@ export default function ReportView({
 
   const [step, setStep] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
+  const [cardState, setCardState] = useState('idle');
+  const titleRef = useRef(null);
   const [exported, setExported] = useState(false);
 
   useEffect(() => {
+    titleRef.current?.focus({ preventScroll: true });
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setStep(4); return undefined; }
     const timers = [1, 2, 3, 4].map((n, i) =>
       window.setTimeout(() => setStep(n), 240 * (i + 1)),
     );
@@ -95,11 +101,12 @@ export default function ReportView({
       `时间分配：${report.timeSplit.map((d) => `${d.name} ${d.value}%`).join(' · ')}`,
       // 地图路径才有的部分：走过的顺序。问卷答完没有这项，也不会打印空标题
       ...(fromMap && trail?.length
-        ? ['', `我走过的路：${trail.map((t) => t.label).join(' → ')}`]
+        ? ['', `我走过的路：${trail.filter((t) => t.at).map((t) => t.label).join(' → ')}`]
         : []),
       '',
       body,
       closing,
+      '说明：基准为模拟人群；时间分配与四年曲线为规则推算，非实测或心理评估。',
     ];
     return lines.join('\n');
   }, [report, closing, aiText, name, fromMap, trail]);
@@ -122,9 +129,11 @@ export default function ReportView({
     try {
       await navigator.clipboard.writeText(plainText);
       setCopied(true);
+      setCopyFailed(false);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
+      setCopyFailed(true);
     }
   }
 
@@ -140,17 +149,10 @@ export default function ReportView({
    * 那它就只是个装饰。派生 id 才有"这是这一份"的含义。
    */
   const meta = useMemo(() => {
-    const seed = JSON.stringify(answers ?? {}) + (name || '') + (attributes ? 'map' : 'quiz');
-    let h = 2166136261;
-    for (let i = 0; i < seed.length; i += 1) {
-      h ^= seed.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    const code = (h >>> 0).toString(36).toUpperCase().padStart(7, '0').slice(0, 7);
     const now = new Date();
     const p2 = (n) => String(n).padStart(2, '0');
     return {
-      id: `CI-${code.slice(0, 3)}-${code.slice(3)}`,
+      id: reportIdentity(answers, attributes, name),
       time: `${now.getFullYear()}.${p2(now.getMonth() + 1)}.${p2(now.getDate())} ${p2(now.getHours())}:${p2(now.getMinutes())}`,
     };
   }, [answers, name, attributes]);
@@ -183,7 +185,7 @@ export default function ReportView({
   );
 
   return (
-    <div className="archive">
+    <div className="archive" id="archive-top">
       {/* 页首天空窗：只占上方，mask 渐隐进纸面。全站那层 fixed 天空在本页被 :has() 关掉。 */}
       <div className="archive-sky" aria-hidden="true" />
 
@@ -204,7 +206,7 @@ export default function ReportView({
           <div className="archive-spine-row">
             <span className="archive-spine-key">来源</span>
             <span className="archive-spine-val">
-              {fromMap ? `地图轨迹 ${trail?.length ?? 0} 步` : `问卷 ${Object.keys(answers ?? {}).length} 题`}
+              {fromMap ? `地图 ${trail?.filter((t) => t.at).length ?? 0} 步${answers ? ' + 问卷' : ''}` : `问卷 ${Object.keys(answers ?? {}).length} 题`}
             </span>
           </div>
           <div className="archive-spine-row">
@@ -230,60 +232,40 @@ export default function ReportView({
         </aside>
 
         {/* ── 主栏 ────────────────────────────────────────── */}
-        <main className="archive-main">
+        <article className="archive-main" aria-label="个人校园档案">
           <header className="archive-head">
             <p className="archive-head-kicker">你的称号&nbsp;/&nbsp;DESIGNATION</p>
-            <h1 className="archive-title" style={{ fontSize: titleSize }}>
+            <h1 ref={titleRef} tabIndex={-1} className="archive-title" style={{ fontSize: titleSize }}>
               {report.facts.title}
             </h1>
             <div className="archive-head-meta">
               <span>
                 {fromMap
-                  ? `由 ${trail?.length ?? 0} 步地图轨迹推算`
+                  ? `由 ${trail?.filter((t) => t.at).length ?? 0} 步地图行动${answers ? `与 ${Object.keys(answers).length} 个答案` : ''}推算`
                   : `由 ${Object.keys(answers ?? {}).length} 个答案推算`}
               </span>
               <span aria-hidden="true">·</span>
               <span>基准为 2000 条模拟数据，非真实调查</span>
             </div>
-          </header>
-
-      {/* ★ B+C（C1）：从问卷报告去地图"复测"。
-          ★ 10-17 美术返工：原来是"淡青底 + 左粗边 + 实心青色按钮"，
-            那是全站旧语言，也是这一屏最后一处"模板感"。
-            纸面上的强调不该靠色块，而该靠**一条细线 + 一枚印章红的文字链接**。
-          ★ 同时删掉了原来的 "REPORT // GENERATED" 状态行：
-            脊标里已有「生成时间 / 来源 / 基准」，那一行是重复信息 + 旧语言。 */}
-      {onGoMap && (
-        <div className="mt-9 pt-5" style={{ borderTop: '1px solid var(--rule-strong)' }}>
-          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-3">
-            <div className="flex-1" style={{ minWidth: 260 }}>
-              <p className="text-[14px] font-semibold" style={{ color: 'var(--ink-on-paper)' }}>
-                这份报告来自你的 {Object.keys(answers ?? {}).length} 个答案
-              </p>
-              <p
-                className="text-[12.5px] mt-1.5 leading-[1.8]"
-                style={{ color: 'var(--ink-on-paper-soft)', maxWidth: '56ch' }}
-              >
-                想去地图上走一遍，看看会不会走出同一个你？地图的每一步都会叠在同一本账上，
-                走完回来可以并排对比两次测量。
-              </p>
+            <p className="report-opening">{closing}</p>
+            <div className="report-highlights" aria-label="画像中数值较高的三项">
+              {[...report.radar].sort((a,b) => b.value - a.value).slice(0,3).map((d) => <div key={d.key}><span>{d.axis}</span><b>{d.value}<small>百分位</small></b></div>)}
             </div>
-            <button
-              type="button"
-              onClick={onGoMap}
-              className="shrink-0 text-[13px] font-semibold"
-              style={{
-                color: 'var(--stamp)',
-                borderBottom: '1px solid var(--stamp)',
-                paddingBottom: 2,
-                background: 'none',
-              }}
-            >
-              去地图上走一遍 →
-            </button>
-          </div>
-        </div>
-      )}
+            <div className="report-quick-actions">
+              <button type="button" className="report-save-card" disabled={cardState === 'saving'} onClick={async () => {
+                setCardState('saving');
+                try { await downloadReportCard(report, { id: meta.id, closing }); setCardState('saved'); }
+                catch { setCardState('error'); }
+              }}>{cardState === 'saving' ? '正在生成…' : cardState === 'saved' ? '再次保存档案卡 ↓' : '保存我的档案卡 ↓'}</button>
+              <button type="button" onClick={copyText}>{copied ? '已复制 ✓' : '复制文字版'}</button>
+              <a href={trail?.length ? '#sec-2' : '#sec-1'}>往下看完整画像 <span aria-hidden="true">↓</span></a>
+            </div>
+            <div className="report-action-status" role="status">
+              {cardState === 'saved' && '档案卡已生成，请在浏览器下载中查看。'}
+              {cardState === 'error' && '图片未能生成，你仍然可以复制文字版或导出答题数据。'}
+              {copyFailed && <>当前浏览器无法复制，<button type="button" onClick={() => downloadText(`campus-insight-${meta.id}.txt`, plainText, 'text/plain;charset=utf-8')}>下载文字版</button>。</>}
+            </div>
+          </header>
 
       <div className="space-y-10">
         {/* ★ 10-14 B+C（B3）：这一块**两种路径都有**。
@@ -292,22 +274,17 @@ export default function ReportView({
             于是问卷玩家答完 10 题，报告里却看不到自己答过什么，两个玩法互相看不见。
             现在合成一条时间线，并用来源标签把"这是你选的"和"这是你走的"分开。 */}
         {trail?.length > 0 && (
-          <Section
-            n={1}
-            show={step >= 1}
-            title="这一轮你是怎么走的"
-            hint="按顺序重放一遍：问卷的每一次选择、地图的每一次落脚，都记在同一本账上"
-            art={ART('sec-trail.webp')}
-          >
-            <ActionTrail trail={trail} />
-          </Section>
+          <details id="sec-1" className="archive-answer-trail">
+            <summary>这一轮你是怎么走的 · 查看 {trail.length} 条记录</summary>
+            <div className="pt-5"><ActionTrail trail={trail} answers={answers} /></div>
+          </details>
         )}
 
         <Section
           n={trail?.length > 0 ? 2 : 1}
           show={step >= 1}
           title="大学生活者画像"
-          hint="每个数字的意思是：你超过了多少比例的大学生（基准人群为模拟数据，见页脚说明）"
+          hint="每个数字的意思是：你在模拟基准人群中的相对位置；用于理解这套回答，不代表真实大学生总体排名"
           art={ART('sec-profile.webp')}
         >
           {/* ★ 10-17 美术返工：原来是"雷达图独占一块图版"。
@@ -322,8 +299,8 @@ export default function ReportView({
               </div>
               <div className="archive-prose">
                 <p className="mb-3">
-                  这张网画的是你在六个维度上的相对位置：0 是基准人群里最低的那一头，
-                  100 是最高。它读的是"你在同代人里站哪"，不是"你有多强"。
+                  这张网展示 {report.radar.length} 项特征的相对位置，由八项基础属性和一项派生属性中选取。
+                  数值与 2000 条模拟记录比较，并列取中点，显示范围为 2–98；不是能力评分。
                 </p>
                 <p
                   className="archive-spine-kicker"
@@ -391,7 +368,7 @@ export default function ReportView({
           n={trail?.length > 0 ? 6 : 5}
           show={step >= 4}
           title="给你的话"
-          hint="这段话由大模型照着你的数据写，不是模板填空"
+          hint="解读基于上面的计算结果；具体生成方式见下方状态标记"
           art={ART('sec-closing.webp')}
         >
           <AiSummary report={report} name={name} onText={(text) => setAiText(text)} />
@@ -422,23 +399,45 @@ export default function ReportView({
         </Section>
       </div>
 
+      {onGoMap && (
+        <div className="archive-map-extra mt-9 pt-5" style={{ borderTop: '1px solid var(--rule-strong)' }}>
+          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-3">
+            <div className="flex-1" style={{ minWidth: 260 }}>
+              <p className="text-[14px] font-semibold" style={{ color: 'var(--ink-on-paper)' }}>
+                这份报告来自你的 {Object.keys(answers ?? {}).length} 个答案
+              </p>
+              <p
+                className="text-[12.5px] mt-1.5 leading-[1.8]"
+                style={{ color: 'var(--ink-on-paper-soft)', maxWidth: '56ch' }}
+              >
+                用四个时段安排一次校园漫游。地图行动会叠加到这份问卷画像上，
+                回来可以对比探索前后的变化。
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onGoMap}
+              className="shrink-0 text-[13px] font-semibold"
+              style={{
+                color: 'var(--stamp)',
+                borderBottom: '1px solid var(--stamp)',
+                paddingBottom: 2,
+                background: 'none',
+              }}
+            >
+              去地图上走一遍 →
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ★ 10-14 美化：三个按钮原来是"一个实心紫 + 两个白描边"，
           三个长得差不多、主次不清。现在：
             主按钮 = 渐变实底 + 品牌色投影（明确"点这里"）
             次按钮 = 白底 + 描边 + 悬停抬起（明确"也可以点这里"）
             三级（回地图）= 只留文字，不加框 —— 它是"离开"，不该抢主按钮 */}
       <div className="flex flex-wrap items-center gap-3 mt-12 pt-8 border-t border-[var(--line)]">
-        <button
-          type="button"
-          onClick={copyText}
-          className="px-5 py-2.5 text-sm font-medium text-white transition-transform ci-lift"
-          style={{
-            background: 'var(--grad-ark)',
-            boxShadow: 'var(--shadow-ark)',
-          }}
-        >
-          {copied ? '已复制 ✓' : '复制文字版'}
-        </button>
+        <a href="#archive-top" className="report-back-top">回到档案顶部 ↑</a>
 
         {/* ★ 10-17：子端的出口。只在问卷路径出现（地图路径没有 answers）。
             它比"复制文字版"更重要 —— 复制出去是一段话，导出出去是一份
@@ -455,7 +454,7 @@ export default function ReportView({
             }}
             title="导出一份 CSV，发到班群；管理员收齐后可在「上传」页导入"
           >
-            {exported ? '已生成 ✓ 发到班群' : '生成我的档案（可发群）'}
+            {exported ? '已导出答题数据 ✓' : '导出答题数据 CSV'}
           </button>
         )}
         <button
@@ -478,7 +477,7 @@ export default function ReportView({
           换个答案，报告的走向会完全不同
         </span>
       </div>
-        </main>
+        </article>
       </div>
     </div>
   );
@@ -603,7 +602,7 @@ function Crest() {
  * 配色跟内容区走（浅色令牌），不搬场景层的深色 —— 报告页是"报告正文"，
  * 不是仪表盘。这条边界见 index.css 顶部。
  */
-function ActionTrail({ trail }) {
+function ActionTrail({ trail, answers }) {
   return (
     <ol className="relative pl-6 space-y-3">
       {/* 竖线：用绝对定位的一条线串起所有节点，比给每个 li 画边框稳 */}
@@ -617,6 +616,8 @@ function ActionTrail({ trail }) {
         //   这是两个路径在账本里唯一可靠的差别，比按 id 猜稳健。
         const fromMapPath = Boolean(t.at);
         const tag = fromMapPath ? '地图' : '问卷';
+        const question = !fromMapPath && QUESTIONS.find(q => t.id?.startsWith(`${q.field}=`) || q.text === t.label);
+        const answer = question && answers?.[question.field];
         return (
           <li key={`${t.id}-${i}`} className="relative">
             <span
@@ -640,7 +641,7 @@ function ActionTrail({ trail }) {
               >
                 {tag}
               </span>
-              <span>{t.label}</span>
+              <span>{t.label}{answer && <strong className="block font-medium" style={{ color: 'var(--ark-deep)' }}>你的选择：{answer}</strong>}</span>
             </p>
           </li>
         );
@@ -690,9 +691,9 @@ function DualMeasure({ quizSnapshot, baseline, current }) {
   return (
     <div className="mt-6">
       <div className="flex items-center gap-2.5 mb-3">
-        <span className="ci-chip ci-chip-accent">复测</span>
+        <span className="ci-chip ci-chip-accent">探索前后</span>
         <span className="text-sm font-medium" style={{ color: 'var(--ink-strong)' }}>
-          两次测量，同一个你
+          同一份档案，行动带来了什么变化
         </span>
       </div>
 
@@ -736,8 +737,8 @@ function DualMeasure({ quizSnapshot, baseline, current }) {
       </dl>
 
       <p className="text-xs leading-5 mt-3" style={{ color: 'var(--ink-dim)' }}>
-        左边是答题算出的百分位，右边是在地图上走完之后算出的。两次不一致不代表谁错了 ——
-        答题更接近"你觉得自己是什么样"，地图更接近"你实际选择了什么"，差异本身就是结论。
+        左边来自问卷，右边是在问卷基础上叠加地图行动后的结果。
+        差值展示规则下的变化，不是两次独立测量，也不用于验证答案是否正确。
       </p>
     </div>
   );

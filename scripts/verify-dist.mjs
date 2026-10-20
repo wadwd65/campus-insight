@@ -36,6 +36,14 @@ ok(fs.existsSync(DIST), 'dist/ 目录存在', DIST);
 const REQUIRED = [
   'index.html',                                        // 入口 HTML
   'map/校园地图-3D实景.html',                          // 3D 附加展示页（外链目标）
+  'map/three-r149.min.js',
+  'map/campus-app.js',
+  'map/campus-boot.js',
+  'map/campus-scene.js',
+  'map/campus-model.js',
+  'map/campus-lighting.js',
+  'map/campus.css',
+  'map/campus-data.json',
   'data/示例-班级问卷.csv',                            // 示例数据（评委一键试）
   'data/问卷基准数据.csv',                             // 2000 人基准
 ];

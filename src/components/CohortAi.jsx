@@ -69,10 +69,10 @@ export default function CohortAi({ cohort, className = '' }) {
           className="term-mono text-[11px] tracking-[0.2em] px-1.5 py-0.5"
           style={{ color: '#fff', background: BRAND }}
         >
-          AI
+          {pending ? '解读中' : reason ? '本地规则解读' : 'AI 实时解读'}
         </span>
         <span className="term-mono text-[11px] tracking-[0.18em] text-[var(--ink-soft)]">
-          群体解读 · COHORT SUMMARY
+          群体解读
         </span>
         <span
           className="ml-auto inline-block w-1.5 h-1.5 rounded-full"
@@ -106,7 +106,7 @@ export default function CohortAi({ cohort, className = '' }) {
               ? `${reasonText(reason)}；图表与统计不受影响。`
               : `由大模型实时生成${status.model ? `（${status.model}）` : ''}。只发送算好的分布与分位，不发送任何原始作答。`}
         </span>
-        {!pending && (
+        {!pending && status.configured && (
           <button
             type="button"
             onClick={() => setRound((r) => r + 1)}

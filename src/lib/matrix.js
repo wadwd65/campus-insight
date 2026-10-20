@@ -19,6 +19,15 @@ export function emptyVector() {
   return Object.fromEntries(ALL_ATTR_KEYS.map((k) => [k, 0]));
 }
 
+/** The store keeps base attributes; derive the extra axis at the report boundary. */
+export function withDerivedAttributes(attributes) {
+  const vec = { ...emptyVector(), ...attributes };
+  for (const d of DERIVED) {
+    vec[d.key] = Object.entries(d.formula).reduce((sum, [k, coef]) => sum + coef * vec[k], 0);
+  }
+  return vec;
+}
+
 /**
  * 一次作答 → 属性原始分。
  *
@@ -37,12 +46,7 @@ export function toAttributes(answers) {
     for (const [key, delta] of Object.entries(option.vec)) vec[key] += delta;
   }
 
-  // 派生属性在最后算：它们依赖基础属性的最终值
-  for (const d of DERIVED) {
-    vec[d.key] = Object.entries(d.formula).reduce((sum, [k, coef]) => sum + coef * vec[k], 0);
-  }
-
-  return vec;
+  return withDerivedAttributes(vec);
 }
 
 /** 批量换算：记录数组 → 属性数组。基准人群与真入口都走这个函数。 */

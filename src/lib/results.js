@@ -9,7 +9,7 @@
  */
 
 import { ALL_ATTR_KEYS, labelOf } from './surveySchema.js';
-import { toAttributes, toPercents } from './matrix.js';
+import { toAttributes, toPercents, withDerivedAttributes } from './matrix.js';
 
 /**
  * 百分位 → 偏离系数（−1 ~ +1）。
@@ -235,7 +235,7 @@ function describe(item) {
     copy,
     // text 是整句，供纯文本场景用（自检输出、导出报告、喂给大模型的摘要）。
     // 界面**不要**去解析这句话，它只是这句话的一种渲染结果。
-    text: `在「${label}」上，你${high ? '超过' : '低于'} ${high ? pct : 100 - pct}% 的大学生 —— ${copy}`,
+    text: `在「${label}」上，你${high ? '超过' : '低于'} ${high ? pct : 100 - pct}% 的模拟基准记录 —— ${copy}`,
   };
 }
 
@@ -266,15 +266,16 @@ export function buildReport(answers, baseline) {
  *   于是在这里切开 —— 计算层从此不关心数据来自问卷还是地图，
  *   与 store 里那句"两条路进同一本账，档案页不必关心数据从哪来"是同一件事。
  *
- * @param {Record<string,number>} attributes 8 基础属性 + 派生（缺的按 0 算）
+ * @param {Record<string,number>} attributes 8 基础属性，派生维由同一公式重新计算
  * @param {{size:number, sorted:object}} baseline
  * @param {{answers?:object}} extra 透传原始答案（有就带上，供摘要复用）
  */
 export function buildReportFromAttributes(attributes, baseline, extra = {}) {
-  const percents = toPercents(attributes, baseline);
+  const completed = withDerivedAttributes(attributes);
+  const percents = toPercents(completed, baseline);
   return {
     answers: extra.answers ?? null,
-    attributes,
+    attributes: completed,
     percents,
     radar: radarOf(percents),
     timeSplit: timeSplitOf(percents),

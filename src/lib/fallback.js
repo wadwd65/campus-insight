@@ -33,7 +33,7 @@ export function buildFallbackSummary(report, { name = '' } = {}) {
   const bottom = byAxis[byAxis.length - 1];
   const p1 =
     `${call}你的称号是「${facts.title}」。` +
-    `在「${top.axis}」上你超过了 ${top.value}% 的大学生，` +
+    `与模拟基准人群相比，你在「${top.axis}」上超过了 ${top.value}% 的记录，` +
     `而「${bottom.axis}」只有 ${bottom.value}% —— 这两个数放在一起，基本就是你的大学轮廓。`;
 
   // ── 2. 时间分配 ──
@@ -41,7 +41,7 @@ export function buildFallbackSummary(report, { name = '' } = {}) {
   const most = byTime[0];
   const least = byTime[byTime.length - 1];
   const p2 =
-    `你的时间大多给了${most.name}（${most.value}%），${least.name}只占 ${least.value}%。` +
+    `按这套回答推算，${most.name}占比最大（${most.value}%），${least.name}占 ${least.value}%。这是一种叙事估算，不是实际用时。` +
     `${most.name}这一项排在最前面，${least.name}排在最后 —— 这个顺序本身就是一个选择。`;
 
   // ── 3. 四年心情曲线 ──
@@ -51,7 +51,7 @@ export function buildFallbackSummary(report, { name = '' } = {}) {
   const swing = high.value - low.value;
   const shape = swing >= 24 ? '起落挺大' : swing >= 14 ? '有起有伏' : '一直比较平';
   const p3 =
-    `四年下来，你的心情${shape}：${high.stage}最松（${high.value}），${low.stage}最难（${low.value}）。` +
+    `在这条规则生成的四年叙事曲线中，起伏${shape}：${high.stage}较高（${high.value}），${low.stage}较低（${low.value}），不代表实际心情或未来预测。` +
     `${low.stage}那句是这么写的 ——「${low.note}」`;
 
   // ── 4. 关键词收尾 ──

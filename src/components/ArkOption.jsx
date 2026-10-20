@@ -20,9 +20,9 @@
  *
  * ② **三层触发反馈，全部 CSS 驱动**（无 JS 定时器，避免多一个状态源）：
  *      · hover  —— 卡片浮起、右侧刻度提亮
- *      · select —— 一道暖光从左扫到右（`.ark-sweep`，260ms 只播一次）
+ *      · select —— 暖色描边与勾选标记
  *      · focus  —— 键盘焦点环，看得见但不抢
- *    选中态同时用**颜色 + ✓ + 一道扫光**三种方式表达，不靠单一色彩传达
+ *    选中态同时用**颜色 + ✓**三种方式表达，不靠单一色彩传达
  *    （色弱用户和黑白打印都还能读出状态）。
  *
  * ③ **iOS 玻璃**（`.ios-glass`）：**不用 backdrop-filter**。
@@ -101,9 +101,6 @@ export default function ArkOption({
           background: active ? 'rgba(255, 246, 236, 0.68)' : undefined,
         }}
       />
-
-      {/* 触发效果：选中时一道暖光从左扫到右 */}
-      {active && <span aria-hidden="true" className="ark-sweep" />}
 
       <span className="relative flex items-start gap-3.5 px-4 py-4 sm:px-5 sm:py-[18px]">
         {/* 字母块：未选中时是磨砂玻璃 + 深字（不填色）；

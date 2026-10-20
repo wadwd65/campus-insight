@@ -63,7 +63,7 @@ export const useGameStore = create((set) => ({
       // 问卷那条路没有"第几秒点了哪个地点"的概念，但它同样是一次行动 ——
       // 之前写成"没有 at 就不记"，结果是答完 6 题轨迹为 0（由 selftest:store 抓到）。
       const trail = label
-        ? [...s.player.trail, { id: id ?? null, label, at: at ?? null }]
+        ? [...s.player.trail, { id: id ?? null, label, at: at ?? null, ...(at ? { delta: { ...delta } } : {}) }]
         : s.player.trail;
 
       return {
@@ -75,6 +75,18 @@ export const useGameStore = create((set) => ({
         },
       };
     }),
+
+  // Only map actions can be undone; questionnaire answers remain intact.
+  undoMapChoice: () => set((s) => {
+    const last = s.player.trail.at(-1);
+    if (!last?.at || !last.delta) return s;
+    const attributes = { ...s.player.attributes };
+    for (const [key, value] of Object.entries(last.delta)) if (key in attributes) attributes[key] -= value;
+    const flags = [...s.player.flags];
+    const index = flags.lastIndexOf(last.id);
+    if (index !== -1) flags.splice(index, 1);
+    return { player: { ...s.player, attributes, flags, trail: s.player.trail.slice(0, -1) } };
+  }),
 
   resetPlayer: () => set({ player: emptyPlayer() }),
 }));

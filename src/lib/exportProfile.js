@@ -21,6 +21,8 @@
  */
 
 import { QUESTIONS, REQUIRED_COLUMNS } from './surveySchema.js';
+import Papa from 'papaparse';
+import { normalizeHeader } from './text.js';
 
 /** CSV 字段转义：含逗号/引号/换行时用双引号包住，内部引号翻倍。 */
 function esc(v) {
@@ -80,8 +82,8 @@ export function makeProfileId(now = new Date()) {
 }
 
 /** 触发浏览器下载。带 BOM，Excel 打开中文不乱码。 */
-export function downloadText(filename, text) {
-  const blob = new Blob([`\uFEFF${text}`], { type: 'text/csv;charset=utf-8' });
+export function downloadText(filename, text, type = 'text/csv;charset=utf-8') {
+  const blob = new Blob([`\uFEFF${text}`], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -96,12 +98,8 @@ export function downloadText(filename, text) {
 /**
  * 合并多份档案 CSV 文本为一份（母端导入用）。
  *
- * 规则：**取第一份的表头，其余各份都丢掉自己的表头**，只留数据行。
- * 为什么不能简单拼接字符串：每份档案都自带表头，
- * 直接相加会得到 N 行表头夹在数据中间 —— parseCsv 会把它们当成"无效行"，
- * 于是"导入 40 份"变成"导入了 1 份 + 39 行错误"，而且不报错。
- *
- * 空行与纯空白行一律丢弃。
+ * 每份先独立解析，再按列名对齐；支持不同列顺序、可选编号和引号内换行。
+ * 无表头的后续文件沿用第一份的列序；缺列、重复列、坏引号明确拒绝。
  */
 export function mergeCsvTexts(texts) {
   const blocks = texts
@@ -109,18 +107,28 @@ export function mergeCsvTexts(texts) {
     .filter(Boolean);
   if (!blocks.length) return '';
 
-  const split = (t) => t.split(/\r?\n/).filter((l) => l.trim() !== '');
-  const header = split(blocks[0])[0];
+  const columns = [];
   const rows = [];
-
-  for (const block of blocks) {
-    const lines = split(block);
-    if (!lines.length) continue;
-    // 第一行默认是表头；只有当它和主表头完全一致时才跳过。
-    // 若用户直接给了一份"无表头"的数据，第一行就是数据，不能吞掉。
-    const start = lines[0].trim() === header.trim() ? 1 : 0;
-    for (let i = start; i < lines.length; i += 1) rows.push(lines[i]);
+  let firstHeader;
+  for (const [fileIndex, block] of blocks.entries()) {
+    const parsed = Papa.parse(block, { skipEmptyLines: 'greedy' });
+    if (parsed.errors.length) throw new Error(`第 ${fileIndex + 1} 份文件格式不完整，请检查引号和分隔符。`);
+    const data = parsed.data;
+    const possibleHeader = data[0].map(normalizeHeader);
+    const hasHeader = possibleHeader.some((c) => REQUIRED_COLUMNS.includes(c) || c === '编号');
+    const header = hasHeader ? possibleHeader : firstHeader;
+    if (!header) throw new Error('第一份文件需要包含问卷列名。');
+    if (hasHeader) {
+      const missing = REQUIRED_COLUMNS.filter((c) => !header.includes(c));
+      if (missing.length) throw new Error(`第 ${fileIndex + 1} 份文件缺少列：${missing.join('、')}。`);
+      if (new Set(header).size !== header.length) throw new Error(`第 ${fileIndex + 1} 份文件存在重复列名。`);
+    }
+    firstHeader ??= header;
+    for (const column of header) if (!columns.includes(column)) columns.push(column);
+    for (const values of data.slice(hasHeader ? 1 : 0)) {
+      if (values.length !== header.length) throw new Error(`第 ${fileIndex + 1} 份文件的列数与表头不一致。`);
+      rows.push(Object.fromEntries(header.map((column, i) => [column, values[i]])));
+    }
   }
-
-  return `${header}\n${rows.join('\n')}\n`;
+  return `${columns.map(esc).join(',')}\n${rows.map((row) => columns.map((c) => esc(row[c])).join(',')).join('\n')}\n`;
 }

@@ -16,6 +16,8 @@ import {
 } from '../src/lib/exportProfile.js';
 import { parseCsvText } from '../src/lib/parseCsv.js';
 import { QUESTIONS, REQUIRED_COLUMNS } from '../src/lib/surveySchema.js';
+import Papa from 'papaparse';
+import { cleanSurveyRows } from '../src/lib/surveyClean.js';
 
 let pass = 0;
 const fails = [];
@@ -122,6 +124,28 @@ for (const q of QUESTIONS) {
   const merged = mergeCsvTexts([same, same]);
   const lines = merged.trim().split('\n');
   check('同一份文件导入两次 = 2 行（不静默去重）', lines.length === 3, `实际 ${lines.length}`);
+}
+
+// Regression: two individually valid files must remain two valid people after reordering columns.
+{
+  const second = Object.fromEntries(QUESTIONS.map(q => [q.field, q.options[1].text]));
+  const reversed = Papa.unparse([Object.fromEntries(Object.entries(second).reverse())]);
+  const merged = mergeCsvTexts([buildProfileCsv(byField), reversed]);
+  const parsed = parseCsvText(merged, REQUIRED_COLUMNS);
+  check('列顺序不同也能合并为两条有效作答', parsed.ok && cleanSurveyRows(parsed.rows).records.length === 2);
+  check('列重排后每道题的答案仍然对应原字段', REQUIRED_COLUMNS.every(c => parsed.rows[1].__raw[c] === second[c]));
+
+  const laterId = parseCsvText(mergeCsvTexts([buildProfileCsv(byField), buildProfileCsv(second, {id:'LATE-ID'})]), REQUIRED_COLUMNS);
+  check('后续文件新增编号不会丢失或移位', laterId.ok && laterId.rows[1].__raw['编号'] === 'LATE-ID');
+
+  const withNote = Papa.unparse([{...byField, 备注: '第一行，含逗号\n第二行含"引号"'}]);
+  const multiline = parseCsvText(mergeCsvTexts([withNote, reversed]), REQUIRED_COLUMNS);
+  check('引号内换行逗号与双引号完整保留', multiline.ok && multiline.rows.length === 2 && multiline.rows[0].__raw['备注'] === '第一行，含逗号\n第二行含"引号"');
+
+  const throws = input => {try {mergeCsvTexts(input); return false;} catch {return true;}};
+  check('缺列的后续文件明确拒绝而非静默丢人', throws([buildProfileCsv(byField), Papa.unparse([{[REQUIRED_COLUMNS[0]]:'不完整'}])]));
+  check('重复列名明确拒绝', throws([buildProfileCsv(byField), REQUIRED_COLUMNS.join(',')+','+REQUIRED_COLUMNS[0]+'\n'+Array(REQUIRED_COLUMNS.length+1).fill('x').join(',')]));
+  check('未闭合引号明确拒绝', throws([buildProfileCsv(byField), '"unclosed']));
 }
 
 console.log(`\n导出/合并：${pass} 项通过${fails.length ? `，${fails.length} 项失败` : ''}`);

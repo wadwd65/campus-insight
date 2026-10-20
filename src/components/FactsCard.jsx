@@ -41,7 +41,7 @@ export default function FactsCard({ facts }) {
                 <span className="font-semibold tabular-nums" style={{ color: BRAND }}>
                   {line.high ? line.pct : 100 - line.pct}%
                 </span>
-                <span className="text-[var(--ink-soft)]">的大学生</span>
+                <span className="text-[var(--ink-soft)]">的模拟基准记录</span>
                 <span className="text-[var(--ink-soft)]"> —— </span>
                 {line.copy}
               </p>

@@ -21,6 +21,8 @@ export const THRESHOLDS = {
    */
   maxFileBytes: 5 * 1024 * 1024,
   maxFileLabel: '5 MB',
+  maxBatchBytes: 10 * 1024 * 1024,
+  maxBatchLabel: '10 MB',
 
   // ── 数据质量（P4#4）────────────────────────────────────────────
   /** 剔除比例超过这个值：说明文件本身可能有问题，弹出确认而不是直接出图。 */

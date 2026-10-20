@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "vite",
     "clean:dist": "node scripts/clean-dist.mjs",
-    "build": "node scripts/clean-dist.mjs && vite build",
+    "build:map": "node scripts/build-campus-web.mjs",
+    "build": "node scripts/build-campus-web.mjs && node scripts/clean-dist.mjs && vite build",
     "preview": "vite preview",
     "selftest": "node scripts/selftest-matrix.mjs",
     "selftest:store": "node scripts/selftest-store.mjs",
@@ -21,7 +22,12 @@
     "test:ai": "node scripts/test-ai-grounding.mjs",
     "test:csv": "node scripts/test-csv-quality.mjs",
     "test:export": "node scripts/test-export-profile.mjs",
-    "check": "npm run selftest && npm run selftest:store && npm run selftest:map && npm run selftest:intro && npm run smoke && npm run smoke:csv && npm run build && npm run verify:dist && npm run test:privacy && npm run test:stats && npm run test:ai && npm run test:csv && npm run test:export",
+    "test:experience": "node scripts/test-survey-experience.mjs",
+    "test:answers": "node scripts/test-answer-lens.mjs",
+    "test:motion": "node scripts/test-scene-pointer.mjs",
+    "test:journey": "node scripts/test-campus-journey.mjs",
+    "test:3d": "node scripts/test-campus-web.mjs",
+    "check": "npm run selftest && npm run selftest:store && npm run selftest:map && npm run selftest:intro && npm run smoke && npm run smoke:csv && npm run build && npm run verify:dist && npm run test:privacy && npm run test:stats && npm run test:ai && npm run test:csv && npm run test:export && npm run test:experience && npm run test:answers && npm run test:motion && npm run test:journey && npm run test:3d",
     "gen:data": "python scripts/generate-survey-data.py",
     "gen:cohort": "python scripts/generate-survey-data.py -n 48 --seed 20261001 --out public/data/示例-班级问卷.csv"
   },

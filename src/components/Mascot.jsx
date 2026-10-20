@@ -30,10 +30,10 @@ import { EGG_CLICKS, EGG_WINDOW_MS, EGG_GREET, EGG_NO_DATA } from '../lib/egg.js
 
 const LINES = [
   '点我一下？我还有话没说完。',
-  '十道题，一分钟，我就能算出你的四年。',
+  '十道日常选择，看看你的校园生活是什么画风。',
   '有班级问卷？直接传上来，我帮你看分布。',
   '别只看雷达图 —— 最像你的那个人，可能就坐你后面。',
-  '数据不出浏览器，这点我可以保证。',
+  '原始文件留在本机；开启在线解读时，只发送报告摘要。',
   '地图只是彩蛋；主线是数据，和解读。',
 ];
 
@@ -96,6 +96,7 @@ export default function Mascot({
           role="status"
           aria-live="polite"
         >
+          <button type="button" className="mascot-dismiss" aria-label="收起精灵的对话" onClick={() => { setLine(null); setEgg(false); }}>×</button>
           {egg ? (
             <>
               <span>{EGG_GREET}</span>

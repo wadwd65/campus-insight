@@ -11,7 +11,7 @@
  *   最像的人 —— 这个班里，谁和我最接近？（需要先答过快入口）
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Chart from './Chart.jsx';
 import RadarChart from './RadarChart.jsx';
 import { buildCohort, cohortHeadline } from '../lib/cohort.js';
@@ -20,8 +20,12 @@ import TermPanel from './TermPanel.jsx';
 import { MonoTag, SectionHead } from './TermHead.jsx';
 import CohortAi from './CohortAi.jsx';
 import { TERM_INK, monoTag, sectionIndex } from '../lib/surface.js';
+import { downloadText } from '../lib/exportProfile.js';
+import { buildCohortExport } from '../lib/cohortSummary.js';
+import AnswerLens from './AnswerLens.jsx';
 
-export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, onRestart }) {
+export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, onRestart, onUpload }) {
+  const [downloaded, setDownloaded] = useState(false);
   const cohort = useMemo(
     () => buildCohort(records, baseline, ownAnswers),
     [records, baseline, ownAnswers],
@@ -29,23 +33,23 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
   const headline = useMemo(() => cohortHeadline(cohort), [cohort]);
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="cohort-page data-surface max-w-3xl mx-auto">
       {/* 状态行 —— 与报告页的 `REPORT // GENERATED` 同句式，让"这是另一份档案"一眼成立 */}
       <div className="flex items-baseline justify-between gap-3 mb-6">
         <MonoTag>COHORT // COMPUTED</MonoTag>
         <MonoTag>{cohort.size} 人 · 5 维</MonoTag>
       </div>
 
-      <div className="mb-10">
+      <div className="cohort-overview mb-10">
         <SectionHead
           index={1}
           level={1}
           title={`${cohort.size} 个人的大学，落在这些位置`}
-          hint="结论优先 —— 下面这句可以直接念出来"
+          hint="先看分布，再理解每一位同学的不同"
         />
         {headline && (
           <p
-            className="text-[17px] leading-8 text-[var(--ink)] mt-3"
+            className="cohort-headline text-[17px] leading-8 text-[var(--ink)] mt-3"
             style={{
               borderLeft: '3px solid var(--ark)',
               paddingLeft: '1rem',
@@ -64,11 +68,8 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
             原来三张一样大，扫一眼分不清哪个是重点；而"这个班有 48 人"
             是唯一决定下面所有图表意义的数字，它该占主位。
             主导占 2 列、数字放大；两个次级竖排在第 3 列。 */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
-          <div className="sm:col-span-2">
+        <div className="cohort-kpis">
             <Kpi label="有效样本" value={cohort.size} unit="人" hero />
-          </div>
-          <div className="grid grid-cols-1 gap-3">
             <Kpi
               label="最多的一类"
               value={cohort.most.name}
@@ -80,19 +81,23 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
               value={cohort.divergent ? cohort.divergent.axis : '—'}
               unit={cohort.divergent ? `一半人落在 ${cohort.divergent.q1}~${cohort.divergent.q3}` : ''}
             />
-          </div>
         </div>
+        <div className="cohort-toolbar"><button type="button" onClick={() => { downloadText('campus-insight-班级统计摘要.txt', buildCohortExport(cohort), 'text/plain;charset=utf-8'); setDownloaded(true); }}>下载统计摘要 ↓</button>{onUpload && <button type="button" onClick={onUpload}>换一份 CSV →</button>}<span role="status">{downloaded ? '已生成统计摘要，请在下载中查看。' : '统计摘要仅含群体数据，不包含个人作答。'}</span></div>
       </div>
 
       <div className="space-y-12">
+        <Section n={2} title="回到大家真实的选择" hint="逐题查看当前文件中的作答人数与占比，不经过属性映射。示例文件中的作答仍为模拟数据。">
+          <AnswerLens records={records} />
+        </Section>
+
         <Section
-          n={2}
+          n={3}
           title="这个班的位置"
-          hint="实线是班里每个人的百分位的中位数；虚线圈是全体大学生 50% 的位置。同标尺，可以直接和快入口的报告对比"
+          hint="实线是班内个体百分位的中位数；虚线为模拟基准的第 50 百分位。与个人报告使用同一标尺，不代表真实大学生总体。"
         >
           <RadarChart
             data={cohort.axes.map((a) => ({ key: a.key, axis: a.axis, value: a.median }))}
-            compare={{ value: 50, name: '全体大学生 50%' }}
+            compare={{ value: 50, name: '模拟基准第 50 百分位' }}
             name="这个班的中位数"
           />
           <ul className="mt-4 space-y-1.5">
@@ -113,7 +118,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
           </ul>
         </Section>
 
-        <Section n={3} title="这个班分成几类" hint="按每个人最突出的那一维归组，一个人只会进一个组">
+        <Section n={4} title="这个班分成几类" hint="按每个人最突出的那一维归组，一个人只会进一个组">
           <GroupBars groups={cohort.groups} size={cohort.size} />
           <ul className="mt-3 space-y-1">
             {cohort.groups.map((g) => (
@@ -128,7 +133,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
         {/* ★ 10-08：大模型解读 —— 官方链路三段里的第三段（数据 → 图表 → 解读）。
             放在"结论"之后，因为它就是这份数据的人话版结论。 */}
         <Section
-          n={4}
+          n={5}
           title="这份数据说了什么"
           hint="大模型读上面的分布写的三段话；没有配置密钥时，由本地规则按同一套数字生成"
         >
@@ -136,7 +141,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
         </Section>
 
 
-        <Section n={5} title="班里和你最像的人" hint="按九维属性算距离。需要一个『你』做参照">
+        <Section n={6} title="班里和你最像的人" hint="按八项基础属性算距离，派生维度不重复计权。需要一份你的作答做参照。">
           {cohort.similar ? (
             <div className="space-y-2">
               {cohort.similar.top.map((s, i) => (
@@ -182,17 +187,17 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
           <summary className="cursor-pointer">这张图是怎么算出来的</summary>
           <div className="mt-3 space-y-2">
             <p>
-              上传的每一行都走与基准人群**完全相同**的路径：每道题 → 八个属性 → 与 2000 人基准比对 → 百分位。
+              上传的每一行都走与基准人群完全相同的路径：每道题 → 八个基础属性与一个派生属性 → 与模拟基准比对 → 百分位。
               所以「班里学术力中位数 62」和某位同学自己报告里的「学术力 82」是同一个标尺，可以直接比。
             </p>
             <p>
-              这里用的是**个体百分位的中位数**，不是平均值的百分位。原因：几十个人的平均值波动很小，
+              这里用的是个体百分位的中位数，不是平均值的百分位。原因：几十个人的平均值波动很小，
               算出来的百分位几乎永远落在 40~60 之间，每个班都会显示成「中等」，反而看不出特点。
               中位数不受极端个体影响，也更容易被念出来。
             </p>
             <p>
-              ⚠️ 示例班级问卷是**模拟生成**的数据，不是真实调查结果。你上传自己的数据时，
-              结果完全来自你的文件 —— 这个页面不掺任何模拟数据。
+              示例班级问卷是模拟生成的数据，不是真实调查结果。你上传自己的数据时，
+              班级作答来自你的文件；百分位仍与这套模拟基准比较。
             </p>
           </div>
         </details>
@@ -217,7 +222,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
 function Section({ n, title, hint, children }) {
   return (
     <section>
-      <SectionHead index={n} title={title} hint={hint} />
+      <SectionHead index={n} level={2} title={title} hint={hint} />
       {children}
     </section>
   );
@@ -317,6 +322,7 @@ function Kpi({ label, value, unit, accent = false, hero = false }) {
 
   return (
     <TermPanel
+      className={`cohort-kpi${hero ? ' cohort-kpi-hero' : ''}`}
       tick={accent ? 'accent' : null}
       lift
       style={{ padding: '14px 15px 12px' }}

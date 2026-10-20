@@ -1,3 +1,7 @@
+/** 2026-10-19: cinematic push restored as the first screen, with immediate skip.
+ * The current film uses OPENING_DURATION_MS from IntroScene; the older timing
+ * preset below remains a compatibility contract for historical text sequencing.
+ */
 /**
  * 入场动画自检 —— `npm run selftest:intro`
  *
@@ -294,7 +298,7 @@ console.log('\n7 · 设备预算');
 }
 
 // ── 8 · 时间线（三幕） ──
-console.log('\n8 · 时间线（三幕：纯环境 → 文字 → 入口）');
+console.log('\n8 · 历史时间线兼容性（当前首屏不使用）');
 {
   const beats = [
     ['scene', INTRO_TIMING.scene],

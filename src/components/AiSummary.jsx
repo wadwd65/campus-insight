@@ -102,6 +102,9 @@ export default function AiSummary({ report, name = '', onText }) {
 
   return (
     <TermPanel style={{ padding: '20px 22px' }}>
+      <p className="summary-mode" role="status">
+        {pending ? (status.configured ? 'AI 正在解读' : '本地规则解读') : reason ? '本地规则解读' : 'AI 实时解读'}
+      </p>
       {paragraphs.length === 0 ? (
         <p className="text-sm text-[var(--ink-soft)] flex items-center gap-2">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
@@ -128,7 +131,7 @@ export default function AiSummary({ report, name = '', onText }) {
               ? `${reasonText(reason)}。图表与百分位不受影响。`
               : `由大模型实时生成${status.model ? `（${status.model}）` : ''}。内容基于上面这些数字，不含你的任何上传。`}
         </span>
-        {!pending && (
+        {!pending && status.configured && (
           <button
             type="button"
             onClick={() => setRound((r) => r + 1)}

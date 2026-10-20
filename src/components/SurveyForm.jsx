@@ -22,17 +22,28 @@
  *        反馈更明确，也不会像原来那样闪一下就过。
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { QUESTIONS } from '../lib/surveySchema.js';
 import { MonoTag } from './TermHead.jsx';
-import { monoTag } from '../lib/surface.js';
 import ArkOption from './ArkOption.jsx';
 import NavButton from './NavButton.jsx';
+import { readSurveyDraft, saveSurveyDraft, clearSurveyDraft } from '../lib/surveyDraft.js';
 
-export default function SurveyForm({ onComplete, onCancel }) {
-  const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState({});
+export default function SurveyForm({ onComplete, onCancel, onPause = onCancel }) {
+  const [draft] = useState(() => readSurveyDraft());
+  const [index, setIndex] = useState(draft?.index ?? 0);
+  const [answers, setAnswers] = useState(draft?.answers ?? {});
   const [flash, setFlash] = useState(null);
+  const [restored, setRestored] = useState(Boolean(draft && draft.index > 0));
+  const questionRef = useRef(null);
+  const pendingRef = useRef(null);
+
+  useEffect(() => { saveSurveyDraft(index, answers); }, [index, answers]);
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    questionRef.current?.focus({ preventScroll: true });
+  }, [index]);
+  useEffect(() => () => window.clearTimeout(pendingRef.current), []);
 
   const question = QUESTIONS[index];
   const isLast = index === QUESTIONS.length - 1;
@@ -40,23 +51,26 @@ export default function SurveyForm({ onComplete, onCancel }) {
   function pick(text) {
     if (flash) return; // 防连点：动画期间忽略后续点击，否则会跳过一题
     setFlash(text);
+    setRestored(false);
 
     const next = { ...answers, [question.field]: text };
 
-    // ★ 10-17：160ms → 420ms。原来 160ms 时 .ark-sweep 的 260ms 动画只播到
-    // 62% 就被翻题打断 —— 用户要的"触发效果"等于只看了半截。
-    // 现在 0~260ms 扫光播完、260~420ms 选中态停留，再翻题。
-    // 代价：每题多 260ms × 10 题 = 全流程 +2.6s，可接受。
-    window.setTimeout(() => {
+    // Briefly retain the color and check mark before moving to the next question.
+    pendingRef.current = window.setTimeout(() => {
       setFlash(null);
       setAnswers(next);
-      if (isLast) onComplete(next);
+      if (isLast) { clearSurveyDraft(); onComplete(next); }
       else setIndex((i) => i + 1);
     }, 420);
   }
 
   return (
-    <div className="relative max-w-3xl mx-auto">
+    <div key={question.field} className="quiz-page relative max-w-3xl mx-auto" onKeyDown={(event) => {
+      if (event.ctrlKey || event.altKey || event.metaKey || event.repeat) return;
+      const key = event.key.toUpperCase();
+      const optionIndex = /^[A-E]$/.test(key) ? key.charCodeAt(0) - 65 : /^[1-5]$/.test(key) ? Number(key) - 1 : -1;
+      if (question.options[optionIndex]) { event.preventDefault(); pick(question.options[optionIndex].text); }
+    }}>
       {/* 顶部状态行：与入场/欢迎页/报告页同一种语言。
           写的不是"答题中"，而是"COLLECTING 03/10" ——
           终端在采集，用户在提供样本，这件事在四页之间是一致的。 */}
@@ -64,7 +78,7 @@ export default function SurveyForm({ onComplete, onCancel }) {
           给它一条半透明的底（.sky-strip），成本近乎零，
           但"这是界面、不是画面"立刻成立。 */}
       <div className="sky-strip flex items-center justify-between mb-4 px-3 py-2">
-        <MonoTag>COLLECTING&nbsp;//&nbsp;{String(index + 1).padStart(2, '0')}</MonoTag>
+        <span className="quiz-step-meta"><MonoTag tone="amber">第 {index + 1} 题</MonoTag><span className="quiz-topic">{question.topic ?? '校园生活'}</span></span>
         <MonoTag tone="cyan">
           {index + 1} / {QUESTIONS.length}
         </MonoTag>
@@ -79,7 +93,7 @@ export default function SurveyForm({ onComplete, onCancel }) {
             它在浅底上对比只有 1.08 —— 淡到几乎不存在，于是整条进度条
             看起来只走了三分之二就断了，后面的格子数不出来。
             改成 --line（#e5e7eb，1.42）：仍然明显是"空的"，但能一格一格数清。 */}
-      <div className="sky-strip flex gap-1 mb-8 px-3 py-2" aria-hidden="true">
+      <div className="sky-strip flex gap-1 mb-8 px-3 py-2" role="progressbar" aria-label="答题进度" aria-valuemin={1} aria-valuemax={QUESTIONS.length} aria-valuenow={index + 1}>
         {QUESTIONS.map((_, i) => (
           <span
             key={i}
@@ -98,19 +112,6 @@ export default function SurveyForm({ onComplete, onCancel }) {
 
       {/* 题号做成徽标 —— 它和题干是同一句话的两个部分，
           但徽标让人能跳过题号直接读题，也方便说"我选了第 3 题" */}
-      <div className="flex items-center gap-2.5 mb-3">
-        <span
-          className="inline-flex items-center justify-center px-2.5 h-[26px]"
-          style={{
-            ...monoTag({ fontSize: 12, letterSpacing: '0.1em', fontWeight: 700 }),
-            color: '#ffffff',
-            background: 'var(--accent-warm-deep)',
-          }}
-        >
-          第 {index + 1} 题
-        </span>
-        <span aria-hidden="true" className="ci-rule-warm flex-1" style={{ opacity: 0.5 }} />
-      </div>
 
       {/* ★ 10-15：题干区从"深色照片板"改成**浅色玻璃**。
           背景换了动漫天空之后，原来那块压暗的深色面板就变成了"贴在亮画面上的黑砖"
@@ -132,7 +133,7 @@ export default function SurveyForm({ onComplete, onCancel }) {
         />
 
         <div className="relative">
-          <h1 className="ci-title-hero text-[26px] sm:text-[29px] mb-2" style={{ color: 'var(--ink-strong)' }}>
+          <h1 ref={questionRef} tabIndex={-1} className="ci-title-hero text-[26px] sm:text-[29px] mb-2" style={{ color: 'var(--ink-strong)' }}>
             {question.text}
           </h1>
           <p className="text-sm" style={{ color: 'var(--ink-mid)' }}>
@@ -141,12 +142,13 @@ export default function SurveyForm({ onComplete, onCancel }) {
         </div>
       </div>
 
-      <div className="space-y-2.5">
+      <div className="quiz-options space-y-2.5">
         {question.options.map((opt, i) => (
           <ArkOption
             key={opt.text}
             letter={String.fromCharCode(65 + i)}
             active={flash === opt.text}
+            disabled={Boolean(flash)}
             onClick={() => pick(opt.text)}
           >
             {opt.text}
@@ -157,8 +159,9 @@ export default function SurveyForm({ onComplete, onCancel }) {
       {/* ★ 10-15：底部这一行原样保留，但返回键换成大按钮；
           右侧那句提示套一条玻璃条 —— 它原来是裸压在天空上的，
           云一过就读不清（和顶部状态行同一个问题）。 */}
-      <div className="mt-8 flex items-center justify-between gap-3">
+      <div className="quiz-navigation mt-5 flex items-center justify-between gap-3">
         <NavButton
+          disabled={Boolean(flash)}
           onClick={() => (index === 0 ? onCancel?.() : setIndex((i) => i - 1))}
           icon="←"
           title={index === 0 ? '退出答题' : '上一题'}
@@ -166,8 +169,19 @@ export default function SurveyForm({ onComplete, onCancel }) {
           {index === 0 ? '返回' : '上一题'}
         </NavButton>
         <span className="sky-strip text-xs px-3 py-2" style={{ color: 'var(--ink-mid)' }}>
-          选一个就好，没有对错
+          没有标准答案 · 可按 A–E 或 1–5
         </span>
+      </div>
+      <div className="quiz-draft-note" role="status">
+        <span>{restored ? '已恢复本标签页的答题进度。' : '进度仅保存在本标签页；完成后自动清除。'}</span>
+        <div className="quiz-draft-actions">
+        {index > 0 && <button type="button" disabled={Boolean(flash)} onClick={() => {
+          saveSurveyDraft(index, answers); onPause?.();
+        }}>暂停，回到首页</button>}
+        {Object.keys(answers).length > 0 && <button type="button" disabled={Boolean(flash)} onClick={() => {
+          clearSurveyDraft(); setAnswers({}); setIndex(0); setRestored(false);
+        }}>清空重答</button>}
+        </div>
       </div>
     </div>
   );

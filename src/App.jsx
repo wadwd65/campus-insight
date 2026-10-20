@@ -1,34 +1,7 @@
 /**
- * 应用外壳。
- *
- * ── 2026-09-20 改版：地图升为主界面，答题降为子入口 ─────────────────
- *
- * 改版前是「入场 → Welcome（正中一个大蓝按钮「开始 10 题」）→ 答题 → 结果」。
- * 那个结构把**答题当成了门**，地图反而是旁边一条次按钮。
- * 用户指出来这是反的：「**地图是第一界面，答题是他的子端口，而不是主端口**」。
- *
- * 理由站得住：地图是可反复走的、有空间感的、有即时反馈的；
- * 答题是一次性的。可反复的那个才该是家，一次性的那个该是家中的一个功能。
- *
- * 新结构：
- *   入场 → 地图（默认界面，深色场景层）
- *          ├─ 01 生成档案（走过地方之后可用）→ 报告
- *          ├─ 02 答 10 题 → 答题入口面板 → 问卷 → 报告
- *          └─ 03 上传班级 CSV → 群体画像
- *
- * 另外新加了 `gate` 这一站（答题入口面板）——
- * 点「答 10 题」不再直接落到第一题。见 QuizGate.jsx 的说明。
- *
- * 四条沿用至今的安排：
- *   1. **带 ECharts 的两页单独分包**（结果页、群体画像页）。首屏因此只剩
- *      React + 表单 —— 评委点开链接的第一眼不该在等图表库下载。
- *   2. **基准数据进页面就开始加载**（不等用户点「进入」）。看入场动画的这几秒里
- *      它早就准备好了，出结果不该让人等。真入口也用它，所以基准只下载一次。
- *   3. **两个入口共用 `answers`**。在真入口里点「先答一轮」，答完会**回到群体画像**
- *      而不是跳去个人报告 —— 用户的目标是"看谁和我最像"，不该被带走。
- *   4. **答题结果同时写进终端账本**（useGameStore）。问卷的每道题本来就带 8 维增量向量，
- *      是现成的真实数据源；写进去之后 HUD 立刻有数据可看，
- *      而且"问卷"和"地图"从此进的是同一本账 —— 档案页不必关心数据从哪来。
+ * Application flow: opening/home → assessment or CSV → report.
+ * Optional campus actions share the base-attribute ledger with assessment.
+ * Baseline loads early; chart-heavy views remain lazy. 3D stays an external link.
  */
 
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
@@ -49,7 +22,7 @@ const Atmosphere = lazy(() => import('./components/Atmosphere.jsx'));
 import { loadBaseline } from './data/loadSample.js';
 import { useGameStore } from './store/useGameStore.js';
 import { QUESTIONS, vectorOf } from './lib/surveySchema.js';
-import { cleanName } from './lib/text.js';
+
 import { buildEggQuip } from './lib/egg.js';
 import { buildProfileCsv, downloadText, makeProfileId } from './lib/exportProfile.js';
 
@@ -67,6 +40,7 @@ export default function App() {
   // ★ 10-07 作品重心修正：默认落地页由「行动地图」改为「入口页」——
   //   一级入口是测评与上传，地图降为附加体验（见 EntryScene 顶部说明）。
   const [stage, setStage] = useState('entry');
+  useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }, [stage, scene]);
   const [baseline, setBaseline] = useState(null);
   const [answers, setAnswers] = useState(null);
   const [cohort, setCohort] = useState(null); // 真入口最近一次上传的可用记录
@@ -118,7 +92,7 @@ export default function App() {
               downloadText(`campus-insight-档案-${id}.csv`, buildProfileCsv(answers, { id }));
             },
           }
-        : { label: '先答十题 →', run: () => setStage('gate') },
+        : { label: '先答十题 →', run: () => setStage('quiz') },
     [hasAnswers, answers],
   );
 
@@ -155,6 +129,16 @@ export default function App() {
     setStage('map');
   }
 
+  function goEntry() {
+    setFromCohort(false);
+    setStage('entry');
+  }
+
+  function startQuiz() {
+    setFromCohort(false);
+    setStage('quiz');
+  }
+
   // 彻底重来：清账本、清作答、回地图。
   // 它对应 HUD 上的「重来」——那是"我不想保留这一轮了"，语义与 backToMap 不同。
   //
@@ -188,7 +172,7 @@ export default function App() {
 
     // ★ B+C：把这一轮作答算出的属性存成快照，供"复测"对比用。
     //   必须在 applyChoice 全部跑完之后取，否则拿到的是空账。
-    setQuizSnapshot({ ...player.attributes });
+    setQuizSnapshot({ ...useGameStore.getState().player.attributes });
 
     if (fromCohort) {
       setFromCohort(false);
@@ -209,7 +193,8 @@ export default function App() {
   }
 
   // 入场场景独立成屏：它不依赖基准数据，也不依赖账本，不该被上面的加载态卡住。
-  if (scene === 'intro') return <IntroScene />;
+  if (scene === 'intro') return <IntroScene baseline={baseline}
+    onEnter={() => { goEntry(); useGameStore.getState().enter(); }} />;
 
   // ── 场景层：地图 ──
   // 它是**深色满宽**的仪表盘，不该塞进下面那个浅色内容容器
@@ -222,15 +207,17 @@ export default function App() {
     // 它上面的属性条在"还没走过任何地方"时是一条空状态，读起来像报错。
     return (
       <div className="min-h-full flex flex-col term-enter">
-        <main className="flex-1 w-full">
+        <div className="flex-1 w-full">
           <EntryScene
-            onGoQuiz={() => setStage('quiz')}
+            baseline={baseline}
+            onReplayIntro={() => useGameStore.getState().backToIntro()}
+            onGoQuiz={startQuiz}
             onGoUpload={() => setStage('upload')}
             onGoMap={() => setStage('map')}
             eggQuip={eggQuip}
             eggAction={eggAction}
           />
-        </main>
+        </div>
       </div>
     );
   }
@@ -244,31 +231,26 @@ export default function App() {
             地图页改成浅色之后，这个缺口才暴露出来：它是"浅底但没有天空"的一页，
             与另三页气质割裂。 */}
         <SkyBackdrop />
-        <HubHud onRestart={restart} onGoEntry={() => setStage('entry')} />
+        <HubHud onRestart={restart} onGoEntry={goEntry} compact statusLabel="校园漫游" />
         <main className="flex-1 w-full">
           {/* 基准数据还没到也不拦着 —— 地图不依赖基准人群，它只写账本 */}
           <MapScene
+            guide={<Mascot src={`${import.meta.env.BASE_URL}art/mascot.webp`} quip={eggQuip?.text ?? null} onQuipAction={eggAction.run} actionLabel={eggAction.label} />}
             onGoReport={() => {
               setMapRun(true);
               setStage('report');
             }}
-            onGoQuiz={() => setStage('gate')}
+            onGoQuiz={() => { setFromCohort(false); setStage('gate'); }}
             onUpload={() => setStage('upload')}
-            onGoEntry={() => setStage('entry')}
+            onGoEntry={goEntry}
           />
         </main>
-        <Mascot
-          src={`${import.meta.env.BASE_URL}art/mascot.webp`}
-          quip={eggQuip?.text ?? null}
-          onQuipAction={eggAction.run}
-          actionLabel={eggAction.label}
-        />
       </div>
     );
   }
 
   return (
-    <div className="min-h-full flex flex-col term-enter">
+    <div className={`min-h-full flex flex-col term-enter stage-${stage}`}>
       {/* ★ 10-14：几何装饰层（参考《明日方舟》SideStory「众生行记」的界面语言）。
           放在最外层、fixed 定位、pointer-events:none ——
           它必须在地图页也可见（地图自己有背景，但那页更需要"坐标系"的感觉），
@@ -306,7 +288,7 @@ export default function App() {
         actionLabel={eggAction.label}
       />
 
-      <HubHud onRestart={restart} onGoEntry={() => setStage('entry')} />
+      <HubHud compact statusLabel={{ quiz: '问卷测评', gate: '准备作答', upload: '数据导入', cohort: '群体分析', report: '档案已生成' }[stage]} onRestart={restart} onGoEntry={goEntry} />
       {/* 深色 HUD → 浅色正文的过渡带。见 index.css 的 .term-seam 说明：
           不加它，这条边界就是一条硬切的黑白线。 */}
       <div className="term-seam" aria-hidden="true" />
@@ -319,7 +301,7 @@ export default function App() {
         className={
           stage === 'report'
             ? 'flex-1 w-full'
-            : 'flex-1 w-full max-w-5xl mx-auto px-6 py-12'
+            : `app-content flex-1 w-full max-w-5xl mx-auto px-6 ${stage === 'quiz' ? 'py-6' : 'py-12'}`
         }
       >
         {error ? (
@@ -329,9 +311,9 @@ export default function App() {
         ) : stage === 'gate' ? (
           /* 答题入口面板：点「答 10 题」不再直接落到第一题。
              用户原话「答题应该是一个功能，而不是点进去就是答题」。 */
-          <QuizGate onStart={() => setStage('quiz')} onBack={backToMap} />
+          <QuizGate onStart={() => setStage('quiz')} onBack={() => fromCohort ? setStage('cohort') : backToMap()} backLabel={fromCohort ? '班级画像' : '校园地图'} />
         ) : stage === 'quiz' ? (
-          <SurveyForm onComplete={finishQuiz} onCancel={() => setStage('gate')} />
+          <SurveyForm onComplete={finishQuiz} onPause={goEntry} onCancel={() => setStage(fromCohort ? 'cohort' : 'entry')} />
         ) : stage === 'report' && (answers || mapRun) ? (
           <Suspense fallback={<Hint text="正在生成你的报告…" />}>
             <ReportView
@@ -346,7 +328,7 @@ export default function App() {
               name={name}
               quizSnapshot={quizSnapshot}
               onGoMap={mapRun ? undefined : goMapFromReport}
-              onRestart={restart}
+              onRestart={() => { restart(); setStage('quiz'); }}
               onBackToMap={backToMap}
             />
           </Suspense>
@@ -356,7 +338,7 @@ export default function App() {
               setCohort(r.records);
               setStage('cohort');
             }}
-            onBack={backToMap}
+            onBack={goEntry}
           />
         ) : stage === 'cohort' && cohort ? (
           <Suspense fallback={<Hint text="正在算这个班的画像…" />}>
@@ -364,11 +346,12 @@ export default function App() {
               records={cohort}
               baseline={baseline}
               ownAnswers={answers}
+              onUpload={() => setStage('upload')}
               onGoQuiz={() => {
                 setFromCohort(true);
                 setStage('gate');
               }}
-              onRestart={restart}
+              onRestart={goEntry}
             />
           </Suspense>
         ) : (

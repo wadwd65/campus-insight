@@ -21,6 +21,21 @@ import { cohortHeadline } from './cohort.js';
 import { ALL_ATTR_KEYS, labelOf } from './surveySchema.js';
 import { THRESHOLDS } from './thresholds.js';
 
+/** Portable statistics, intentionally without identifiers or row-level answers. */
+export function buildCohortExport(cohort) {
+  return [
+    'CAMPUS INSIGHT · 班级画像统计摘要',
+    `有效样本：${cohort.size} 人`,
+    cohortHeadline(cohort),
+    '', '类型分布（按最突出的维度规则归组）',
+    ...cohort.groups.map((g) => `${g.name}：${g.count} 人，${g.pct}%`),
+    '', '五维位置（个体百分位的中位数；区间为 Q1~Q3）',
+    ...cohort.axes.map((a) => `${a.axis}：中位数 ${a.median}，一半人落在 ${a.q1}~${a.q3}`),
+    '', '比较基准为模拟记录，不能代表真实大学生总体。用于理解作答分布，非心理评估或个人能力排名。',
+    '本文件仅包含本地计算的群体统计，不包含编号、个人答案或大模型生成的解读。',
+  ].join('\n');
+}
+
 /** 把 cohort 变成一段"给模型看的事实"（只给数字，不给结论 —— 结论让模型写） */
 export function buildCohortFacts(cohort, { className = '' } = {}) {
   const L = [];
@@ -95,6 +110,9 @@ export function buildCohortRequest(cohort, opts = {}) {
 export function cohortFallbackText(cohort) {
   if (!cohort || !cohort.size) return '';
   const { size, most, groups, divergent, axes } = cohort;
+  if (size < THRESHOLDS.minRecordsForCohort) {
+    return `目前只有 ${size} 份有效作答，样本太少，只能查看个体分布，不能据此判断整个班级。\n\n可以继续收集不同同学的档案，再一起导入。\n\n（本地规则解读；未调用大模型。）`;
+  }
   const empty = groups.filter((g) => g.count === 0);
   const top2 = [...groups].sort((a, b) => b.count - a.count).slice(0, 3);
   const P = [];
@@ -122,7 +140,7 @@ export function cohortFallbackText(cohort) {
     const wide = divergent.iqr >= THRESHOLDS.divergentIqr;
     p2.push(
       wide
-        ? '这个跨度很大：同一个班里，有人在这件事上非常靠前，有人非常靠后，中间几乎没有过渡。'
+        ? '中间一半人的位置跨度较大，说明作答存在差异；仅凭这个区间，不能判断是否两极分化。'
         : '这个跨度不算大，说明这一项上大家比较接近。'
     );
     const sorted = [...axes].sort((a, b) => b.iqr - a.iqr);
@@ -133,7 +151,7 @@ export function cohortFallbackText(cohort) {
   /* 第三段：可执行建议 */
   const p3 = [];
   if (divergent && divergent.iqr >= THRESHOLDS.divergentIqr) {
-    p3.push(`建议：把班会设计成"两种节奏都能参与"的形式 —— 围绕「${divergent.axis}」这一项，先给不爱表达的一半留出书面/小组的参与方式，再让活跃的一半带节奏，别让跨度变成沉默。`);
+    p3.push('建议：组织班级活动前，先用简短的匿名反馈了解实际需求，再提供不同参与方式；这份画像可以帮助提出问题，不能代替同学自己的意见。');
   } else {
     p3.push('建议：这个班比较同质，适合用统一的任务推进；但也要留意少数几类占比很小的人，他们容易被"多数人的节奏"盖过去。');
   }

@@ -31,23 +31,17 @@
 import { QUESTIONS } from '../lib/surveySchema.js';
 import { MonoTag } from './TermHead.jsx';
 import { BRAND } from '../lib/theme.js';
+import NavButton from './NavButton.jsx';
 
-export default function QuizGate({ onStart, onBack }) {
+export default function QuizGate({ onStart, onBack, backLabel = '校园地图' }) {
   const qn = QUESTIONS.length;
 
   return (
-    <div className="max-w-3xl mx-auto py-6">
+    <div className="quiz-gate max-w-3xl mx-auto py-6">
       {/* 顶部：告诉用户"你在哪一层"。用等宽小标与整个项目一致，
           而不是一个"返回"按钮 —— 后者会让这一屏读起来像错误页。 */}
       <div className="flex items-center justify-between mb-8">
-        <button
-          type="button"
-          onClick={onBack}
-          className="term-mono text-[11px] tracking-[0.12em] transition-colors"
-          style={{ color: 'var(--ink-soft)' }}
-        >
-          ← 回到地图
-        </button>
+        <NavButton onClick={onBack}>回到{backLabel}</NavButton>
         <MonoTag>CAMPUS&nbsp;ARCHIVE&nbsp;//&nbsp;SURVEY</MonoTag>
       </div>
 
@@ -59,7 +53,7 @@ export default function QuizGate({ onStart, onBack }) {
         className="relative px-7 py-9 overflow-hidden rounded-sm"
         style={{
           background:
-            'linear-gradient(135deg, #eef2ff 0%, #f5f3ff 42%, #fdf4ff 100%)',
+            'linear-gradient(135deg, #edf3e9 0%, #f5f6e9 42%, #fcf7e9 100%)',
         }}
       >
         {/* 两块柔光：让底衬不是死板的线性渐变。
@@ -71,7 +65,7 @@ export default function QuizGate({ onStart, onBack }) {
             top: '-32%',
             width: '58%',
             height: '110%',
-            background: 'radial-gradient(circle, rgba(79,70,229,0.13), transparent 68%)',
+            background: 'radial-gradient(circle, rgba(67,125,91,0.13), transparent 68%)',
           }}
           aria-hidden="true"
         />
@@ -82,7 +76,7 @@ export default function QuizGate({ onStart, onBack }) {
             bottom: '-36%',
             width: '52%',
             height: '104%',
-            background: 'radial-gradient(circle, rgba(168,85,247,0.11), transparent 70%)',
+            background: 'radial-gradient(circle, rgba(184,145,79,0.11), transparent 70%)',
           }}
           aria-hidden="true"
         />
@@ -92,20 +86,20 @@ export default function QuizGate({ onStart, onBack }) {
             QUESTIONNAIRE · {qn} ITEMS
           </p>
 
-          <h2 className="text-2xl sm:text-[28px] font-semibold tracking-tight leading-snug mt-3">
+          <h1 className="text-2xl sm:text-[28px] font-semibold tracking-tight leading-snug mt-3">
             十个问题，
             <br />
-            决定你在哪一层宇宙
-          </h2>
+            找到你的校园称号
+          </h1>
 
           {/* 三条事实，用等宽列表而不是散文。
               这一屏的作用是"让人敢按下去"，所以信息要能一眼扫完。 */}
           <div className="mt-6 space-y-2.5">
             {[
-              ['题量', `${qn} 题，每题四个选项，都在校园生活里`],
+              ['题量', `${qn} 题，每题 ${Math.min(...QUESTIONS.map(q=>q.options.length))}–${Math.max(...QUESTIONS.map(q=>q.options.length))} 个选项，都在校园生活里`],
               ['用时', '大约 1 分钟，中途不用填任何资料'],
               ['产出', '答完立刻得到雷达图、时间分配与人群定位'],
-              ['隐私', '全程在浏览器里算，不上传任何内容'],
+              ['隐私', '在本机计算；在线解读仅发送报告摘要'],
             ].map(([k, v]) => (
               <div key={k} className="flex gap-3 items-baseline">
                 <span
@@ -121,8 +115,7 @@ export default function QuizGate({ onStart, onBack }) {
 
           {/* 一句"为什么值得答"。放在按钮之前最后一步 —— 这是临门一脚的位置。 */}
           <p className="mt-6 text-[12px] leading-6 text-[var(--ink-soft)]">
-            每道题都同时改变 8 个属性，所以没有"答对答错" ——
-            只有"你是哪一种"。
+            每个选择都会影响几项生活倾向。没有标准答案，也不是能力考试，按平时的习惯选就好。
           </p>
 
           {/* ── 按钮组 ──
@@ -144,7 +137,7 @@ export default function QuizGate({ onStart, onBack }) {
               className="term-mono text-[11px] tracking-[0.1em] transition-colors"
               style={{ color: 'var(--ink-soft)' }}
             >
-              先不答，回地图
+              先不答，回到{backLabel}
             </button>
           </div>
         </div>
@@ -155,7 +148,7 @@ export default function QuizGate({ onStart, onBack }) {
           不说清楚会让已经走过地图的人意外丢数据。 */}
       <p className="mt-5 text-[11px] leading-6 text-[var(--ink-soft)]">
         注意：答题会重建你的属性账本。如果你已经在地图上走过一些地方，
-        那些轨迹会被这一份答案**替换**（不是叠加）。
+        那些轨迹会被这一份答案替换。
       </p>
     </div>
   );

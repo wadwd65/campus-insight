@@ -14,13 +14,14 @@
  * 动效只用 transform / opacity（不触发布局重排），降级交给 @media (prefers-reduced-motion)。
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '../store/useGameStore.js';
 import { ZONES, placesInZone } from '../data/mapPlaces.js';
 import { mapModel, nextDelta, DECAY_LIMIT } from '../lib/mapEngine.js';
 import { summarizeAttributes, signed } from '../lib/hudModel.js';
 import EntryDock from '../components/EntryDock.jsx';
 import NavButton from '../components/NavButton.jsx';
+import CampusRoute from '../components/CampusRoute.jsx';
 // 题数从契约取 —— 题库从 6 扩到 10 题时，写死过的地方全都成了谎话
 import { QUESTIONS, shortLabelOf } from '../lib/surveySchema.js';
 
@@ -151,12 +152,15 @@ function SlotBar({ slots, total }) {
   );
 }
 
-export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry }) {
+export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry, guide }) {
   const player = useGameStore((s) => s.player);
   const applyChoice = useGameStore((s) => s.applyChoice);
-  const resetPlayer = useGameStore((s) => s.resetPlayer);
+  const undoMapChoice = useGameStore((s) => s.undoMapChoice);
   const [last, setLast] = useState(null);
+  const [notice, setNotice] = useState(null);
   const [busy, setBusy] = useState(false);
+  const timer = useRef(null);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const model = useMemo(() => mapModel(player.trail), [player.trail]);
   const hud = useMemo(() => summarizeAttributes(player.attributes), [player.attributes]);
@@ -166,9 +170,11 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry }) 
   const quizAnswered = player.trail.filter((t) => !t.at).length;
 
   function pick(place) {
+    if (busy || !place.enabled) return;
     const delta = nextDelta(place, model.visited);
     if (!delta) return;
     setBusy(true);
+    setNotice(null);
     applyChoice({
       id: place.id,
       label: place.name,
@@ -176,11 +182,11 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry }) 
       at: Date.now(),
     });
     setLast({ name: place.name, vec: delta.vec, visit: delta.visit, trait: place.line });
-    window.setTimeout(() => setBusy(false), 160);
+    timer.current = window.setTimeout(() => setBusy(false), 160);
   }
 
   return (
-    <div className="term-light term-grid relative min-h-full">
+    <div className="map-page term-light term-grid relative min-h-full">
       <div className="relative max-w-5xl mx-auto px-6 py-8">
         {/* ★ 10-14 B+C（B4）：让地图**知道问卷的存在**。
             以前从问卷答完 10 题再来地图，界面没有任何提示说"你答的题已经入账了" ——
@@ -204,7 +210,7 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry }) 
             </span>
             <span>
               你答过的 <span className="ci-num font-semibold">{quizAnswered}</span> 题已经算进这本账了 ——
-              接下来在地图上的每一步都会叠在它上面。走完回档案页，可以并排对比两次测量。
+              接下来地图上的行动会叠加进去。走完回档案页，可以对比探索前后的变化。
             </span>
           </div>
         )}
@@ -232,12 +238,18 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry }) 
               </h1>
             </div>
           </div>
-          <SlotBar slots={model.slots} total={model.slotsPerDay} />
+          <div className="map-slot-actions"><SlotBar slots={model.slots} total={model.slotsPerDay} />{model.started && <button type="button" disabled={busy} onClick={() => { undoMapChoice(); setLast(null); setNotice('已撤销上一步，时段与属性已恢复。'); }}>撤销上一步 ↶</button>}{guide && <div className="map-guide">{guide}</div>}</div>
         </div>
 
         {/* ── 左侧：地图格 ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_268px] gap-6 items-start">
+        <div className="map-workspace">
           <div className="space-y-5">
+            <CampusRoute model={model} onPick={pick} busy={busy} trail={player.trail} />
+            <div className="map-live-feedback" role="status" key={last ? `${last.name}-${last.visit}` : 'empty'}>
+              {last ? <><span>已到达 <b>{last.name}</b></span><DeltaTags vec={last.vec} /></> : <span>{notice ?? '每一步都会更新你的画像；可随时撤销，不必追求高分。'}</span>}
+            </div>
+            {!model.anyLeft && <div className="map-day-complete"><div><b>今天的四个时段，已经有了自己的形状。</b><p>看看这些选择，会生成怎样一份校园档案。</p></div><button type="button" onClick={onGoReport}>揭晓我的档案 →</button></div>}
+            <details className="map-place-details"><summary>查看所有地点的故事与属性增量</summary><div className="space-y-5 pt-5">
             {ZONES.map((zone) => (
               <section key={zone.key}>
                 <div className="flex items-baseline gap-2 mb-2.5">
@@ -300,10 +312,11 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry }) 
                 </div>
               </section>
             ))}
+            </div></details>
           </div>
 
           {/* ── 右侧：属性实时反馈 ── */}
-          <aside className="lg:sticky lg:top-6 space-y-4">
+          <aside className="map-secondary space-y-4">
             <div className="term-panel p-4">
               <p className="term-mono text-[11px] tracking-[0.25em] mb-3" style={{ color: 'var(--term-ink-soft)' }}>
                 ATTRIBUTE TRACE
@@ -369,7 +382,7 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry }) 
                 </p>
               ) : (
                 <ol className="space-y-1.5">
-                  {player.trail.map((t, i) => {
+                  {player.trail.filter((t) => model.items.some((p) => p.id === t.id)).map((t, i) => {
                     const p = model.items.find((x) => x.id === t.id);
                     if (!p) return null;
                     return (
@@ -400,31 +413,30 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry }) 
                 答题是一次性的功能点，不该当门。
                 坞里 01（生成档案）的状态跟地图走，03（上传）是独立入口。 */}
             <EntryDock
-              canReport={hud.started}
+              canReport={model.started}
               onGoReport={onGoReport}
               onGoQuiz={onGoQuiz}
               onUpload={onUpload}
             />
 
-            {/* ── 3D 实景校园：★ 10-07 作品重心修正 —— 降级为**附加展示**：
-                保留文件本身（public/map/ 里，不参与构建），这里只放一个外链按钮，
-                不做站内场景、不参与任何评分功能，也不再往主流程里加耦合。 ── */}
+            {/* 独立加载 3D 导览，主页面不引入引擎或模型；正常 build 会生成全部静态文件。 */}
             <a
               href={`${import.meta.env.BASE_URL}map/校园地图-3D实景.html`}
-              className="term-mono block w-full text-center text-[11px] py-2 tracking-[0.12em]"
+              className="desktop-3d-link term-mono block w-full text-center text-[11px] py-2 tracking-[0.12em]"
               style={{ color: 'var(--term-ink-dim)', border: '1px dashed rgba(255,255,255,.16)', borderRadius: 3 }}
             >
-              3D 实景校园（附加展示）
+              轻量 3D 校园 · 自由转动与点选
             </a>
 
             {model.totalTrips > 0 && (
               <button
                 type="button"
-                onClick={resetPlayer}
+                disabled={busy}
+                onClick={() => { for (let i = 0; i < model.totalTrips; i++) undoMapChoice(); setLast(null); setNotice(quizAnswered ? '已清空地图行动，问卷作答已保留。' : '已清空地图行动，可以重新安排四个时段。'); }}
                 className="term-mono text-[11px] py-1.5 w-full"
                 style={{ color: 'var(--term-ink-dim)' }}
               >
-                清空重来
+                清空地图行动
               </button>
             )}
 
@@ -434,6 +446,7 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry }) 
           </aside>
         </div>
       </div>
+      <div className="map-mobile-dock"><span>剩余 <b>{model.slots}</b> / {model.slotsPerDay} 时段</span><button type="button" disabled={!model.started} onClick={onGoReport}>{model.started ? '查看当前档案 →' : '先选一个地点'}</button></div>
     </div>
   );
 }

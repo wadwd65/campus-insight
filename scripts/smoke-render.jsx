@@ -37,7 +37,7 @@ import { QUESTIONS, REQUIRED_COLUMNS } from '../src/lib/surveySchema.js';
 import { PLACES, SLOTS_PER_DAY } from '../src/data/mapPlaces.js';
 import { nextDelta } from '../src/lib/mapEngine.js';
 import { SCENE_LAYERS, pickSceneBudget } from '../src/lib/introLayers.js';
-import { INTRO_TIMING } from '../src/lib/terminalTheme.js';
+import EntryScene from '../src/scenes/EntryScene.jsx';
 import { INTRO_FORBIDDEN_ASSETS } from '../src/scenes/IntroScene.jsx';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -134,6 +134,8 @@ check('五个类型名都出现了', ['学术型', '社交型', '运动型', '�
 check('标题与三块内容都在', ['这个班的位置', '这个班分成几类', '班里和你最像的人'].every((t) => cohortText.includes(t)));
 check('给出了「最像的人」', /非常像|挺像|有点像/.test(cohortText));
 check('写明了示例数据是模拟的', cohortText.includes('模拟生成'));
+check('逐题统计真正接入群体页，并保留与模拟百分位不同的分母说明',
+  cohortText.includes('回到大家真实的选择') && cohortText.includes('分母为本题 48 份有效作答') && cohortText.includes('导出十题统计 CSV'));
 
 // 「你落在『?』」那一句必须印中文组名。
 // groupOf() 返回的是键（academic/buddhist…），漏了 key→name 的映射就会把英文键印到页面上 ——
@@ -214,6 +216,8 @@ console.log('\n4.7 · 行动地图（默认主界面 · 空态）');
   const mapText = plain(mapHtml);
 
   check('渲染出标题问句', mapText.includes('今天的四个时段'));
+  check('地图16个位置都有可操作的查看按钮', (mapHtml.match(/class="campus-pin[ "]/g)||[]).length===PLACES.length);
+  check('地点查看与确认出发分开，纪念章不参与属性', mapHtml.includes('campus-commit') && mapText.includes('查看地点不消耗时段') && mapText.includes('不改变画像属性'));
   check(
     `16 个地点名都在`,
     PLACES.every((p) => mapText.includes(p.name)),
@@ -329,19 +333,21 @@ console.log('\n4.8 · 从地图生成报告（走账本，不走问卷）');
 // 这里只验"结构画得出来"。
 console.log('\n4.9 · 入场页（第一屏）');
 {
-  const introHtml = render('入场页', h(IntroScene));
+  const introHtml = render('入场页', h(IntroScene, { baseline }));
   const introText = plain(introHtml);
 
-  check('渲染出主标题', introText.includes('你的大学平行宇宙'));
-  check('渲染出题数（跟着题库走，不写死）', introText.includes(`${QUESTIONS.length} 道题`));
-  check('渲染出「进入终端」按钮', introText.includes('进入终端'));
+  check('渲染出主标题', introText.replace(/<[^>]*>/g, '').includes('你的大学平行宇宙'));
+  check('渲染出题数（跟着题库走，不写死）', introText.includes(`${QUESTIONS.length} 道日常选择题`));
+  check('入场先呈现独立片头，保留随时进入首页的按钮', introText.includes('进入首页') && !introHtml.includes('profile-preview'));
   check('渲染出键盘入口提示', introText.includes('或按 Enter'));
   check('渲染出纹章的 aria-label', introHtml.includes('终端纹章'));
+  check('纹章点亮是有名称的原生开关按钮', introHtml.includes('aria-label="点亮入场纹章"') && introHtml.includes('aria-pressed="false"'));
+  check('装饰纹样不会成为键盘焦点或遮挡主操作', introHtml.includes('class="scene-ornaments scene-ornaments--opening" aria-hidden="true"'));
   check('渲染出标语', introText.includes('个人青春行为图谱'));
 
   // 推镜舞台与场景层必须在。类名丢了不会报错，只会让整屏退化成"纯色 + 文字"——
   // 而那是**看起来正常**的一种坏法，最难发现。
-  check('推镜舞台在', introHtml.includes('intro-stage'));
+  check('推镜场景舞台在', introHtml.includes('intro-stage'));
   // 用 `class="intro-layer` 前缀匹配，不要写死完整类名 ——
   // 前景层会额外带上 `intro-layer-front`（透明度压低），
   // 写死 `class="intro-layer intro-layer-enter"` 会因为多一个类而失败，
@@ -384,47 +390,16 @@ console.log('\n4.9 · 入场页（第一屏）');
     strays.length ? `仍在引用：${strays.join(', ')}` : '两张都不再引用',
   );
 
-  // 推镜必须真的被驱动：`--push` 初始值要写进去，且必须是 0
-  // （写 1 的话整屏会一开始就是推到头的样子，动画等于没有）。
-  // 注意断言要写成 `--push:0` —— React 序列化 inline style 时**不补空格**，
-  // 写成 `--push: 0` 会永远失败，而失败原因看起来像"变量没写进去"。
-  check(
-    '推镜变量 --push 初始为 0（动画没被跳过）',
-    introHtml.includes('--push:0'),
-  );
-  // 各层的 zoom 系数也必须真的写进去，否则 CSS 里 calc() 取不到 var(--zoom)
-  check(
-    '三层各自的 zoom 系数都写进了 inline style',
-    SCENE_LAYERS.every((l) => introHtml.includes(`--zoom:${l.zoom}`)),
-    SCENE_LAYERS.map((l) => l.zoom).join(' / '),
-  );
-  // 推镜的 transform 公式必须在 —— 它是"近处涨得快"落地的地方
-  check(
-    '推镜 transform 用了共享的 --push 做 calc（而不是各层写死 scale）',
-    introHtml.includes('calc(1 + (var(--zoom) - 1) * var(--push))'),
-  );
-
-  // 时间线必须真的被写进 inline style —— 元素在、但没挂延迟的话，
-  // 整屏会同时出现，入场动画等于没有。这一条抓的就是那种"东西都在但没生效"。
-  check(
-    '纹章的延迟被写进 inline style',
-    introHtml.includes(`animation-delay:${INTRO_TIMING.crest}ms`),
-    `${INTRO_TIMING.crest}ms`,
-  );
-  check(
-    'CTA 的延迟被写进 inline style',
-    introHtml.includes(`animation-delay:${INTRO_TIMING.cta}ms`),
-    `${INTRO_TIMING.cta}ms`,
-  );
-
-  // 三幕节拍必须真的是**递增**的，且总长够（>= 4000ms）。
-  // 这一条防的是"改了一个时间却忘了另一个"—— 那样会出现文字比纹章先到，
-  // 而肉眼只会觉得"有点乱"。
-  const beats = Object.entries(INTRO_TIMING).sort((a, b) => a[1] - b[1]);
-  const ascending = beats.every(([, v], i) => i === 0 || v > beats[i - 1][1]);
-  check('节拍严格递增（纹章 → 标语 → 标题 → 副标 → 说明 → 入口）', ascending);
-  check('入场总长 >= 4000ms（是"一段演出"而不是"界面动画"）', INTRO_TIMING.cta >= 4000, `${INTRO_TIMING.cta}ms`);
-  check('第一幕是纯环境（纹章不早于 1200ms 出现）', INTRO_TIMING.crest >= 1200, `${INTRO_TIMING.crest}ms`);
+  check('跳过动画从首帧起存在', introText.includes('跳过动画'));
+  check('来信彩蛋可发现，且初始不遮挡片头', introHtml.includes('aria-label="打开校园来信" aria-expanded="false"') && !introHtml.includes('campus-note-paper'));
+  check('已移除大范围鼠标柔光层', !introHtml.includes('scene-pointer-light'));
+  check('片头先于主页，不混入测评示例和入口卡片', introHtml.includes('cinematic-intro') && !introHtml.includes('landing-actions'));
+  check('基准清楚标注模拟', introText.includes('2000') && introText.includes('模拟基准记录'));
+  check('进入按钮不受文字分镜延迟影响', !/class="cinematic-enter"[^>]*animation-delay/.test(introHtml));
+  check('入场只有一个一级标题', (introHtml.match(/<h1[ >]/g) || []).length === 1);
+  const entryHtml = render('主页', h(EntryScene, { baseline }));
+  check('主页同样展示示例和两个主入口', ['示例回答计算所得', '开始测评', '先去校园里走走'].every(t => entryHtml.includes(t)));
+  check('主页没有重复的一级标题', (entryHtml.match(/<h1[ >]/g) || []).length === 1);
 
   const introBad = ['undefined', 'NaN', '[object Object]'].filter((s) => introHtml.includes(s));
   check('入场页：HTML 里没有 undefined / NaN / [object Object]', introBad.length === 0, introBad.join(' '));

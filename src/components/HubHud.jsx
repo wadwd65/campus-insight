@@ -25,7 +25,7 @@ import { HUD_HALF, signed, summarizeAttributes } from '../lib/hudModel.js';
 import { useGameStore } from '../store/useGameStore.js';
 import NavButton from './NavButton.jsx';
 
-export default function HubHud({ onRestart, onGoEntry }) {
+export default function HubHud({ onRestart, onGoEntry, compact = false, statusLabel }) {
   const player = useGameStore((s) => s.player);
   const backToIntro = useGameStore((s) => s.backToIntro);
   const resetPlayer = useGameStore((s) => s.resetPlayer);
@@ -43,6 +43,7 @@ export default function HubHud({ onRestart, onGoEntry }) {
   //      会被解析成"两个表达式"，构建直接报错（本轮踩过一次）。
   return (
     <header
+      className={compact ? 'hub-hud hub-hud-compact' : 'hub-hud'}
       style={{
         background: 'rgba(255, 255, 255, 0.80)',
         borderBottom: `1px solid ${TERMINAL.line}`,
@@ -67,7 +68,7 @@ export default function HubHud({ onRestart, onGoEntry }) {
               （一个是回入口页、一个是回入场），两个长不一样会让人以为
               其中一个更次要。 */}
           <NavButton onClick={backToIntro} icon="◄" title="回到入场画面">
-            终端
+            入场动画
           </NavButton>
 
           {/* ★ 10-14：窄屏隐藏这行长标题。
@@ -87,10 +88,10 @@ export default function HubHud({ onRestart, onGoEntry }) {
             className="term-mono text-[11px]"
             style={{ color: model.started ? TERMINAL.cyan : TERMINAL.inkDim }}
           >
-            {model.started ? `已采集 ${collected} 项` : '待采集'}
+            {statusLabel ?? (model.started ? `已采集 ${collected} 项` : '待采集')}
           </span>
 
-          {model.started && (
+          {model.started && !compact && (
             <button
               type="button"
               onClick={() => {
@@ -111,7 +112,7 @@ export default function HubHud({ onRestart, onGoEntry }) {
             加八个 11px 短标签（学/社/运/美/夜/计/尝/抗）—— 它们要表达的
             "这里将来会长数据"完全由下面那行提示说清了，八列纯属噪音。
             ⇒ 空态**整排不渲染**，只留一行带玻璃底的提示；有数据时才长出来。 */}
-        <div className="mt-2 sm:mt-3 flex items-start gap-2 flex-wrap">
+        {!compact && <div className="mt-2 sm:mt-3 flex items-start gap-2 flex-wrap">
           {model.started &&
             model.rows.map((r) => (
             <div
@@ -196,7 +197,7 @@ export default function HubHud({ onRestart, onGoEntry }) {
               </span>
             )}
           </div>
-        </div>
+        </div>}
       </div>
     </header>
   );

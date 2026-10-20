@@ -93,7 +93,7 @@ export function canVisit(place, state) {
   if (place.once && (visited[place.id] ?? 0) > 0) {
     return { ok: false, reason: '只会有一次' };
   }
-  if ((visited[place.id] ?? 0) >= DECAY_LIMIT + 1) {
+  if ((visited[place.id] ?? 0) >= DECAY_LIMIT) {
     return { ok: false, reason: '再去也没用了' };
   }
   if (place.cost > slots) {
@@ -107,7 +107,7 @@ export function canVisit(place, state) {
  * 这是 hudModel.js 的同一个模式：规则在纯函数里，组件只负责画。
  */
 export function mapModel(trail) {
-  const visited = countVisits(trail);
+  const visited = countVisits((trail ?? []).filter((t) => PLACE_INDEX.has(t?.id)));
   const slots = slotsLeft(trail);
   const anyLeft = slots > 0;
 
@@ -119,7 +119,7 @@ export function mapModel(trail) {
       times,
       // 去过但衰减到头 → 标成 exhausted，与"没去过"区分开：
       // 两者都不能点，但意思完全不同（一个是"没去过"，一个是"去过了")
-      exhausted: times >= DECAY_LIMIT + 1,
+      exhausted: times >= DECAY_LIMIT,
       enabled: ok,
       reason: anyLeft ? reason : times > 0 || p.once ? reason : '今天的时段用完了',
     };

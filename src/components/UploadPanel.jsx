@@ -30,6 +30,7 @@ import TermPanel from './TermPanel.jsx';
 import { MonoTag, SectionHead } from './TermHead.jsx';
 import NavButton from './NavButton.jsx';
 import { mergeCsvTexts } from '../lib/exportProfile.js';
+import { decodeCsvBytes } from '../lib/decodeCsv.js';
 
 const SAMPLE_FILE = '示例-班级问卷.csv';
 
@@ -41,7 +42,7 @@ export default function UploadPanel({ onReady, onBack }) {
   const [result, setResult] = useState(null); // {fileName, records, report, details}
 
   /** 唯一的入口：一段 CSV 文本 → 解析 → 清洗 → 结果或错误。文件与示例都走这里。 */
-  function ingest(text, fileName) {
+  function ingest(text, fileName, encodings = []) {
     setError(null);
     setResult(null);
 
@@ -67,6 +68,7 @@ export default function UploadPanel({ onReady, onBack }) {
       // 格式告警（PapaParse 报的引号不闭合之类）不阻断，但要显示出来
       warnings: parsed.errors,
       details: cleaned.details,
+      encodings,
     });
   }
 
@@ -101,24 +103,38 @@ export default function UploadPanel({ onReady, onBack }) {
       }
     }
 
+    if (list.reduce((total, file) => total + file.size, 0) > THRESHOLDS.maxBatchBytes) {
+      setError({ title: '这批文件合计太大了', message: `一次导入的文件合计不超过 ${THRESHOLDS.maxBatchLabel}，请先整理为一份问卷 CSV。` });
+      return;
+    }
+
+    setError(null);
     setBusy(true);
     try {
-      // 文件用 UTF-8 读。Excel 另存的 GBK CSV 在这里会读出乱码，
-      // 但那种情况下每个值都不在选项内，会被逐行剔除并明确报出来 —— 不会静默出错
+      // Decode each file separately: a batch can contain mixed Excel encodings.
+      const decoded = [];
+      for (const file of list) {
+        try {
+          decoded.push(decodeCsvBytes(await file.arrayBuffer()));
+        } catch (err) {
+          throw new Error(`${file.name}：${err.message}`);
+        }
+      }
+      const encodings = [...new Set(decoded.map((d) => d.encoding))];
       if (list.length === 1) {
-        ingest(await list[0].text(), list[0].name);
+        ingest(decoded[0].text, list[0].name, encodings);
       } else {
-        const texts = await Promise.all(list.map((f) => f.text()));
         const label =
           list.every((f) => /档案/.test(f.name))
             ? `${list.length} 份同学档案`
             : `${list.length} 个文件合并`;
-        ingest(mergeCsvTexts(texts), label);
+        ingest(mergeCsvTexts(decoded.map((d) => d.text)), label, encodings);
       }
-    } catch {
-      setError({ title: '读不到这个文件', message: '文件可能正在被其他程序占用，或没有读取权限。换一个文件试试。' });
+    } catch (err) {
+      setError({ title: '文件未能导入', message: err?.message || '文件可能正在被其他程序占用，或没有读取权限。换一个文件试试。' });
     } finally {
       setBusy(false);
+      if (inputRef.current) inputRef.current.value = '';
     }
   }
 
@@ -139,7 +155,7 @@ export default function UploadPanel({ onReady, onBack }) {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="upload-page data-surface max-w-3xl mx-auto">
       {/* 状态行 —— 与问卷页、报告页同一句式（大写动作 + // + 状态），
           三页连起来看才是一条线，而不是三个互不相干的页面 */}
       <div className="flex items-baseline justify-between gap-3 mb-6">
@@ -147,8 +163,8 @@ export default function UploadPanel({ onReady, onBack }) {
           {/* 回地图。上传页现在是从地图的入口坞进来的（不是从首页），
               所以"回去"的语义是"回地图"，而不是"回上一页"。
               没有它，用户会卡在这一页 —— 之前只有浏览器后退键可用。 */}
-          <NavButton onClick={onBack} icon="←" title="回到行动地图">
-              回到地图
+          <NavButton onClick={onBack} icon="←" title="回到站点主页">
+              回到首页
             </NavButton>
           <MonoTag>COLLECTING // UPLOAD</MonoTag>
         </div>
@@ -162,10 +178,10 @@ export default function UploadPanel({ onReady, onBack }) {
         hint="上传一份问卷结果 CSV（每人一行、每道题的作答），就能看到这个群体的画像：五维位置、类型分布、以及班里和你最像的人。"
       />
 
-      <p className="text-xs text-[var(--ink-soft)] leading-5 mb-6">
-        列名需要是：<span style={{ fontFamily: 'ui-monospace, Consolas, monospace' }}>{REQUIRED_COLUMNS.join(' / ')}</span>
-        （顺序可以不同，多出的列会被忽略）。
-      </p>
+      <div className="upload-guide">
+        <details><summary>CSV 格式要求 · {REQUIRED_COLUMNS.length} 列作答，列序不限</summary><p>列名需要是：<span style={{ fontFamily: 'ui-monospace, Consolas, monospace' }}>{REQUIRED_COLUMNS.join(' / ')}</span>（顺序可以不同，多出的列会被忽略）。支持 UTF-8、GBK / GB18030 和带 BOM 的 UTF-16 编码；Excel 工作簿请先另存为 CSV。</p><a href={`${import.meta.env.BASE_URL}data/${SAMPLE_FILE}`} download>下载模拟班级 CSV，查看格式 ↓</a></details>
+        <details><summary>怎样收集一个班的答题数据？</summary><ol><li>同学分别完成网站上的十道题。</li><li>在个人报告底部，点击「导出答题数据 CSV」。</li><li>收齐文件后，在这里多选或一起拖入；网站会按列名合并。</li></ol></details>
+      </div>
 
       {!result && (
         <>
@@ -301,7 +317,7 @@ export default function UploadPanel({ onReady, onBack }) {
 
           <p className="text-xs leading-5 mt-4" style={{ color: 'var(--ink-dim)' }}>
             文件只在你的浏览器里被读取和计算，不会上传到任何服务器。
-            单个文件不超过 {THRESHOLDS.maxFileLabel}（问卷 CSV 通常只有几百 KB）。
+            单个文件不超过 {THRESHOLDS.maxFileLabel}，每批合计不超过 {THRESHOLDS.maxBatchLabel}。
           </p>
         </>
       )}
@@ -372,7 +388,7 @@ function UploadGlyph({ active }) {
 }
 
 function ResultCard({ result, onConfirm, onReset }) {
-  const { fileName, report, warnings, details, records } = result;
+  const { fileName, report, warnings, details, records, encodings = [] } = result;
   const dropped = report.droppedCount;
   // ★ 10-14 审查新增（任务书 P4#3/#4）：数据质量评估。
   //   太少的样本 / 太高的剔除比例，不该悄悄出一张看起来很权威的图。
@@ -388,6 +404,7 @@ function ResultCard({ result, onConfirm, onReset }) {
   return (
     <TermPanel style={{ padding: '20px 22px' }} tick="accent" shadow="md">
       <MonoTag>{fileName}</MonoTag>
+      {encodings.length > 0 && <p className="text-xs mt-2" style={{ color: 'var(--ink-soft)' }}>中文编码已识别：{encodings.join('、')}</p>}
 
       {/* ★ 10-14 美化：原来"读入 48 条，可用 46 条"是一行 16px 的普通文字 ——
           这份卡片的**结论**和下面的说明文字是同一个字号、同一个颜色，
