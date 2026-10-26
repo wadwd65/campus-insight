@@ -23,6 +23,8 @@ import { createElement as h } from 'react';
 
 import SurveyForm from '../src/components/SurveyForm.jsx';
 import ReportView from '../src/components/ReportView.jsx';
+import ReportCircleSubmission from '../src/components/ReportCircleSubmission.jsx';
+import { CircleSubmission } from '../src/components/CircleSubmission.jsx';
 import CohortPage from '../src/components/CohortPage.jsx';
 import UploadPanel from '../src/components/UploadPanel.jsx';
 import HubHud from '../src/components/HubHud.jsx';
@@ -108,6 +110,13 @@ const reportHtml = render('结果页', h(ReportView, { answers: myAnswers, basel
 const reportText = plain(reportHtml);
 
 check('渲染出称号', reportText.includes('你的称号'));
+const submissionAccount = { user: { id: 'render-admin', displayName: '演示管理员' }, request: async () => ({ circles: [] }) };
+const submissionContext = { id: 'render-circle', name: '演示圈子', userId: 'render-admin' };
+const directReport = render('档案直接提交入口', h(ReportView, { answers: myAnswers, baseline, submissionPanel: h(ReportCircleSubmission, { account: submissionAccount, context: submissionContext, answers: myAnswers, onBack() {} }) }));
+check('档案页直接展示圈子提交按钮，位于称号与图表之前', directReport.includes('提交到我的圈子') && directReport.indexOf('提交到我的圈子') < directReport.indexOf('你的称号'));
+const confirmSubmission = render('提交前共享确认', h(CircleSubmission, { account: submissionAccount, context: submissionContext, answers: myAnswers, onBack() {} }));
+check('提交表单展示目标圈子、完整答案核对和共享范围', ['演示圈子', '展开核对十题答案', '完整十题原始答案和提交时间'].every(text => confirmSubmission.includes(text)));
+check('未同意时确认提交按钮保持禁用', /<button[^>]*disabled[^>]*>③ 确认提交到圈子/.test(confirmSubmission) && !/<input[^>]*type="checkbox"[^>]*checked/.test(confirmSubmission));
 check(
   '结果页五个 section 标题都在',
   ['大学生活者画像', '时间去哪了', '四年心情曲线', '人群冷知识', '给你的话'].every((t) => reportText.includes(t)),
@@ -129,7 +138,7 @@ const cohortHtml = render(
   }),
 );
 const cohortText = plain(cohortHtml);
-check('写出总人数', cohortText.includes(`${cohortCleaned.records.length} 个人的大学`));
+check('写出当前有效答卷数与统计范围', cohortText.includes(`${cohortCleaned.records.length} 份答卷`) && cohortText.includes('导入文件 · 当前有效答卷'));
 check('五个类型名都出现了', ['学术型', '社交型', '运动型', '生活型', '佛系型'].every((t) => cohortText.includes(t)));
 check('标题与三块内容都在', ['这个班的位置', '这个班分成几类', '班里和你最像的人'].every((t) => cohortText.includes(t)));
 check('给出了「最像的人」', /非常像|挺像|有点像/.test(cohortText));
@@ -161,6 +170,12 @@ const noMeHtml = plain(
   ),
 );
 check('没有自己的作答时，给出「先答 10 题」的引导而不是假数据', noMeHtml.includes('先有一份「你的」作答'));
+
+const sampleCohortText = plain(render('合成班级示例', h(CohortPage, { records: cohortCleaned.records, baseline, source: 'sample' })));
+check('完整示例前置声明合成来源，不冒充真实班级', sampleCohortText.includes('合成示例 · 非真实调查') && sampleCohortText.includes('不代表任何真实班级') && sampleCohortText.includes('分母为本题 48 份有效作答'));
+const smallCohortText = plain(render('四份圈子答卷', h(CohortPage, { records: cohortCleaned.records.slice(0, 4), baseline, source: 'circle', ownAnswers: myAnswers })));
+check('少于五份只展示直接选择统计，不生成群体画像或AI解读', smallCohortText.includes('分母为本题 4 份有效作答') && smallCohortText.includes('导出十题统计 CSV') && !['最多的一类', '这个班的位置', '这个班分成几类', '群体解读'].some(text => smallCohortText.includes(text)));
+check('圈子汇总清楚排除未提交者且每人只取最新一份', smallCohortText.includes('每人取最新一份') && smallCohortText.includes('未提交的成员不在统计内'));
 
 // ── 4 · 上传页 ──
 console.log('\n4 · 上传页');
@@ -343,7 +358,7 @@ console.log('\n4.9 · 入场页（第一屏）');
   check('渲染出纹章的 aria-label', introHtml.includes('终端纹章'));
   check('纹章点亮是有名称的原生开关按钮', introHtml.includes('aria-label="点亮入场纹章"') && introHtml.includes('aria-pressed="false"'));
   check('装饰纹样不会成为键盘焦点或遮挡主操作', introHtml.includes('class="scene-ornaments scene-ornaments--opening" aria-hidden="true"'));
-  check('渲染出标语', introText.includes('个人青春行为图谱'));
+  check('渲染出标语', introText.includes('校园生活档案'));
 
   // 推镜舞台与场景层必须在。类名丢了不会报错，只会让整屏退化成"纯色 + 文字"——
   // 而那是**看起来正常**的一种坏法，最难发现。
@@ -397,9 +412,14 @@ console.log('\n4.9 · 入场页（第一屏）');
   check('基准清楚标注模拟', introText.includes('2000') && introText.includes('模拟基准记录'));
   check('进入按钮不受文字分镜延迟影响', !/class="cinematic-enter"[^>]*animation-delay/.test(introHtml));
   check('入场只有一个一级标题', (introHtml.match(/<h1[ >]/g) || []).length === 1);
-  const entryHtml = render('主页', h(EntryScene, { baseline }));
-  check('主页同样展示示例和两个主入口', ['示例回答计算所得', '开始测评', '先去校园里走走'].every(t => entryHtml.includes(t)));
+  const entryHtml = render('主页', h(EntryScene, { baseline, onPreviewSample: () => {}, onGoCircles: () => {} }));
+  check('主页区分答题、行动地图与独立的 3D 参观', ['示例回答计算所得', '开始测评', '行动地图，安排我的一天', '选择会写入画像', '3D 校园，自由参观', '不改变画像'].every(t => entryHtml.includes(t)));
+  check('3D 参观另开标签页，保留当前画像会话', /href="[^"]*3D[^\"]*" target="_blank" rel="noopener noreferrer"/.test(entryHtml));
+  check('主页可直接试玩三幕，保留跳过与正式测评入口', entryHtml.includes('校园选择小剧场') && entryHtml.includes('跳过试玩') && entryHtml.includes('试玩不写入答卷'));
+  check('个人主入口在圈子收卷前，组织者和CSV入口仍保留', entryHtml.indexOf('开始测评，写我的校园故事') < entryHtml.indexOf('进入圈子，填写或收集答卷') && entryHtml.includes('导入已有 CSV'));
   check('主页没有重复的一级标题', (entryHtml.match(/<h1[ >]/g) || []).length === 1);
+  check('主页能直接体验完整合成班级，清楚区分规则与AI职责', entryHtml.includes('先看 48 人模拟班级') && entryHtml.includes('不创建真实圈子') && entryHtml.includes('画像数字由规则计算'));
+  check('主页主线包含确认收卷和规则解释，探索入口默认折叠', entryHtml.includes('确认后收卷') && entryHtml.includes('进入圈子，填写或收集答卷') && /<details class="landing-explore">/.test(entryHtml));
 
   const introBad = ['undefined', 'NaN', '[object Object]'].filter((s) => introHtml.includes(s));
   check('入场页：HTML 里没有 undefined / NaN / [object Object]', introBad.length === 0, introBad.join(' '));

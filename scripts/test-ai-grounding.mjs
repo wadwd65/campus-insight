@@ -47,9 +47,9 @@ const facts = buildSummaryFacts(report);
 
 // 合法的"好输出"：只使用白名单里的数字
 const goodPct = facts.percents[0].value;
-const GOOD = `你这四年过得挺有意思。你在最看重的那件事上比大多数人更用力，位置大概在 ${goodPct}% 的样子。\n\n` +
-  `但你自己也知道，有些事你只是嘴上说说。深夜那一段是你一天里最安静的时间，安静到你会想一些白天不会想的问题。\n\n` +
-  `你不算特别合群，也不太需要合群。这种状态在大一大二会显得有点怪，到大三反而成了优势。`;
+const GOOD = `你在深夜出没地选了「${answers[QUESTIONS[0].field]}」，期末安排选了「${answers[QUESTIONS[1].field]}」。这套选择的相对位置在模拟基准中为 ${goodPct}%。\n\n` +
+  `这两个回答让休息与复习出现在同一份日常里。先回看最近一次真实安排，会比只看称号更具体。\n\n` +
+  `不妨试着给下一次复习留出一个明确的开始时间，再看看这样的安排是否适合自己。`;
 
 console.log('\n一 · 好输出必须通过（闸门不能误报）');
 {
@@ -77,6 +77,11 @@ console.log('\n三 · 越界表述必须抓出来');
 }
 
 console.log('\n四 · 格式异常必须抓出来');
+{
+  check('未选择的选项不能写成用户回答', validateSummary(`你选了「${QUESTIONS[0].options[1].text}」。`, { facts }).issues.some((issue) => issue.type === 'invented-answer'));
+  check('明确标注的小尝试不被误报为用户已做的选择', !validateSummary(`下次可以试试「${QUESTIONS[0].options[1].text}」。`, { facts }).issues.some((issue) => issue.type === 'invented-answer'));
+  check('规则曲线不能写成真实大学经历', validateSummary('课程最难的大二你反而最稳，压力最大的大三你也没散。', { facts }).issues.some((issue) => issue.type === 'ungrounded-narrative'));
+}
 {
   const md = validateSummary('## 你的画像\n\n- 你很特别\n- 你也很矛盾\n\n**这是加粗**', { facts });
   const types = md.issues.map((i) => i.type);
@@ -124,10 +129,11 @@ console.log('\n五 · 端到端：模型说错话时，会不会真的降级');
 
 console.log('\n六 · 在线测试（需真实密钥）');
 if (!ONLINE) {
-  console.log('  ⚠ 未执行：在线测试需要 `--online` 与真实 VITE_LLM_* 环境变量，默认跳过');
+  console.log('  ⚠ 未执行：真实调用需单独运行 npm run test:ai:live，默认检查不消耗在线额度');
   console.log('    （跳过 ≠ 通过 —— 本文件不声称在线链路已被验证）');
 } else {
-  console.log('  （在线模式尚未接入真实密钥读取，留待部署前手动跑一次）');
+  await import('./check-live-ai.mjs');
+  check('显式在线测试通过同源服务端生成', !process.exitCode);
 }
 
 console.log('\n' + '─'.repeat(64));

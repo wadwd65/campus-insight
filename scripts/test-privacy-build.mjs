@@ -123,7 +123,7 @@ console.log('\n三 · 构建产物不含密钥（dist 扫描）');
       const src = fs.readFileSync(f, 'utf8');
       for (const re of KEY_PATTERNS) {
         const m = src.match(re);
-        if (m) hits.push(`${path.relative(ROOT, f)}: ${m[0].slice(0, 40)}`);
+        if (m) hits.push(`${path.relative(ROOT, f)}: 检出疑似密钥（内容已隐藏）`);
       }
     }
     check(`dist 里没有密钥特征串（扫了 ${files.length} 个文件）`, hits.length === 0, hits.slice(0, 3).join(' | '));

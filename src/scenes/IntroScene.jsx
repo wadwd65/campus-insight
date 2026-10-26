@@ -69,7 +69,7 @@ export default function IntroScene({ baseline, onEnter }) {
     <header className="cinematic-header"><span>CAMPUS INSIGHT <small>OPENING / 01</small></span><button type="button" onClick={finish} disabled={leaving}>跳过动画 <span aria-hidden="true">↗</span></button></header>
     <main className="cinematic-center">
       <div className="intro-line cinematic-crest" style={at(450)}><Crest illuminated={illuminated} onToggle={() => setIlluminated((value) => !value)} /></div>
-      <p className="intro-line cinematic-eyebrow" style={at(850)}>个人青春行为图谱</p>
+      <p className="intro-line cinematic-eyebrow" style={at(850)}>校园生活档案 · 个人记录与圈子收卷</p>
       <h1 className="intro-line intro-serif intro-glow" style={at(1400)}>你的大学<span>平行宇宙</span></h1>
       <p className="intro-line cinematic-subtitle" style={at(2300)}>每一种日常，都通向一个不同的你。</p>
       <p className="intro-line cinematic-meta" style={at(2900)}>{QUESTIONS.length} 道日常选择题 <span>一份属于你的校园档案</span></p>

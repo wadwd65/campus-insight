@@ -153,6 +153,12 @@ export function validateCohortSummary(text, { cohort = null, minLen = 60, tolera
   }
 
   if (cohort) {
+    for (const sentence of s.split(/[。！？\n]/)) {
+      if (/(?:两极分化|中间(?:地带|的人|人群).{0,8}(?:不厚|很少|稀疏)|两头(?:的人|人群).{0,6}多)/.test(sentence) && !/不能|无法|不足以|不代表|不意味着|不说明|不等于/.test(sentence)) {
+        issues.push({ type: 'unsupported-distribution', detail: '用分位区间推断了未经计算的分布形态' });
+        break;
+      }
+    }
     const { percents, counts } = buildAllowlists(cohort);
 
     // ⑥ 编造占比：每个 N% 都要能追到某类的 pct 或累计占比
@@ -198,4 +204,5 @@ export const COHORT_HARD_ISSUE_TYPES = new Set([
   'invented-number',
   'diagnosis',
   'caliber',
+  'unsupported-distribution',
 ]);

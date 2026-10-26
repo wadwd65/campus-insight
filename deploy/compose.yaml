@@ -1,0 +1,34 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.runtime
+    restart: unless-stopped
+    env_file:
+      - ../.env.local
+    environment:
+      HOST: 0.0.0.0
+      PORT: '5191'
+      CAMPUS_DATA_DIR: /data
+      APP_ORIGIN: https://${CAMPUS_DOMAIN:?Set CAMPUS_DOMAIN in .env.local}
+    volumes:
+      - campus-data:/data
+      - ../release-download:/app/release-download:ro
+  https:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      CAMPUS_DOMAIN: ${CAMPUS_DOMAIN:?Set CAMPUS_DOMAIN in .env.local}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+volumes:
+  campus-data:
+  caddy-data:
+  caddy-config:

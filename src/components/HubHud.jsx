@@ -24,8 +24,9 @@ import { HUD_LIGHT as TERMINAL } from '../lib/terminalTheme.js';
 import { HUD_HALF, signed, summarizeAttributes } from '../lib/hudModel.js';
 import { useGameStore } from '../store/useGameStore.js';
 import NavButton from './NavButton.jsx';
+import AccountButton from './AccountButton.jsx';
 
-export default function HubHud({ onRestart, onGoEntry, compact = false, statusLabel }) {
+export default function HubHud({ onRestart, onGoEntry, onGoCircles, accountLabel, help, compact = false, statusLabel }) {
   const player = useGameStore((s) => s.player);
   const backToIntro = useGameStore((s) => s.backToIntro);
   const resetPlayer = useGameStore((s) => s.resetPlayer);
@@ -51,7 +52,7 @@ export default function HubHud({ onRestart, onGoEntry, compact = false, statusLa
     >
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-2.5 pb-2 sm:pt-4 sm:pb-3">
         {/* 第一行：身份与状态 */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className={`hud-actions flex items-center gap-3 flex-wrap${help ? ' hud-actions-with-help' : ''}`}>
           {/* ★ 10-10 修返回逻辑：入口页（entry）是一级界面，但此前全站的"返回"都指向
               backToMap（地图）—— 进入地图之后没有任何一条路能回到主页。
               这颗按钮随 HUD 全站可见（地图 / 答题 / 报告 / 上传 / 群体画像都渲染它），
@@ -59,7 +60,7 @@ export default function HubHud({ onRestart, onGoEntry, compact = false, statusLa
           {onGoEntry && (
             /* ★ 10-15：从 11px 小字换成 40px 大按钮。原热区只有 39×17，
                压在动漫天空上既看不清也点不中。 */
-            <NavButton onClick={onGoEntry} icon="◄" title="回到站点主页（入口页）">
+            <NavButton className="hud-home" onClick={onGoEntry} icon="◄" title="回到站点主页（入口页）">
               主页
             </NavButton>
           )}
@@ -67,7 +68,7 @@ export default function HubHud({ onRestart, onGoEntry, compact = false, statusLa
           {/* ★ 10-15：这颗也从 11px 小字换成大按钮 —— 它和「主页」是同级动作
               （一个是回入口页、一个是回入场），两个长不一样会让人以为
               其中一个更次要。 */}
-          <NavButton onClick={backToIntro} icon="◄" title="回到入场画面">
+          <NavButton className="hud-replay" onClick={backToIntro} icon="◄" title="回到入场画面">
             入场动画
           </NavButton>
 
@@ -75,14 +76,13 @@ export default function HubHud({ onRestart, onGoEntry, compact = false, statusLa
               它只是"身份标识"，不是可操作项；但在 390px 下它会把
               「◄ 主页 / ◄ 终端 / 这条 / 待采集」挤成两行，顶栏从 64 涨到 130+。
               隐藏它，顶栏只留真正有用的两颗按钮和一个状态。 */}
-          <span
-            className="term-mono text-[11px] hidden sm:inline"
-            style={{ color: TERMINAL.inkDim }}
-          >
-            CAMPUS&nbsp;ARCHIVE&nbsp;//&nbsp;TERMINAL&nbsp;v3
-          </span>
+          <span className="hub-product-name"><b>校园生活档案</b><small>CAMPUS INSIGHT</small></span>
 
           <span className="flex-1" />
+
+          {onGoCircles && <AccountButton label={accountLabel} onClick={onGoCircles} />}
+
+          {help && <div className="hud-help">{help}</div>}
 
           <span
             className="term-mono text-[11px]"

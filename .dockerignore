@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.env*
+!.env.example
+.campus-data
+**/*.sqlite*
+**/setup-key.txt
+.shots-before
+.browser-profile*
+.smoke-out
+.workbuddy-gen
+outputs
+release-download

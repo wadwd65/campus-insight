@@ -59,7 +59,8 @@ export function buildCohortFacts(cohort, { className = '' } = {}) {
   }
 
   L.push('');
-  L.push('【九项属性的班级中位数】');
+  L.push('【九项属性的班级中位数 · 原始矩阵分】');
+  L.push('各维度的量纲与选项权重不同，这一行不可跨维比较高低，也不能据此推断多数人的行为；正文的相对位置比较只使用上面的五维百分位。');
   // ★ 10-13 审查修复：原来发的是英文 key（`academic 65`），模型容易直接抄进正文或误解；
   // 换成中文标签（labelOf），与界面、与个人版摘要口径一致。
   L.push(ALL_ATTR_KEYS.map((k) => `${labelOf(k)} ${cohort.medianAttrs[k]}`).join(' · '));
@@ -79,7 +80,7 @@ export function buildCohortSystemPrompt() {
     '1. 写三段，每段 3~5 句，合计 260~360 字（不要更多）。段落之间不要小标题，直接分段。',
     '2. 第一段：这个班整体是什么气质（用分布里最突出的那一类说事，给数字）。',
     '3. 第二段：这个班"最不一样"的地方（用分歧最大的那一维，给 Q1~Q3 的区间，说明这意味着什么）。',
-    '4. 第三段：给班主任一到两条**可执行**的建议（比如班会怎么设计、哪些人容易被忽略），不要空话。',
+    '4. 第三段：给一到两条可执行的自愿班级活动建议，如匿名收集偏好、提供不同活动选项。不要从类型或分值推断某类同学的需要、风险或是否被忽略。',
     '5. 只能说上面给的数据能支撑的结论。**不要编造数据里没有的信息**（不要提学校名、不要提具体人名、不要提问卷没有的维度）。',
     '6. 语气像个有经验、不端着的老师：具体、克制、不煽情。不用 emoji，不用感叹号。',
     '',
@@ -91,6 +92,9 @@ export function buildCohortSystemPrompt() {
     '   个别很高或很低的个案只能作为例子提一句，不能代表整体。',
     '9. **样本少时要谨慎。** 如果有效样本少于 8 人，不要断言"这个班的整体气质"或',
     '   "分歧最大"，改成"人数太少，这份结果只能当参考，看不出稳定规律"。',
+    '10. IQR 较宽只能说明中间一半样本的范围较宽；不能推出两极分化、中间人少、两头人多、某个区间的人数或个别同学的情况。中位数也不能证明大多数人怎样。',
+    '11. 各维度来自自报选项与模拟基准，不是能力、成绩或人格。不要把学术力当作学业成绩，不要把社交位置低写成社交差，不要把佛系指数写成躺平或学习态度。',
+    '12. 建议仅面向自愿参与的班级活动，如匿名收集偏好、提供不同活动选项。不能根据这份匿名汇总点名、识别或筛查任何同学，也不要按“强弱”替个人安排结对。',
   ].join('\n');
 }
 
@@ -111,24 +115,19 @@ export function cohortFallbackText(cohort) {
   if (!cohort || !cohort.size) return '';
   const { size, most, groups, divergent, axes } = cohort;
   if (size < THRESHOLDS.minRecordsForCohort) {
-    return `目前只有 ${size} 份有效作答，样本太少，只能查看个体分布，不能据此判断整个班级。\n\n可以继续收集不同同学的档案，再一起导入。\n\n（本地规则解读；未调用大模型。）`;
+    return `目前只有 ${size} 份有效作答，样本太少，只能查看个体分布，不能据此判断整个班级。\n\n可以继续收集不同同学的作答，再查看更新后的汇总。\n\n（本地规则解读；未调用大模型。）`;
   }
   const empty = groups.filter((g) => g.count === 0);
   const top2 = [...groups].sort((a, b) => b.count - a.count).slice(0, 3);
   const P = [];
 
   /* 第一段：整体气质 */
-  const p1 = [`这个班 ${size} 个人，${most.name}最多，${most.count} 人，占 ${most.pct}%。`];
+  const p1 = [`这 ${size} 份有效作答中，${most.name}最多，${most.count} 人，占 ${most.pct}%。`];
   if (top2[1]) {
-    p1.push(`其次是${top2[1].name}（${top2[1].count} 人，${top2[1].pct}%），两者合起来接近${Math.round(((top2[0].count + top2[1].count) / size) * 100)}%。`);
+    p1.push(`另外，${top2[1].name}有 ${top2[1].count} 人，占 ${top2[1].pct}%；这两类合计约 ${Math.round(((top2[0].count + top2[1].count) / size) * 100)}%。`);
   }
-  if (empty.length === 1) p1.push(`一个${empty[0].name}都没有。`);
-  else if (empty.length > 1) p1.push(`没有${empty.map((g) => g.name).join('、')}。`);
-  p1.push(
-    top2[0].pct >= THRESHOLDS.concentratedPct
-      ? '这个班的倾向相当集中，一件事拉得动大多数人。'
-      : '分布比较分散，说明这个班不是一种人，做班级决定时要考虑两拨人的不同需要。'
-  );
+  if (empty.length) p1.push(`本批答卷没有归入${empty.map((g) => g.name).join('、')}的记录。`);
+  p1.push('这描述的是按固定规则得到的分组，不能据此推断同学的共同需要或活动意愿。');
   P.push(p1.join(''));
 
   /* 第二段：最不一样的地方 */
@@ -141,7 +140,7 @@ export function cohortFallbackText(cohort) {
     p2.push(
       wide
         ? '中间一半人的位置跨度较大，说明作答存在差异；仅凭这个区间，不能判断是否两极分化。'
-        : '这个跨度不算大，说明这一项上大家比较接近。'
+        : '中间一半答卷的位置比较接近；这不表示所有人的选择都相同。'
     );
     const sorted = [...axes].sort((a, b) => b.iqr - a.iqr);
     if (sorted[1]) p2.push(`相对最一致的是「${sorted[sorted.length - 1].axis}」（离散度 ${sorted[sorted.length - 1].iqr}）。`);
@@ -150,13 +149,9 @@ export function cohortFallbackText(cohort) {
 
   /* 第三段：可执行建议 */
   const p3 = [];
-  if (divergent && divergent.iqr >= THRESHOLDS.divergentIqr) {
-    p3.push('建议：组织班级活动前，先用简短的匿名反馈了解实际需求，再提供不同参与方式；这份画像可以帮助提出问题，不能代替同学自己的意见。');
-  } else {
-    p3.push('建议：这个班比较同质，适合用统一的任务推进；但也要留意少数几类占比很小的人，他们容易被"多数人的节奏"盖过去。');
-  }
+  p3.push('建议：组织班级活动前，先自愿、匿名地询问参与意愿和时间安排，再提供可选择的参与方式；这份画像可以帮助提出问题，不能代替同学自己的意见。');
   if (empty.length) {
-    p3.push(`另外，${empty.map((g) => g.name).join('、')}的人数目前是 0 —— 这不是问题，但如果一个类型长期为 0，可以想想是问卷没问到位，还是班里确实缺少这类兴趣的入口。`);
+    p3.push(`目前${empty.map((g) => g.name).join('、')}的归类人数为 0，只表示本批答卷没有被归入这些类型，不代表同学没有相关兴趣。`);
   }
   P.push(p3.join(''));
 

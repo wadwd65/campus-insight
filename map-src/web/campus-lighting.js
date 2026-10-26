@@ -1,6 +1,6 @@
 export const LIGHTING={
-  daylight:{label:'晴日校园',sky:0xc9dfe7,bounce:0x899078,ambient:.66,sun:0xfff2df,strength:1.12,exposure:1,ground:0xffffff,roof:0xffffff,stone:0xffffff,shadowOpacity:.27},
-  golden:{label:'暖金傍晚',sky:0xcbd8df,bounce:0x9c927e,ambient:.68,sun:0xffe0b0,strength:1.1,exposure:1.04,ground:0xffffff,roof:0xf5f2ed,stone:0xfff3e3,shadowOpacity:.29},
+  daylight:{label:'晴朗蓝天',sky:0xdcebf6,bounce:0x8e9879,ambient:.84,sun:0xffeed0,strength:1.04,exposure:1.0,ground:0xffffff,roof:0xfffcf2,stone:0xfffdf5,shadowOpacity:.25,skyTop:'#70afe0',skyBottom:'#d8ebf7',glow:'#ffe2b640'},
+  golden:{label:'杏金傍晚',sky:0xf3dec5,bounce:0xa88f70,ambient:.84,sun:0xffd19b,strength:.95,exposure:.98,ground:0xfff7e8,roof:0xffefd8,stone:0xfff4e2,shadowOpacity:.23,skyTop:'#e5d5c3',skyBottom:'#f2e3ce',glow:'#ffd28d8c'},
 };
 
 // Orthographic sunlight projection in world X/Z. Heights and scene units are
@@ -24,7 +24,7 @@ function convexHull(points){
 export function createStaticShadowLayer(T,campus,canvas){
   const bounds=campus.ground.geometry.boundingBox,spanX=bounds.max.x-bounds.min.x,spanZ=bounds.max.z-bounds.min.z;
   const texture=new T.CanvasTexture(canvas);texture.minFilter=T.LinearFilter;texture.magFilter=T.LinearFilter;texture.generateMipmaps=false;
-  const material=new T.MeshBasicMaterial({map:texture,color:0x253b46,transparent:true,opacity:.3,depthWrite:false});
+  const material=new T.MeshBasicMaterial({map:texture,color:0x685b49,transparent:true,opacity:.3,depthWrite:false});
   const layer=new T.Mesh(campus.ground.geometry.clone(),material);layer.name='static-sun-shadow';layer.position.y=.82-.04;layer.renderOrder=2;
   campus.root.add(layer);
   let bakes=0;
@@ -37,7 +37,7 @@ export function createStaticShadowLayer(T,campus,canvas){
     for(const caster of campus.shadowCasters){
       if(caster.kind==='tree'){
         const dx=-Math.cos(angle)*caster.y*.65,dz=-Math.sin(angle)*caster.y*.65,[x,y]=pixel(caster.x+dx,caster.z+dz);
-        context.beginPath();context.ellipse(x,y,caster.w/spanX*w*.48,caster.d/spanZ*h*.48,-(caster.rotation||0),0,Math.PI*2);context.fill();
+        for(let lobe=0;lobe<7;lobe++){const a=lobe*2.4+(caster.rotation||0),rx=caster.w/spanX*w,ry=caster.d/spanZ*h;context.beginPath();context.ellipse(x+Math.cos(a)*rx*.19,y+Math.sin(a)*ry*.19,rx*(.23+(lobe%2)*.04),ry*.25,-(caster.rotation||0),0,Math.PI*2);context.fill();}
       }else{
         const hull=shadowHull(caster,angle);context.beginPath();hull.forEach((p,i)=>{const[x,y]=pixel(...p);i?context.lineTo(x,y):context.moveTo(x,y);});context.closePath();context.fill();
       }

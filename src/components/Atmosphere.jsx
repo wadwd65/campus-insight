@@ -25,6 +25,7 @@ import { loadSlim } from '@tsparticles/slim';
 const initEngine = async (engine) => {
   await loadSlim(engine);
 };
+let softwareRenderer;
 
 export default function Atmosphere({ variant = 'scene', zIndex = 0 }) {
   const [particlesOn, setParticlesOn] = useState(false);
@@ -32,16 +33,22 @@ export default function Atmosphere({ variant = 'scene', zIndex = 0 }) {
   /* 检测软件渲染（SwiftShader 等）：软渲染下 canvas 粒子逐帧绘制极吃 CPU，
      是"浏览器关了硬件加速"时的卡顿主源 —— 这种环境直接不渲染粒子。 */
   function isSoftwareRenderer() {
+    if (softwareRenderer !== undefined) return softwareRenderer;
+    let gl;
     try {
       if (typeof WebGLRenderingContext === 'undefined') return true;
       var cv = document.createElement('canvas');
-      var gl = cv.getContext('webgl');
+      gl = cv.getContext('webgl');
       if (!gl) return true;
       var ext = gl.getExtension('WEBGL_debug_renderer_info');
       var name = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '') : '';
-      return /swiftshader|software|llvmpipe|basic render/i.test(name);
+      softwareRenderer = /swiftshader|software|llvmpipe|basic render/i.test(name);
+      return softwareRenderer;
     } catch (e) {
       return true;
+    } finally {
+      // The probe must not retain an extra GPU context alongside the actual effects.
+      gl?.getExtension('WEBGL_lose_context')?.loseContext();
     }
   }
 
@@ -52,13 +59,15 @@ export default function Atmosphere({ variant = 'scene', zIndex = 0 }) {
        粒子不会卸载（动画已被 CSS 关掉，但 canvas 还在跑）。
        这里挂监听，设置一变就跟着开/关。
        ★ 再加一条：软渲染环境（浏览器关硬件加速）也不渲染粒子。 */
-    const sync = () => setParticlesOn(!mq.matches && !isSoftwareRenderer());
+    const sync = () => setParticlesOn(document.visibilityState !== 'hidden' && !mq.matches && !isSoftwareRenderer());
     sync();
     if (mq.addEventListener) mq.addEventListener('change', sync);
     else mq.addListener(sync);                       // 老 Safari
+    document.addEventListener('visibilitychange', sync);
     return () => {
       if (mq.removeEventListener) mq.removeEventListener('change', sync);
       else mq.removeListener(sync);
+      document.removeEventListener('visibilitychange', sync);
     };
   }, []);
 

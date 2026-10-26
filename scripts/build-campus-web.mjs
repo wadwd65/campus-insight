@@ -15,7 +15,7 @@ if(new Set(places.map(p=>p.key)).size!==places.length)throw new Error('Duplicate
 if(!layout.reference||layout.boundary.length<3||layout.lake.length<3)throw new Error('Missing layout reference or polygon');
 for(const p of places)if(!Number.isFinite(p.px)||!Number.isFinite(p.py))throw new Error('Invalid place position: '+p.id);
 fs.mkdirSync(target,{recursive:true});
-for(const name of ['campus-boot.js','campus-app.js','campus-scene.js','campus-model.js','campus-lighting.js','campus.css'])fs.copyFileSync(path.join(source,'web',name),path.join(target,name));
+for(const name of ['campus-boot.js','campus-app.js','campus-scene.js','campus-model.js','campus-lighting.js','campus-water.js','campus-walk.js','campus-play.js','campus-character.js','campus-visibility.js','campus-performance.js','campus-detail.js','campus-atmosphere.js','campus-textures.js','campus.css'])fs.copyFileSync(path.join(source,'web',name),path.join(target,name));
 fs.copyFileSync(path.join(source,'web','index.html'),path.join(target,'校园地图-3D实景.html'));
 fs.copyFileSync(path.join(source,'three-packed.js'),path.join(target,'three-r149.min.js'));
 fs.writeFileSync(path.join(target,'campus-data.json'),JSON.stringify({...layout,places}));

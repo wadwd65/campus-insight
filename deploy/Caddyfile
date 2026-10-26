@@ -1,0 +1,6 @@
+{$CAMPUS_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy app:5191 {
+    flush_interval -1
+  }
+}

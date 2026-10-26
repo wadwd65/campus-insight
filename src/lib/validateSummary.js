@@ -25,6 +25,8 @@
  *  ★ 10-14 导出：群体版校验器（validateCohortSummary.js）要复用同一份词表。
  *    只加 export，不改值、不改行为 —— 两份校验器用不同词表，
  *    等于同一个禁忌在不同页面有不同标准，早晚有一边漏。 */
+import { QUESTIONS } from './surveySchema.js';
+
 export const FORBIDDEN_WORDS = [
   '雷达图', '百分位', '算法', '模型', '报告显示', '数据显示', '根据数据',
 ];
@@ -107,6 +109,19 @@ export function validateSummary(text, { facts = null, minLen = 60, tolerance = 1
 
   // ⑤ 编造数字：文本里出现的百分数必须能追溯到白名单
   if (facts) {
+    const chosen = new Set((facts.choices ?? []).map((choice) => choice.value).filter(Boolean));
+    const known = new Set(QUESTIONS.flatMap((question) => question.options.map((option) => option.text)));
+    for (const quote of s.matchAll(/[「“]([^」”]+)[」”]/g)) {
+      if (!known.has(quote[1]) || chosen.has(quote[1])) continue;
+      const preceding = s.slice(0, quote.index).split(/[。！？\n]/).at(-1);
+      if (!/可以|不妨|试试|下次|如果|建议/.test(preceding)) issues.push({ type: 'invented-answer', detail: '把未选的选项写成了用户的回答' });
+    }
+    for (const sentence of s.split(/[。！？\n]/)) {
+      if (/(?:大[一二三四]|开学第一周|之后四年|你这四年过得)/.test(sentence) && !/规则|推算|不是实测|不代表真实|并非真实/.test(sentence)) {
+        issues.push({ type: 'ungrounded-narrative', detail: '把未提供的大学经历或年级变化写成事实' });
+        break;
+      }
+    }
     const allowed = allowedPercents(facts);
     if (allowed.size) {
       for (const p of percentsIn(s)) {

@@ -31,6 +31,7 @@ import { MonoTag, SectionHead } from './TermHead.jsx';
 import NavButton from './NavButton.jsx';
 import { mergeCsvTexts } from '../lib/exportProfile.js';
 import { decodeCsvBytes } from '../lib/decodeCsv.js';
+import { loadSampleCohort } from '../data/loadSample.js';
 
 const SAMPLE_FILE = '示例-班级问卷.csv';
 
@@ -140,10 +141,9 @@ export default function UploadPanel({ onReady, onBack }) {
 
   async function useSample() {
     setBusy(true);
+    setError(null);
     try {
-      const res = await fetch(`${import.meta.env.BASE_URL}data/${SAMPLE_FILE}`);
-      if (!res.ok) throw new Error(String(res.status));
-      ingest(await res.text(), `${SAMPLE_FILE}（模拟数据）`);
+      setResult(await loadSampleCohort());
     } catch {
       setError({
         title: '示例数据加载失败',

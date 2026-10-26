@@ -25,6 +25,7 @@ export default function CohortAi({ cohort, className = '' }) {
   const [pending, setPending] = useState(true);
   const [reason, setReason] = useState(null);
   const [round, setRound] = useState(0);
+  const [status, setStatus] = useState(llmStatus);
 
   useEffect(() => {
     if (!cohort || !cohort.size) return undefined;
@@ -35,6 +36,8 @@ export default function CohortAi({ cohort, className = '' }) {
     setReason(null);
 
     streamSummary({
+      className,
+      onStatus: setStatus,
       report: null,                                   // 群体链路不用个人报告
       request: buildCohortRequest(cohort, { className }),
       fallback: () => cohortFallbackText(cohort),
@@ -59,7 +62,6 @@ export default function CohortAi({ cohort, className = '' }) {
   }, [cohort, className, round]);
 
   const paragraphs = body.split(/\n{2,}/).filter(Boolean);
-  const status = llmStatus();
 
   return (
     <TermPanel style={{ padding: '20px 22px' }}>
@@ -69,7 +71,7 @@ export default function CohortAi({ cohort, className = '' }) {
           className="term-mono text-[11px] tracking-[0.2em] px-1.5 py-0.5"
           style={{ color: '#fff', background: BRAND }}
         >
-          {pending ? '解读中' : reason ? '本地规则解读' : 'AI 实时解读'}
+          {pending ? (status.configured ? 'AI 正在解读' : '正在准备解读') : reason ? '本地规则解读' : 'AI 实时解读'}
         </span>
         <span className="term-mono text-[11px] tracking-[0.18em] text-[var(--ink-soft)]">
           群体解读
@@ -101,10 +103,10 @@ export default function CohortAi({ cohort, className = '' }) {
       <div className="mt-5 pt-4 border-t border-[var(--line)] flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-xs text-[var(--ink-soft)] flex-1 min-w-[12rem]">
           {pending
-            ? '正在写这个班的解读…'
+            ? (status.configured ? '正在写这个班的解读…' : '正在检查解读服务…')
             : reason
               ? `${reasonText(reason)}；图表与统计不受影响。`
-              : `由大模型实时生成${status.model ? `（${status.model}）` : ''}。只发送算好的分布与分位，不发送任何原始作答。`}
+              : `由大模型实时生成${status.model ? `（${status.model}）` : ''}。只发送汇总统计，不发送原始作答；活动建议需再向同学确认。`}
         </span>
         {!pending && status.configured && (
           <button

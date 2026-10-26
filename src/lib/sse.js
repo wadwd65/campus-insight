@@ -112,47 +112,46 @@ export function joinDeltas(events) {
  * @param {{onDelta?: (s: string) => void, maxChars?: number}} options
  * @returns {Promise<string>} 完整正文
  */
-export async function consumeSseStream(body, { onDelta, maxChars = Infinity } = {}) {
+export async function consumeSseStream(body, { onDelta, maxChars = Infinity, requireDone = false } = {}) {
   const reader = body.getReader();
   const decoder = new TextDecoder('utf-8');
   const buffer = createSseBuffer();
 
   let acc = '';
   let stopped = false;
+  let receivedDone = false;
 
-  // 逐块读，而不是 await res.text() —— 后者要等全部生成完，
-  // "正在写"的效果就没了，变成单纯转圈等待，那这一步就白做了
-  while (!stopped) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    for (const ev of buffer.push(decoder.decode(value, { stream: true }))) {
-      if (ev === DONE) {
-        stopped = true;
-        break;
-      }
-      acc += ev;
-      onDelta?.(ev);
-      // 上限判断放在**回调之后**：先让人看见这一段，再收手。
-      // 反过来的话，最后那一段只会出现在最终成稿里、不会出现在打字过程中，
-      // 视觉上就是「字打完了又自己蹦出来一个」。
-      // 代价是正文可能比上限多出最后一段的长度 —— 这个代价换得来。
-      if (acc.length >= maxChars) {
-        stopped = true;
-        break;
+  try {
+    while (!stopped) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const ev of buffer.push(decoder.decode(value, { stream: true }))) {
+        if (ev === DONE) {
+          receivedDone = true;
+          stopped = true;
+          break;
+        }
+        acc += ev;
+        await onDelta?.(ev);
+        if (acc.length >= maxChars) {
+          stopped = true;
+          break;
+        }
       }
     }
-  }
-
-  // 被 DONE / 上限截停的，尾部不补；自然读完的，补最后一行
-  // （有些服务的最后一行没有换行符，不补就安静地丢掉几个字）
-  if (!stopped) {
-    const tail = joinDeltas(buffer.flush());
-    if (tail) {
-      acc += tail;
-      onDelta?.(tail);
+    if (!stopped) {
+      const events = buffer.flush();
+      receivedDone = events.includes(DONE);
+      const tail = joinDeltas(events);
+      if (tail) {
+        acc += tail;
+        await onDelta?.(tail);
+      }
     }
+    if (requireDone && !receivedDone) throw new Error('incomplete-stream');
+    return acc;
+  } finally {
+    try { await reader.cancel(); } catch { /* A disconnected upstream may already be closed. */ }
+    reader.releaseLock();
   }
-
-  return acc;
 }

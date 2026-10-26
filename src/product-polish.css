@@ -1,0 +1,47 @@
+/* One product language: forest ink, warm paper, restrained depth. Motion is finite. */
+.account-entry { display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:44px; padding:10px 17px; border:1px solid #2c6858; border-radius:8px; background:#285f50; color:#fffef5; font-size:12px; font-weight:600; box-shadow:0 5px 14px -9px #183f36; transition:background .18s,transform .18s; }
+.account-entry>span:first-of-type { max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.account-entry:hover { background:#1e4f42; transform:translateY(-1px); }
+.account-entry:focus-visible { outline:3px solid #ae7c33; outline-offset:3px; }
+.account-entry:active { transform:translateY(0); }
+.landing-header-tools { gap:22px; }
+.landing-header { border-color:#496d5726; }
+.landing-actions .landing-action { border-radius:9px; }
+.landing-classroom { border-radius:10px; }
+.landing-method { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:26px; padding:29px 0 12px; border-top:1px solid #42665d24; margin-top:26px; }
+.landing-method>div { padding-left:17px; border-left:2px solid #b3bc9b; }
+.landing-method span { font:9px/1.5 ui-monospace,monospace; letter-spacing:.1em; color:#657365; }
+.landing-method h3 { font-size:14px; font-weight:650; color:#284c3e; margin:8px 0; }
+.landing-method p { font-size:11px; color:#546a5b; line-height:1.9; }
+.landing-tools { justify-content:space-between; }
+.hub-hud { position:sticky; top:0; z-index:40; border-color:#c5d3c5!important; background:#fafcf5f2!important; box-shadow:0 4px 18px #244c3407; }
+.hub-hud>div { padding-block:12px!important; }
+.hub-hud .account-entry { order:5; }
+.hub-hud .hud-replay { background:transparent!important; box-shadow:none!important; border-color:transparent!important; color:#5b7162!important; }
+.hub-hud .term-mono { color:#597060!important; }
+.app-circles { padding-block:32px; }
+.app-circles ~ footer { margin-top:20px; }
+.app-content :is(input,select,textarea):focus-visible { outline:3px solid #b28546; outline-offset:3px; }
+.ui-spinner { display:inline-block; width:15px; height:15px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; vertical-align:middle; animation:ui-spin .8s linear infinite; }
+@keyframes ui-spin { to { transform:rotate(360deg); } }
+@media(max-width:700px) {
+ .landing-header-tools { flex-direction:row; align-items:center; gap:8px; }
+ .landing-header .landing-status { display:none; }
+ .landing-brand b { font-size:12px; letter-spacing:.02em; }
+ .landing-brand svg { width:26px; height:26px; }
+ .account-entry { gap:7px; padding:9px 11px; font-size:11px; }
+ .account-entry>span:first-of-type { max-width:140px; }
+ .landing-method { grid-template-columns:1fr; gap:19px; margin-top:20px; padding-block:23px 8px; }
+ .landing-method>div { padding-left:15px; }
+ .landing-method p { margin:0; }
+ .landing-method h3 { margin:5px 0; }
+ .hub-hud .hud-replay { display:none; }
+ .hub-hud .term-mono.text-\[11px\] { display:none; }
+ .hub-hud .account-entry { margin-left:auto; }
+ .app-circles { padding:24px 18px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ .account-entry,.landing-action { transition:none; }
+ .account-entry:hover { transform:none; }
+ .ui-spinner { animation:none; border-style:dotted; }
+}

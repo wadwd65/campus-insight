@@ -18,13 +18,16 @@ import RadarChart from './RadarChart.jsx';
 import TimeDonut from './TimeDonut.jsx';
 import MoodCurve from './MoodCurve.jsx';
 import FactsCard from './FactsCard.jsx';
+import CampusKeepsake from './CampusKeepsake.jsx';
 import AiSummary from './AiSummary.jsx';
+import ProfileExplanation from './ProfileExplanation.jsx';
 import { MonoTag, ArchiveSectionHead } from './TermHead.jsx';
 import { labelOf, QUESTIONS } from '../lib/surveySchema.js';
 import GeometricBackdrop from './GeometricBackdrop.jsx';
 import NavButton from './NavButton.jsx';
 import { buildProfileCsv, makeProfileId, downloadText } from '../lib/exportProfile.js';
 import { downloadReportCard, reportIdentity } from '../lib/reportCard.js';
+import './survey-guidance.css';
 
 /** 插图路径统一走这里：换目录只改一行，且 base 路径交给 Vite（部署到子路径也不会 404）。 */
 const ART = (f) => `${import.meta.env.BASE_URL}art/ark/${f}`;
@@ -54,6 +57,7 @@ export default function ReportView({
   onGoMap,
   onRestart,
   onBackToMap,
+  submissionPanel,
 }) {
   const report = useMemo(
     () =>
@@ -80,6 +84,7 @@ export default function ReportView({
   const [cardState, setCardState] = useState('idle');
   const titleRef = useRef(null);
   const [exported, setExported] = useState(false);
+  const [showGuide, setShowGuide] = useState(true);
 
   useEffect(() => {
     titleRef.current?.focus({ preventScroll: true });
@@ -174,15 +179,35 @@ export default function ReportView({
   const sections = useMemo(
     () =>
       [
-        { n: 1, title: '这一轮你是怎么走的' },
-        { n: 2, title: '大学生活者画像' },
-        { n: 3, title: '时间去哪了' },
-        { n: 4, title: '四年心情曲线' },
-        { n: 5, title: '人群冷知识' },
-        { n: 6, title: '给你的话' },
-      ].filter((x) => x.n !== 1 || (trail?.length ?? 0) > 0),
+        ...((trail?.length ?? 0) > 0 ? ['这一轮你是怎么走的'] : []),
+        '大学生活者画像',
+        '时间去哪了',
+        '四年心情曲线',
+        '人群冷知识',
+        '给你的话',
+      ].map((title, index) => ({ n: index + 1, title })),
     [trail],
   );
+
+  function scrollWithinReport(event) {
+    // App owns location.hash for routes; report chapters must not replace that route.
+    event.preventDefault();
+    const destination = event.currentTarget.getAttribute('href');
+    const target = destination?.startsWith('#') ? document.getElementById(destination.slice(1)) : null;
+    if (!target) return;
+    setStep(4);
+    if (target.tagName === 'DETAILS') target.open = true;
+    const focusTarget = target.id === 'archive-top'
+      ? titleRef.current ?? target
+      : target.querySelector('h2, h3, summary, button') ?? target;
+    if (!focusTarget.matches('a[href], button, input, select, textarea, summary') && !focusTarget.hasAttribute('tabindex')) {
+      focusTarget.setAttribute('tabindex', '-1');
+    }
+    focusTarget.setAttribute('data-report-scroll-focus', '');
+    focusTarget.focus({ preventScroll: true });
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth', block: 'start' });
+  }
 
   return (
     <div className="archive" id="archive-top">
@@ -221,11 +246,12 @@ export default function ReportView({
               <a
                 key={sec.n}
                 href={`#sec-${sec.n}`}
+                onClick={scrollWithinReport}
                 title={sec.title}
                 aria-label={`跳到第 ${sec.n} 节：${sec.title}`}
                 className={sec.n <= step + 1 ? 'is-long' : ''}
               >
-                <i />
+                <i aria-hidden="true" /><span>{sec.title}</span>
               </a>
             ))}
           </nav>
@@ -233,6 +259,12 @@ export default function ReportView({
 
         {/* ── 主栏 ────────────────────────────────────────── */}
         <article className="archive-main" aria-label="个人校园档案">
+          <div className="report-user-guide" aria-label="报告使用指引">
+            <div className="survey-help-heading"><p className="survey-question-kicker">{submissionPanel ? '我的档案 · 可提交到圈子' : fromMap ? '行动地图报告' : '个人报告 · 本机预览'}</p><button type="button" onClick={() => setShowGuide((visible) => !visible)} aria-expanded={showGuide} aria-controls="report-reading-help">{showGuide ? '跳过说明' : '查看使用说明'}</button></div>
+            <div id="report-reading-help" hidden={!showGuide}><h2>报告已生成，下一步这样做</h2><p>{submissionPanel ? '想把这份答案交到圈子？直接点下方“提交到我的圈子”，选好圈子并确认共享即可，管理员本人也能提交。' : '这是根据你的选择计算的校园生活画像。先看图表和解释，喜欢的话可以保存为图片或复制文字。'}</p><p className="report-guide-note">{submissionPanel ? '只有勾选同意并确认提交后才会保存到圈子，提交成功会有明确提示。' : '生成个人报告不会把答卷交给管理员；在线 AI 解读是单独的服务，状态会在「给你的话」中说明。'}</p></div>
+            <div className="report-guide-links"><a href={submissionPanel ? '#report-submission' : trail?.length ? '#sec-2' : '#sec-1'} onClick={scrollWithinReport}>{submissionPanel ? '查看填报与提交状态' : '先看我的画像'} <span aria-hidden="true">↓</span></a><a href="#report-save-actions" onClick={scrollWithinReport}>保存或复制报告 <span aria-hidden="true">↓</span></a></div>
+          </div>
+          {submissionPanel && <div id="report-submission" className="report-submission-target">{submissionPanel}</div>}
           <header className="archive-head">
             <p className="archive-head-kicker">你的称号&nbsp;/&nbsp;DESIGNATION</p>
             <h1 ref={titleRef} tabIndex={-1} className="archive-title" style={{ fontSize: titleSize }}>
@@ -251,21 +283,24 @@ export default function ReportView({
             <div className="report-highlights" aria-label="画像中数值较高的三项">
               {[...report.radar].sort((a,b) => b.value - a.value).slice(0,3).map((d) => <div key={d.key}><span>{d.axis}</span><b>{d.value}<small>百分位</small></b></div>)}
             </div>
-            <div className="report-quick-actions">
+            <div className="report-quick-actions" id="report-save-actions" aria-label="保存与分享报告">
               <button type="button" className="report-save-card" disabled={cardState === 'saving'} onClick={async () => {
                 setCardState('saving');
                 try { await downloadReportCard(report, { id: meta.id, closing }); setCardState('saved'); }
                 catch { setCardState('error'); }
               }}>{cardState === 'saving' ? '正在生成…' : cardState === 'saved' ? '再次保存档案卡 ↓' : '保存我的档案卡 ↓'}</button>
               <button type="button" onClick={copyText}>{copied ? '已复制 ✓' : '复制文字版'}</button>
-              <a href={trail?.length ? '#sec-2' : '#sec-1'}>往下看完整画像 <span aria-hidden="true">↓</span></a>
+              <a href={trail?.length ? '#sec-2' : '#sec-1'} onClick={scrollWithinReport}>往下看完整画像 <span aria-hidden="true">↓</span></a>
             </div>
             <div className="report-action-status" role="status">
+              {copied && '已复制到剪贴板，可以粘贴到聊天或文档中。'}
               {cardState === 'saved' && '档案卡已生成，请在浏览器下载中查看。'}
               {cardState === 'error' && '图片未能生成，你仍然可以复制文字版或导出答题数据。'}
               {copyFailed && <>当前浏览器无法复制，<button type="button" onClick={() => downloadText(`campus-insight-${meta.id}.txt`, plainText, 'text/plain;charset=utf-8')}>下载文字版</button>。</>}
             </div>
           </header>
+
+      <CampusKeepsake answers={report.answers} onSkip={scrollWithinReport} reportLink={trail?.length?'#sec-2':'#sec-1'} />
 
       <div className="space-y-10">
         {/* ★ 10-14 B+C（B3）：这一块**两种路径都有**。
@@ -327,12 +362,13 @@ export default function ReportView({
                     ))}
                 </ul>
                 <p style={{ fontSize: 12.5 }}>
-                  数值来自映射矩阵 + 百分位归一化，在你的浏览器里本地算出，
-                  不经过服务器；基准是 2000 条模拟数据。
+                  统计由浏览器按映射矩阵与模拟基准本地计算。启用在线解读时，
+                  仅发送作答与统计摘要生成文字，原始 CSV 文件不发送。
                 </p>
               </div>
             </div>
           </div>
+          <ProfileExplanation report={report} baseline={baseline} trail={trail} />
         </Section>
 
         {/* ★ 10-13 审查补注（任务书 P2#7）：时间分配与四年曲线都由百分位经固定公式
@@ -410,7 +446,7 @@ export default function ReportView({
                 className="text-[12.5px] mt-1.5 leading-[1.8]"
                 style={{ color: 'var(--ink-on-paper-soft)', maxWidth: '56ch' }}
               >
-                用四个时段安排一次校园漫游。地图行动会叠加到这份问卷画像上，
+                用行动地图安排四个时段。地点选择会叠加到这份问卷画像上，
                 回来可以对比探索前后的变化。
               </p>
             </div>
@@ -425,7 +461,7 @@ export default function ReportView({
                 background: 'none',
               }}
             >
-              去地图上走一遍 →
+              安排我的校园一天 →
             </button>
           </div>
         </div>
@@ -437,7 +473,7 @@ export default function ReportView({
             次按钮 = 白底 + 描边 + 悬停抬起（明确"也可以点这里"）
             三级（回地图）= 只留文字，不加框 —— 它是"离开"，不该抢主按钮 */}
       <div className="flex flex-wrap items-center gap-3 mt-12 pt-8 border-t border-[var(--line)]">
-        <a href="#archive-top" className="report-back-top">回到档案顶部 ↑</a>
+        <a href="#archive-top" className="report-back-top" onClick={scrollWithinReport}>回到档案顶部 ↑</a>
 
         {/* ★ 10-17：子端的出口。只在问卷路径出现（地图路径没有 answers）。
             它比"复制文字版"更重要 —— 复制出去是一段话，导出出去是一份
@@ -452,7 +488,7 @@ export default function ReportView({
               color: 'var(--ark-deep)',
               background: 'rgba(255,255,255,0.9)',
             }}
-            title="导出一份 CSV，发到班群；管理员收齐后可在「上传」页导入"
+            title="可选：下载自己的十题答案副本。在线填报请在本页核对并确认提交，无需传文件。"
           >
             {exported ? '已导出答题数据 ✓' : '导出答题数据 CSV'}
           </button>

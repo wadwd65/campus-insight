@@ -42,6 +42,13 @@ const REQUIRED = [
   'map/campus-scene.js',
   'map/campus-model.js',
   'map/campus-lighting.js',
+  'map/campus-water.js',
+  'map/campus-walk.js', 'map/campus-visibility.js', 'map/campus-performance.js',
+  'map/campus-play.js',
+  'map/campus-character.js',
+  'map/campus-detail.js',
+  'map/campus-atmosphere.js',
+  'map/campus-textures.js',
   'map/campus.css',
   'map/campus-data.json',
   'data/示例-班级问卷.csv',                            // 示例数据（评委一键试）

@@ -22,7 +22,7 @@ import { fallbackText } from '../lib/fallback.js';
 import TermPanel from './TermPanel.jsx';
 
 const REASON_TEXT = {
-  'not-configured': '页面没有配置大模型接口，这里是内置文案',
+  'not-configured': '在线解读服务尚未连接，这里是本地规则文案',
   timeout: '大模型接口超时，已切回内置文案',
   empty: '大模型这次没写出内容，已切回内置文案',
   truncated: '大模型这次没写完，已切回内置文案',
@@ -40,6 +40,7 @@ function reasonText(reason) {
     const code = Number(m[1]);
     if (code === 401 || code === 403) return '大模型接口密钥无效，已切回内置文案';
     if (code === 429) return '大模型接口限流了，已切回内置文案';
+    if (code === 402) return '模型服务余额不足，已切回本地规则解读';
     return `大模型接口返回 ${code}，已切回内置文案`;
   }
   return '大模型接口暂时不可用，已切回内置文案';
@@ -50,6 +51,7 @@ export default function AiSummary({ report, name = '', onText }) {
   const [pending, setPending] = useState(true);
   const [reason, setReason] = useState(null);
   const [round, setRound] = useState(0);
+  const [status, setStatus] = useState(llmStatus);
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -63,6 +65,7 @@ export default function AiSummary({ report, name = '', onText }) {
     streamSummary({
       report,
       name,
+      onStatus: setStatus,
       signal: ctrl.signal,
       onDelta: (d) => {
         acc += d;
@@ -98,12 +101,11 @@ export default function AiSummary({ report, name = '', onText }) {
   }, [report, name, round]);
 
   const paragraphs = body.split(/\n{2,}/).filter(Boolean);
-  const status = llmStatus();
 
   return (
     <TermPanel style={{ padding: '20px 22px' }}>
       <p className="summary-mode" role="status">
-        {pending ? (status.configured ? 'AI 正在解读' : '本地规则解读') : reason ? '本地规则解读' : 'AI 实时解读'}
+        {pending ? (status.configured ? 'AI 正在解读' : '正在准备解读') : reason ? '本地规则解读' : 'AI 实时解读'}
       </p>
       {paragraphs.length === 0 ? (
         <p className="text-sm text-[var(--ink-soft)] flex items-center gap-2">
@@ -126,10 +128,10 @@ export default function AiSummary({ report, name = '', onText }) {
       <div className="mt-5 pt-4 border-t border-[var(--line)] flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-xs text-[var(--ink-soft)] flex-1 min-w-[12rem]">
           {pending
-            ? '内容由大模型实时生成中…'
+            ? (status.configured ? '正在通过在线模型生成解读…' : '正在检查解读服务…')
             : reason
               ? `${reasonText(reason)}。图表与百分位不受影响。`
-              : `由大模型实时生成${status.model ? `（${status.model}）` : ''}。内容基于上面这些数字，不含你的任何上传。`}
+              : `由大模型实时生成${status.model ? `（${status.model}）` : ''}。只发送作答与统计摘要，不发送原始 CSV 文件；请结合实际生活核对解读。`}
         </span>
         {!pending && status.configured && (
           <button

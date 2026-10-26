@@ -1,0 +1,126 @@
+/* The main task stays visible; exploration is a quieter, optional second layer. */
+:root { --campus-ink:#244b3d; --campus-muted:#5a7062; --campus-line:#cbd7c5; --campus-paper:#fffef7; --campus-green:#2b6653; --campus-gold:#b88d51; }
+.landing-page .entry-sky { background-image:linear-gradient(100deg,#f6f8eeed,#f5f8e8cc 50%,#eef4e5a8),url('/art/ark/sky.webp'); background-position:center,center 40%; }
+.site-preview-notice { margin-bottom:17px; padding:12px 17px; border:1px solid #d8caab; border-radius:10px; background:#fff9e9; color:#6f613f; }
+.site-preview-notice strong { display:block; font-size:13px; font-weight:650; }
+.site-preview-notice p { margin:4px 0 0; font-size:12px; line-height:1.8; }
+.landing-page .landing-main { padding-top:25px; }
+.landing-page .novice-home-welcome { box-shadow:none; background:#f8fbf2d9; border-radius:10px; padding:13px 17px; margin-bottom:31px; }
+.landing-page .novice-home-welcome strong { font-size:14px; }
+.landing-page .novice-home-welcome p { font-size:12px; }
+.landing-page .landing-hero { grid-template-columns:1.15fr 1fr; gap:55px; align-items:start; }
+.landing-page .landing-copy { padding-bottom:12px; }
+.landing-page .landing-copy h1 { font-size:clamp(38px,4.4vw,57px); line-height:1.24; margin-top:20px; }
+.landing-page .landing-copy h1>span { white-space:normal; }
+.landing-page .landing-description { font-size:16px; font-weight:550; }
+.landing-page .landing-invitation { font-size:14px; line-height:1.9; }
+.landing-page .landing-meta { margin-top:20px; }
+.landing-page .landing-sample-entry>button { color:#fffef5; background:var(--campus-green); border-color:var(--campus-green); box-shadow:0 6px 18px -10px #244b3d80; min-height:48px; padding-inline:20px; }
+.landing-page .landing-sample-entry>button:hover { background:#214f41; }
+.landing-page .landing-computation-note { font-size:11px; color:var(--campus-muted); }
+.collection-preview { position:relative; padding:22px 27px 0; border:1px solid #bfcdb8; border-radius:13px; background:linear-gradient(145deg,#fffef9,#f3f5e9); box-shadow:0 16px 45px -33px #365b4190; overflow:hidden; margin-top:4px; }
+.collection-preview::before { content:''; position:absolute; right:-45px; top:29px; width:180px; height:180px; border:1px solid #b7c9b23d; border-radius:50%; box-shadow:0 0 0 28px #b7c9b217,0 0 0 56px #b7c9b20d; pointer-events:none; }
+.collection-preview-heading { position:relative; display:flex; align-items:center; justify-content:space-between; font:10px/1.8 ui-monospace,monospace; letter-spacing:.07em; color:#667b5d; border-bottom:1px solid #c9d4bf; padding-bottom:14px; }
+.collection-preview-heading>span:last-child { color:#98753f; font-size:20px; }
+.collection-preview-title { position:relative; margin:21px 0 23px; }
+.collection-preview-title h2 { font-size:27px; font-weight:650; line-height:1.45; color:#2c5140; letter-spacing:-.02em; margin:0 0 8px; }
+.collection-preview-title p { color:#65765c; font-size:12px; line-height:1.8; margin:0; }
+.collection-orbit { float:right; color:#8eaa81; font-size:44px; line-height:1; margin:9px 0 0 10px; }
+.collection-preview-steps { position:relative; display:grid; gap:18px; list-style:none; margin:0; padding:0 0 23px; }
+.collection-preview-steps li { display:flex; align-items:start; gap:14px; }
+.collection-preview-steps li>span { display:grid; place-items:center; flex-shrink:0; width:33px; height:33px; border:1px solid #c0d1b8; border-radius:50%; background:#eaf0e1; color:#54764b; font:11px/1 ui-monospace,monospace; }
+.collection-preview-steps strong { display:block; font-size:14px; color:#2e5741; font-weight:600; }
+.collection-preview-steps p { margin:4px 0 0; font-size:12px; line-height:1.7; color:#5c7156; }
+.collection-preview-foot { position:relative; margin:0 -27px; padding:13px 18px; border-top:1px solid #d4ddc8; background:#edf2e3; color:#617453; font-size:11px; line-height:1.8; text-align:center; }
+.collection-preview-foot span { color:#a17c40; margin-right:6px; }
+.landing-page .landing-actions { grid-template-columns:1.2fr 1fr 1fr; margin-top:24px; gap:15px; }
+.landing-page .landing-actions>.landing-action { min-height:132px; padding:21px 24px; gap:10px; }
+.landing-page .landing-action-title { font-size:16px; }
+.landing-page .landing-action-number { font-size:10px; letter-spacing:.08em; }
+.landing-page .landing-action-note { font-size:12px; line-height:1.75; }
+.landing-page .landing-classroom { box-shadow:none; padding:18px 23px; border-color:#c7d5c0; }
+.landing-page .landing-classroom p { font-size:12px; }
+.landing-page .landing-classroom h2 { font-weight:600; }
+.landing-explore { border:1px solid #cbd6c4; border-radius:10px; background:#fcfdf6c7; margin-top:24px; }
+.landing-explore>summary { list-style:none; display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:76px; padding:17px 23px; cursor:pointer; color:#405e47; }
+.landing-explore>summary::-webkit-details-marker { display:none; }
+.landing-explore>summary b { display:block; font-size:14px; font-weight:600; }
+.landing-explore>summary small { display:block; font-size:11px; line-height:1.8; color:#65745f; margin-top:4px; }
+.explore-plus { font-size:23px; color:#849773; }
+.landing-explore[open] .explore-plus { transform:rotate(45deg); }
+.landing-explore-content { display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:24px; padding:10px 23px 24px; border-top:1px solid #d8dfcf; }
+.landing-explore-links { display:grid; gap:12px; }
+.landing-explore .landing-action { border-radius:8px; }
+.landing-explore-links>p { font-size:11px; color:#65745f; line-height:1.7; }
+.landing-explore .profile-preview { width:min(100%,325px); margin:13px auto 0; }
+.hub-product-name { display:flex; flex-direction:column; gap:2px; margin-inline:5px; line-height:1.5; color:var(--campus-ink); }
+.hub-product-name b { font-size:13px; font-weight:650; }
+.hub-product-name small { font:8px/1.5 ui-monospace,monospace; color:var(--campus-muted); letter-spacing:.14em; }
+.app-content :is(.circle-card,.report-reading-guide,.cohort-reading-guide) { border-radius:12px; }
+.app-content :is(.circle-card,.circle-auth-grid) h1 { color:var(--campus-ink); letter-spacing:-.025em; }
+.app-content :is(button,a,summary):focus-visible { outline:3px solid #b88d51; outline-offset:4px; }
+.static-package-download { border:1px solid #b7c9ad; border-radius:10px; padding:17px 19px; margin:17px 0; background:#f6faee; }
+.static-package-download h3 { color:var(--campus-ink); margin:0 0 9px; font-size:15px; }
+.static-package-download p { color:var(--campus-muted); font-size:13px; line-height:1.8; }
+.static-package-download code { display:block; white-space:normal; overflow-wrap:anywhere; font:11px/1.8 ui-monospace,monospace; padding:10px; background:#fffef8; }
+.product-footer { position:relative; border-top:1px solid #c9d5c3; background:#f8faf3ed; color:#5b6e55; }
+.product-footer-inner { max-width:1024px; margin:auto; padding:23px 24px; display:flex; align-items:start; justify-content:space-between; gap:22px; }
+.landing-shell>.product-footer { background:transparent; }
+.landing-shell .product-footer-inner { padding-inline:0; }
+.product-footer-brand { flex-shrink:0; display:grid; gap:7px; padding-top:3px; }
+.product-footer-brand strong { color:#3b5e45; font-size:13px; font-weight:650; }
+.product-footer-brand>span { color:#6a7d61; font-size:10px; line-height:1.8; }
+.product-footer-notes { max-width:560px; min-width:0; }
+.product-footer-notes>p { font-size:12px; line-height:1.8; margin:0; }
+.product-footer-tools { display:flex; flex-wrap:wrap; align-items:start; gap:8px 20px; margin-top:8px; }
+.product-footer-tools>details { min-width:0; flex:1; }
+.product-footer-tools summary { min-height:36px; display:flex; align-items:center; cursor:pointer; font-size:12px; color:#3d6549; text-decoration:underline; text-underline-offset:4px; }
+.product-footer-detail { padding:14px 16px; background:#fffef8; border:1px solid #cfdbc5; border-radius:8px; margin-top:4px; }
+.product-footer-detail p { font-size:12px; line-height:1.9; margin:0 0 10px; }
+.product-footer-detail p:last-child { margin-bottom:0; }
+.product-footer :is(summary,button):focus-visible { outline:3px solid #b88d51; outline-offset:4px; }
+@media(max-width:899px) {
+ .landing-page .landing-hero { gap:27px; grid-template-columns:1.05fr 1fr; }
+ .collection-preview { padding:20px 20px 0; }
+ .collection-preview-foot { margin-inline:-20px; }
+ .collection-preview-title h2 { font-size:24px; }
+ .landing-page .landing-copy h1 { font-size:40px; }
+ .landing-page .landing-actions>.landing-action { padding:19px; }
+ .landing-page .landing-action-title { font-size:15px; }
+}
+@media(max-width:700px) { .hub-product-name { display:none; } }
+@media(max-width:700px) { .product-footer-inner { flex-direction:column; gap:13px; padding-bottom:35px; } .product-footer-tools summary { min-height:44px; } }
+@media(max-width:1100px) { .landing-page>.mascot { display:none; } }
+@media(max-width:620px) {
+ .landing-page .landing-main { padding-top:20px; }
+ .site-preview-notice { order:-1; }
+ .landing-page .novice-home-welcome { order:0; margin-bottom:24px; padding:14px; }
+ .landing-page .novice-home-welcome { flex-direction:row; align-items:center; gap:12px; }
+ .landing-page .novice-home-welcome>div { flex:1; }
+ .landing-page .novice-welcome-symbol,.landing-page .novice-home-welcome p>span { display:none; }
+ .landing-page .novice-home-welcome strong { font-size:13px; }
+ .landing-page .novice-home-welcome .getting-started-trigger { align-self:center; padding-inline:10px; }
+ .landing-page .landing-copy { order:1; }
+ .landing-page .landing-copy h1 { font-size:clamp(26px,7.5vw,40px); }
+ .landing-page .landing-copy h1>span { white-space:nowrap; }
+ .landing-page .landing-description { font-size:14px; }
+ .landing-page .landing-invitation { font-size:13px; }
+ .landing-page .landing-actions { order:2; grid-template-columns:1fr; margin-top:10px; gap:10px; }
+ .landing-page .landing-actions>.landing-action { min-height:auto; padding:17px 19px; }
+ .landing-page .landing-action-title { font-size:15px; }
+ .landing-page .landing-action-note { font-size:12px; }
+ .landing-page .landing-classroom { order:3; margin-top:15px; padding:17px 19px; }
+ .collection-preview { order:4; margin-top:24px; }
+ .landing-page .landing-method { order:5; }
+ .landing-explore { order:6; margin-top:18px; }
+ .landing-explore>summary { padding:16px 18px; }
+ .landing-explore-content { grid-template-columns:1fr; padding:16px 17px 24px; gap:16px; }
+ .landing-page .landing-tools { order:7; }
+}
+@media(max-width:360px) {
+ .landing-header .landing-brand>svg,.landing-header .landing-brand small { display:none; }
+ .landing-header .landing-brand b { font-size:11px; white-space:nowrap; }
+ .landing-header .account-entry { font-size:10px; gap:5px; padding-inline:8px; }
+ .landing-header .account-entry>span:first-of-type { max-width:115px; }
+}
+@media(prefers-reduced-motion:reduce) { .explore-plus { transform:none!important; } }

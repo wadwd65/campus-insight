@@ -1,0 +1,17 @@
+.cohort-reading-scope { margin-top: 20px; padding: 17px 20px; border: 1px solid #c6d2b7; border-left: 4px solid #6b8855; border-radius: 3px 12px 12px 3px; background: #f0f4e5; }
+.cohort-reading-scope > strong { display: block; font-size: 15px; line-height: 1.7; font-weight: 600; color: #365c3d; }
+.cohort-reading-scope p { margin-top: 7px; color: #52664a; font-size: 15px; line-height: 1.85; }
+.cohort-reading-scope p.cohort-reading-purpose { color: #69765e; font-size: 14px; }
+.cohort-reading-scope.is-sample { border-color: #d4c9a8; border-left-color: #ac8a42; background: #faf4e2; }
+.cohort-reading-scope.is-sample > strong { color: #7c632f; }
+.cohort-page .cohort-kpis.is-limited { grid-template-columns: 1fr; max-width: 300px; }
+.cohort-small-sample { padding: 17px 20px; margin-top: 18px; border-radius: 12px; border: 1px solid #d9c69d; background: #fff7e6; }
+.cohort-small-sample strong { color: #755d30; font-size: 17px; font-weight: 600; line-height: 1.6; }
+.cohort-small-sample p { font-size: 15px; line-height: 1.85; color: #756746; margin-top: 7px; }
+.cohort-page .cohort-toolbar button { min-height: 48px; padding: 11px 15px; font-size: 15px; }
+.cohort-page .cohort-toolbar > span { font-size: 13px; line-height: 1.8; }
+@media (max-width: 620px) {
+  .cohort-reading-scope, .cohort-small-sample { padding: 14px 15px; }
+  .cohort-page .cohort-toolbar { align-items: stretch; }
+  .cohort-page .cohort-toolbar button { width: 100%; }
+}

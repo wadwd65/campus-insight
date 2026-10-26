@@ -274,8 +274,15 @@ export function buildReportFromAttributes(attributes, baseline, extra = {}) {
   const completed = withDerivedAttributes(attributes);
   const percents = toPercents(completed, baseline);
   return {
-    answers: extra.answers ?? null,
+    ...buildReportFromPercents(percents, extra),
     attributes: completed,
+  };
+}
+
+/** Rebuild the narrative summary from calculated positions; the server never receives a CSV. */
+export function buildReportFromPercents(percents, extra = {}) {
+  return {
+    answers: extra.answers ?? null,
     percents,
     radar: radarOf(percents),
     timeSplit: timeSplitOf(percents),

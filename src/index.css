@@ -1859,3 +1859,4 @@ button.text-sm {
   color: var(--ink-on-paper);
   font-weight: 650;
 }
+.landing-circle-actions{display:flex;flex-direction:column;gap:10px;min-width:0}.landing-circle-actions button:last-child{font-size:12px;opacity:.85}.landing-header-tools button{max-width:260px;overflow-wrap:anywhere}

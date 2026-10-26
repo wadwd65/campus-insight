@@ -1,155 +1,34 @@
-/**
- * 答题前的入口面板 —— 点「答 10 道题」之后先看到的那一屏。
- *
- * ── 为什么要有这一屏（用户明确要求的） ────────────────────────────
- *
- * 原话：「**答题应该是一个功能，而不是点进去就是答题**」，
- * 以及「里面那些答题的东西也不是那么直白，就是太没有东西了，
- * 就像我们**玻璃质感的手给它按上去**」。
- *
- * 也就是说，点进去直接看到"第 1 题 / 共 10 题 + 四个选项"
- * 这件事本身是错的 —— 它把答题读成了"一个你要填的表单"，
- * 而不是"游戏里的一个功能点"。
- *
- * 所以中间加这一屏，它做三件事：
- *   1. **说明这是在哪**：告诉你这是平行宇宙的问卷，不是考试
- *   2. **说明要多久、会得到什么**："10 题约 1 分钟，答完立刻有档案"
- *   3. **给一个明确的手感**：玻璃按钮，按下去才真的开始
- *
- * ── 为什么不做成"确认弹窗" ────────────────────────────────────────
- *
- * 弹窗是"打断"，它是用来问"你真的要删吗"的。
- * 这里不是打断，是**入口**：用户主动点进来的，所以应该是一个可以停留的页面，
- * 而不是一个必须立刻做决定的对话框。所以它是整屏的、有背景的、有呼吸的。
- *
- * 配色说明：这一屏属于**内容区**（浅色），不属于场景层（深色）。
- * 所以文字用 CSS 变量那套浅色正文色，不引入 TERMINAL 或 LIGHT。
- * 玻璃效果在这里靠一层浅色渐变底衬显出来 —— 浅底上的玻璃与深底上的玻璃
- * 观感完全不同，所以这里的 .glass-panel 需要配一条更亮的渐变背景。
- */
-
+/** 答题入口：只保留一个主要下一步，说明随时可跳过。 */
+import { useState } from 'react';
 import { QUESTIONS } from '../lib/surveySchema.js';
-import { MonoTag } from './TermHead.jsx';
-import { BRAND } from '../lib/theme.js';
+import { readSurveyDraft } from '../lib/surveyDraft.js';
 import NavButton from './NavButton.jsx';
+import './survey-guidance.css';
 
 export default function QuizGate({ onStart, onBack, backLabel = '校园地图' }) {
+  const [showHelp, setShowHelp] = useState(true);
+  const [draft] = useState(() => readSurveyDraft());
+  const hasDraft = Boolean(draft && Object.keys(draft.answers).length);
   const qn = QUESTIONS.length;
 
-  return (
-    <div className="quiz-gate max-w-3xl mx-auto py-6">
-      {/* 顶部：告诉用户"你在哪一层"。用等宽小标与整个项目一致，
-          而不是一个"返回"按钮 —— 后者会让这一屏读起来像错误页。 */}
-      <div className="flex items-center justify-between mb-8">
-        <NavButton onClick={onBack}>回到{backLabel}</NavButton>
-        <MonoTag>CAMPUS&nbsp;ARCHIVE&nbsp;//&nbsp;SURVEY</MonoTag>
+  return <div className="quiz-gate survey-friendly max-w-3xl mx-auto py-6">
+    <div className="survey-gate-top"><NavButton onClick={onBack}>回到{backLabel}</NavButton><span>个人校园测评</span></div>
+    <section className="survey-gate-panel">
+      <p className="survey-question-kicker">不用准备材料 · 大约 2 分钟</p>
+      <h1>用 {qn} 个日常选择，<br />拼出自己的校园故事</h1>
+      <p className="survey-gate-intro">不是考试，按平时的习惯选就好。每个选择都留下一幕日常；答完看档案，也可以写一句话，做一张自己的校园纪念卡。个人体验不需要注册。</p>
+      <div className="survey-gate-help">
+        <div className="survey-help-heading"><h2>{showHelp ? '第一次用？照着这三步' : '答题说明'}</h2><button type="button" onClick={() => setShowHelp((visible) => !visible)} aria-controls="survey-gate-help" aria-expanded={showHelp}>{showHelp ? '跳过说明' : '重新查看说明'}</button></div>
+        <ol className="survey-simple-steps" id="survey-gate-help" hidden={!showHelp}>
+          <li><span>1</span><div><strong>每题选一个答案</strong><p>点最像你的那一项，选中后会有勾号。</p></div></li>
+          <li><span>2</span><div><strong>点「下一题」继续</strong><p>可以回上一题修改；暂时没空也能稍后再填。</p></div></li>
+          <li><span>3</span><div><strong>看报告，按需保存</strong><p>称号和图表一起生成，还能保存图片或复制文字。</p></div></li>
+        </ol>
       </div>
-
-      {/* ── 玻璃主面板 ──
-          底下垫一层浅紫渐变，玻璃的 backdrop-filter 才有东西可以糊。
-          没有这层衬底，浅色页面上的 backdrop-filter 是看不见效果的
-          （身后就是白的，糊了还是白的）。 */}
-      <div
-        className="relative px-7 py-9 overflow-hidden rounded-sm"
-        style={{
-          background:
-            'linear-gradient(135deg, #edf3e9 0%, #f5f6e9 42%, #fcf7e9 100%)',
-        }}
-      >
-        {/* 两块柔光：让底衬不是死板的线性渐变。
-            位置刻意不对称，对称的柔光会读成"一个光晕素材"。 */}
-        <span
-          className="absolute pointer-events-none"
-          style={{
-            left: '-8%',
-            top: '-32%',
-            width: '58%',
-            height: '110%',
-            background: 'radial-gradient(circle, rgba(67,125,91,0.13), transparent 68%)',
-          }}
-          aria-hidden="true"
-        />
-        <span
-          className="absolute pointer-events-none"
-          style={{
-            right: '-6%',
-            bottom: '-36%',
-            width: '52%',
-            height: '104%',
-            background: 'radial-gradient(circle, rgba(184,145,79,0.11), transparent 70%)',
-          }}
-          aria-hidden="true"
-        />
-
-        <div className="relative">
-          <p className="term-mono text-[11px] tracking-[0.32em]" style={{ color: 'var(--ink-soft)' }}>
-            QUESTIONNAIRE · {qn} ITEMS
-          </p>
-
-          <h1 className="text-2xl sm:text-[28px] font-semibold tracking-tight leading-snug mt-3">
-            十个问题，
-            <br />
-            找到你的校园称号
-          </h1>
-
-          {/* 三条事实，用等宽列表而不是散文。
-              这一屏的作用是"让人敢按下去"，所以信息要能一眼扫完。 */}
-          <div className="mt-6 space-y-2.5">
-            {[
-              ['题量', `${qn} 题，每题 ${Math.min(...QUESTIONS.map(q=>q.options.length))}–${Math.max(...QUESTIONS.map(q=>q.options.length))} 个选项，都在校园生活里`],
-              ['用时', '大约 1 分钟，中途不用填任何资料'],
-              ['产出', '答完立刻得到雷达图、时间分配与人群定位'],
-              ['隐私', '在本机计算；在线解读仅发送报告摘要'],
-            ].map(([k, v]) => (
-              <div key={k} className="flex gap-3 items-baseline">
-                <span
-                  className="term-mono text-[11px] tracking-[0.14em] shrink-0"
-                  style={{ color: 'var(--ink-soft)', minWidth: 40 }}
-                >
-                  {k}
-                </span>
-                <span className="text-[13px] leading-6 text-[var(--ink)]">{v}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* 一句"为什么值得答"。放在按钮之前最后一步 —— 这是临门一脚的位置。 */}
-          <p className="mt-6 text-[12px] leading-6 text-[var(--ink-soft)]">
-            每个选择都会影响几项生活倾向。没有标准答案，也不是能力考试，按平时的习惯选就好。
-          </p>
-
-          {/* ── 按钮组 ──
-              主按钮走品牌色实心（它是这一屏唯一的动作）；
-              次按钮是"回到地图"，用文字链接而不是并列按钮 ——
-              两个并列按钮会让"要选哪个"这件事重新变成问题。 */}
-          <div className="mt-7 flex flex-wrap items-center gap-4">
-            <button
-              type="button"
-              onClick={onStart}
-              className="glass-btn term-mono px-8 py-3.5 text-[13px] tracking-[0.18em] rounded-sm"
-              style={{ background: BRAND, border: `1px solid ${BRAND}`, color: '#fff' }}
-            >
-              开始答题 →
-            </button>
-            <button
-              type="button"
-              onClick={onBack}
-              className="term-mono text-[11px] tracking-[0.1em] transition-colors"
-              style={{ color: 'var(--ink-soft)' }}
-            >
-              先不答，回到{backLabel}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 屏下的补充说明：把"这一份答案会怎样影响已有轨迹"讲清楚。
-          这是真实的副作用（finishQuiz 会 resetPlayer），
-          不说清楚会让已经走过地图的人意外丢数据。 */}
-      <p className="mt-5 text-[11px] leading-6 text-[var(--ink-soft)]">
-        注意：答题会重建你的属性账本。如果你已经在地图上走过一些地方，
-        那些轨迹会被这一份答案替换。
-      </p>
-    </div>
-  );
+      {hasDraft && <p className="survey-restored-note" role="status">本标签页有未完成的答案，点击下方按钮继续，不需要重填。</p>}
+      <div className="survey-gate-actions"><button type="button" className="survey-next" onClick={onStart}>{hasDraft ? `继续第 ${draft.index + 1} 题` : '开始答题'} <span aria-hidden="true">→</span></button><button type="button" className="survey-later" onClick={onBack}>稍后再填</button></div>
+      <details className="survey-keyboard-help"><summary>想先了解结果和隐私？</summary><p>个人报告在本机计算，模拟人群只用于展示相对位置，不是考试成绩或心理评估。选择在线 AI 解读时，仅发送报告摘要。圈子填报会在提交前单独说明共享范围，并由你确认。</p></details>
+    </section>
+    <p className="survey-gate-caution">如果你已经探索过行动地图，完成这份测评会用新答案重建画像，替换之前的地图轨迹。</p>
+  </div>;
 }

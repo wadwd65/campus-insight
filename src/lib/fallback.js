@@ -34,7 +34,7 @@ export function buildFallbackSummary(report, { name = '' } = {}) {
   const p1 =
     `${call}你的称号是「${facts.title}」。` +
     `与模拟基准人群相比，你在「${top.axis}」上超过了 ${top.value}% 的记录，` +
-    `而「${bottom.axis}」只有 ${bottom.value}% —— 这两个数放在一起，基本就是你的大学轮廓。`;
+    `而「${bottom.axis}」处在 ${bottom.value}% 的位置。这反映的是这套选择在规则中的相对倾向。`;
 
   // ── 2. 时间分配 ──
   const byTime = [...timeSplit].sort((a, b) => b.value - a.value);
@@ -42,7 +42,7 @@ export function buildFallbackSummary(report, { name = '' } = {}) {
   const least = byTime[byTime.length - 1];
   const p2 =
     `按这套回答推算，${most.name}占比最大（${most.value}%），${least.name}占 ${least.value}%。这是一种叙事估算，不是实际用时。` +
-    `${most.name}这一项排在最前面，${least.name}排在最后 —— 这个顺序本身就是一个选择。`;
+    `如果这个顺序与你的实际生活有出入，可以回看题目，或在上方临时换一个答案，观察它怎样影响画像。`;
 
   // ── 3. 四年心情曲线 ──
   const byMood = [...moodCurve].sort((a, b) => b.value - a.value);

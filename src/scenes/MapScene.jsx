@@ -154,6 +154,7 @@ function SlotBar({ slots, total }) {
 
 export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry, guide }) {
   const player = useGameStore((s) => s.player);
+  const slotsPerDay = useGameStore((s) => s.slotsPerDay);
   const applyChoice = useGameStore((s) => s.applyChoice);
   const undoMapChoice = useGameStore((s) => s.undoMapChoice);
   const [last, setLast] = useState(null);
@@ -244,7 +245,7 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry, gu
         {/* ── 左侧：地图格 ── */}
         <div className="map-workspace">
           <div className="space-y-5">
-            <CampusRoute model={model} onPick={pick} busy={busy} trail={player.trail} />
+            <CampusRoute model={model} onPick={pick} busy={busy} trail={player.trail} slotsPerDay={slotsPerDay} />
             <div className="map-live-feedback" role="status" key={last ? `${last.name}-${last.visit}` : 'empty'}>
               {last ? <><span>已到达 <b>{last.name}</b></span><DeltaTags vec={last.vec} /></> : <span>{notice ?? '每一步都会更新你的画像；可随时撤销，不必追求高分。'}</span>}
             </div>
@@ -422,10 +423,12 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry, gu
             {/* 独立加载 3D 导览，主页面不引入引擎或模型；正常 build 会生成全部静态文件。 */}
             <a
               href={`${import.meta.env.BASE_URL}map/校园地图-3D实景.html`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="desktop-3d-link term-mono block w-full text-center text-[11px] py-2 tracking-[0.12em]"
               style={{ color: 'var(--term-ink-dim)', border: '1px dashed rgba(255,255,255,.16)', borderRadius: 3 }}
             >
-              轻量 3D 校园 · 自由转动与点选
+              另开 3D 校园参观 · 不改变画像 ↗
             </a>
 
             {model.totalTrips > 0 && (

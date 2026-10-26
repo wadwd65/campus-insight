@@ -7,13 +7,13 @@ import { downloadText } from '../lib/exportProfile.js';
 import { CAMPUS_POSITIONS, buildCampusJourney, buildJourneyText } from '../lib/campusJourney.js';
 import CampusMapArt from './CampusMapArt.jsx';
 
-export default function CampusRoute({ model, onPick, busy, trail }) {
+export default function CampusRoute({ model, onPick, busy, trail, slotsPerDay }) {
   const [selectedId, setSelectedId] = useState('library');
   const [whisper, setWhisper] = useState(false);
   const [saved, setSaved] = useState(false);
   const preview = useRef(null);
   const canvas = useRef(null);
-  const journey = useMemo(() => buildCampusJourney(trail), [trail]);
+  const journey = useMemo(() => buildCampusJourney(trail, slotsPerDay), [trail, slotsPerDay]);
   const selected = model.items.find((p) => p.id === selectedId) ?? model.items[0];
   const next = selected.enabled ? nextDelta(selected, model.visited) : null;
   const zone = ZONES.find((zone) => zone.key === selected.zone);

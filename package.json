@@ -6,6 +6,7 @@
   "description": "你的大学平行宇宙 —— 个人青春行为图谱生成器：答 10 道选择题，经映射矩阵得到 8 个基础属性 + 1 个派生属性，与 2000 人基准人群比对得百分位，生成雷达图 / 时间分配 / 四年心情曲线 / 人群冷知识与大模型个性化解读",
   "scripts": {
     "dev": "vite",
+    "start": "node server/index.mjs",
     "clean:dist": "node scripts/clean-dist.mjs",
     "build:map": "node scripts/build-campus-web.mjs",
     "build": "node scripts/build-campus-web.mjs && node scripts/clean-dist.mjs && vite build",
@@ -20,6 +21,9 @@
     "test:privacy": "node scripts/test-privacy-build.mjs",
     "test:stats": "node scripts/test-statistical-validity.mjs",
     "test:ai": "node scripts/test-ai-grounding.mjs",
+    "test:relay": "node scripts/test-ai-relay.mjs",
+    "test:explanation": "node scripts/test-profile-explanation.mjs",
+    "test:ai:live": "node scripts/check-live-ai.mjs",
     "test:csv": "node scripts/test-csv-quality.mjs",
     "test:export": "node scripts/test-export-profile.mjs",
     "test:experience": "node scripts/test-survey-experience.mjs",
@@ -27,9 +31,23 @@
     "test:motion": "node scripts/test-scene-pointer.mjs",
     "test:journey": "node scripts/test-campus-journey.mjs",
     "test:3d": "node scripts/test-campus-web.mjs",
-    "check": "npm run selftest && npm run selftest:store && npm run selftest:map && npm run selftest:intro && npm run smoke && npm run smoke:csv && npm run build && npm run verify:dist && npm run test:privacy && npm run test:stats && npm run test:ai && npm run test:csv && npm run test:export && npm run test:experience && npm run test:answers && npm run test:motion && npm run test:journey && npm run test:3d",
+    "check": "npm run selftest && npm run selftest:store && npm run selftest:map && npm run selftest:intro && npm run smoke && npm run smoke:csv && npm run build && npm run verify:dist && npm run test:privacy && npm run test:stats && npm run test:ai && npm run test:relay && npm run test:explanation && npm run test:csv && npm run test:export && npm run test:experience && npm run test:answers && npm run test:motion && npm run test:journey && npm run test:3d && npm run test:walk && npm run test:runtime && npm run test:accounts && npm run test:deployment && npm run test:windows && npm run test:navigation && npm run test:guidance && npm run test:registration && npm run test:play && npm run test:parkour && npm run test:participation",
     "gen:data": "python scripts/generate-survey-data.py",
-    "gen:cohort": "python scripts/generate-survey-data.py -n 48 --seed 20261001 --out public/data/示例-班级问卷.csv"
+    "gen:cohort": "python scripts/generate-survey-data.py -n 48 --seed 20261001 --out public/data/示例-班级问卷.csv",
+    "test:walk": "node scripts/test-campus-walk.mjs",
+    "test:runtime": "node scripts/test-campus-runtime.mjs",
+    "test:accounts": "node scripts/test-accounts.mjs",
+    "accounts:backup": "node scripts/backup-accounts.mjs",
+    "configure": "node scripts/configure-deployment.mjs",
+    "accounts:restore": "node scripts/restore-accounts.mjs",
+    "test:deployment": "node scripts/test-deployment.mjs",
+    "test:windows": "node scripts/test-windows-entry.mjs",
+    "test:navigation": "node scripts/test-site-navigation.mjs",
+    "test:guidance": "node --test src/lib/gettingStarted.test.mjs",
+    "test:registration": "node scripts/test-self-registration.mjs",
+    "test:play": "node scripts/test-campus-play.mjs",
+    "test:parkour": "node scripts/test-campus-parkour.mjs",
+    "test:participation": "node scripts/test-campus-participation.mjs"
   },
   "dependencies": {
     "@tsparticles/engine": "^4.4.0",
@@ -46,6 +64,9 @@
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^6.1.1",
     "tailwindcss": "^4.3.3",
-    "vite": "^8.3.0"
+    "vite": "^8.3.5"
+  },
+  "engines": {
+    "node": ">=24.21.0"
   }
 }

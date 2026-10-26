@@ -12,6 +12,7 @@
 
 import { create } from 'zustand';
 import { BASE_ATTR_KEYS } from '../lib/surveySchema.js';
+import { initialScene } from '../lib/siteNavigation.js';
 
 /**
  * 空属性表。键名**从契约取**（`matrix.json` 的 attributes），不在这里硬编码 ——
@@ -27,7 +28,7 @@ function emptyPlayer() {
 
 export const useGameStore = create((set) => ({
   /** 场景：intro（入场动画）｜hub（主站，内含 V1 的四页流程） */
-  scene: 'intro',
+  scene: initialScene(),
 
   /** 是否已看过入场（同一会话内不重复播） */
   introSeen: false,
@@ -35,7 +36,24 @@ export const useGameStore = create((set) => ({
   /** 玩家档案：V3 行动过程写入，档案页读取 */
   player: emptyPlayer(),
 
-  enter: () => set({ scene: 'hub', introSeen: true }),
+  /**
+   * 一天的时段数。默认 4，答完问卷后按「体力」（sport 百分比）改写：
+   * ≥65 给 5 个，≤35 给 3 个。地图据此决定今天能走几站。
+   *
+   * 为什么放在 store 而不是由地图自己算：地图里没有问卷答案（`answers` 在 App 里），
+   * 只有一本累加账；而 percents 是**相对基准人群**算的，必须拿答案才能得到。
+   * 所以在"答完问卷"那一刻算好存下来，地图直接读。
+   */
+  slotsPerDay: 4,
+  setSlotsPerDay: (n) => {
+    const value = Number(n);
+    if (Number.isFinite(value) && value >= 3 && value <= 6) set({ slotsPerDay: value });
+  },
+
+  enter: () => {
+    try { window.sessionStorage.setItem('campus:intro-seen', '1'); } catch { /* Storage is optional. */ }
+    set({ scene: 'hub', introSeen: true });
+  },
   backToIntro: () => set({ scene: 'intro' }),
 
   setName: (name) => set((s) => ({ player: { ...s.player, name } })),

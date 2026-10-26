@@ -2,7 +2,7 @@
 node_modules/
 
 # 构建产物
-dist/
+# dist/ —— 10-26 起允许提交：赛事评审需要直接可跑的构建产物，不再忽略
 dist-ssr/
 *.local
 
@@ -54,3 +54,12 @@ pnpm-debug.log*
 #   prompts/      与 AI 的对话记录（过程可复现性的核心证据）
 #   public/data/  示例数据（评委复现时直接使用）
 # ─────────────────────────────────────────────
+.campus-data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+setup-key.txt
+
+.shots-before/
+# release-download/ —— 10-26 起允许提交：B-v47 部署包随仓库分发
+# 约束：单个 zip 必须 <100MB（GitHub 硬限制），超限的"更新整包"144MB 不进仓库

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { buildAnswerDistributions, buildAnswerDistributionCsv } from '../lib/answerDistribution.js';
 import { downloadText } from '../lib/exportProfile.js';
 
-export default function AnswerLens({ records }) {
+export default function AnswerLens({ records, sourceLabel = '当前文件' }) {
   const distributions = useMemo(() => buildAnswerDistributions(records), [records]);
   const [index, setIndex] = useState(0);
   const [downloaded, setDownloaded] = useState(false);
@@ -30,7 +30,7 @@ export default function AnswerLens({ records }) {
           <div className="answer-lens-track" aria-hidden="true"><span style={{ width: `${o.pct}%` }} /></div>
         </li>)}
       </ul>
-      <p className="answer-lens-footnote">分母为本题 {question.total} 份有效作答，人数直接来自当前文件，与模拟基准无关。四舍五入后，占比之和可能略有偏差。</p>
+      <p className="answer-lens-footnote">分母为本题 {question.total} 份有效作答，人数直接来自{sourceLabel}，与模拟基准无关。四舍五入后，占比之和可能略有偏差。</p>
     </div>
     <div className="answer-lens-navigation" aria-label="切换统计题目"><button type="button" disabled={index === 0} onClick={() => setIndex(index - 1)}>← 上一题</button><span role="status">{downloaded ? '十道题的汇总统计已生成，不含个人编号。' : '了解实际选择后，再向同学确认活动需求。'}</span><button type="button" disabled={index === distributions.length - 1} onClick={() => setIndex(index + 1)}>下一题 →</button></div>
   </div>;

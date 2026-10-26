@@ -1,212 +1,86 @@
-/**
- * 大模型接入 —— OpenAI 兼容接口 + SSE 流式输出（任务 T-18）。
- *
- * 这个文件的全部难度不在"怎么调接口"，而在**接口不通的时候会发生什么**。
- *
- * 四条设计：
- *
- *   1. **失败不是异常，是一种正常返回。** 所有失败路径都返回同一形状的结果
- *      （degraded + 一段内置文案），调用方永远不需要 try/catch。
- *      理由是：这个产品线上那一版**大概率就是不带密钥的**（见第 3 条），
- *      所以"降级"是主路径之一，不是兜底。
- *
- *   2. **超时 25 秒。** 不设超时的话，一个卡住的请求会让结果页永远停在一段
- *      慢慢爬的字上 —— 用户不会等，他会关掉页面。
- *
- *   3. **密钥不进仓库、也不进线上版。** 用的是 VITE_ 前缀的环境变量，
- *      意味着它会被打进浏览器 bundle —— 任何打开开发者工具的人都拿得到。
- *      所以正式部署的那一版**刻意不配密钥**，走内置文案；
- *      真流式输出的效果在演示视频里用本地 `.env` 跑。
- *      把密钥塞进静态站点换"看起来更智能"，代价是密钥泄露，不值。
- *
- *   4. **收尾要完整。** 生成到一半断网，会拿到一句写到一半的话。
- *      半句话看起来像产品坏了，而内置文案至少是完整的 ——
- *      所以结尾不是句末标点的一律判为截断，整段降级。
- *
- * 事件解析与逐块读取都在 sse.js（纯函数，Node 里可测）；这里只剩 fetch 与 abort。
- * 为了让这些真的能被测到，传输配置走 endpoint 注入 —— 生产不传，读环境变量。
- */
-
+/** Same-origin model relay. Provider credentials are server-only; endpoint injection is for transport tests. */
 import { buildSummaryRequest, buildSummaryFacts } from './buildSummary.js';
+import { buildLlmPayload } from './llmPayload.js';
 import { fallbackText } from './fallback.js';
 import { consumeSseStream } from './sse.js';
 import { validateSummary } from './validateSummary.js';
 import { validateCohortSummary, COHORT_HARD_ISSUE_TYPES } from './validateCohortSummary.js';
 
 const DEFAULT_TIMEOUT_MS = 25000;
-/** 上限只防跑飞：正常输出 320 字，900 字已经是很长的余量。 */
 const MAX_CHARS = 900;
+const HARD_ISSUE_TYPES = new Set(['empty', 'invented-number', 'diagnosis', 'invented-answer', 'ungrounded-narrative']);
+let cachedStatus = { checked: false, configured: false, model: null, host: null };
+let statusTime = 0;
+let statusUrl = '';
 
-/**
- * ★ 10-13：判定为"不能给用户看"的问题类型（见 validateSummary.js）。
- *   出现其中任何一种，整段改用内置文案 —— 并把 reason 标成 invalid-summary，
- *   界面会如实显示"模型这次写得不对，已改用本地文案"，不假装是网络问题。
- *
- *   ⚠️ 刻意**不含 `too-short`**：短 ≠ 错。
- *   · 「说错话」（编造数字 / 诊断口吻）必须拦 —— 那会误导用户；
- *   · 「说得少」只是不理想，而且"没写完"已经由 looksComplete（结尾标点）单独守着。
- *   把 too-short 也当硬伤会误伤：一句正常但简短的话会被整段丢掉，换成更长的内置文案，
- *   这既不是用户的意图，也让"短测试样本"这类正当输入被误判。
- */
-const HARD_ISSUE_TYPES = new Set(['empty', 'invented-number', 'diagnosis']);
+export function llmStatus() { return { ...cachedStatus }; }
 
-/**
- * 读环境变量。
- *
- * 写成 try/catch 而不是直接取，是为了让这个文件在 **Node 里也能被 import** ——
- * Vite 里 `import.meta.env` 一定存在（构建时被静态替换成字面量），
- * Node 里它一定不存在，取属性会直接抛。包起来之后，Node 拿到空配置，
- * 于是自检可以用"注入 endpoint + 假服务端"把网络路径真跑一遍（见自检 H 节）。
- * 一个纯浏览器才敢 import 的模块，等于一块永远验不了的代码。
- */
-function envConfig() {
-  try {
-    return {
-      baseUrl: (import.meta.env.VITE_LLM_BASE_URL || '').trim().replace(/\/+$/, ''),
-      apiKey: (import.meta.env.VITE_LLM_API_KEY || '').trim(),
-      model: (import.meta.env.VITE_LLM_MODEL || '').trim(),
-    };
-  } catch {
-    return { baseUrl: '', apiKey: '', model: '' };
-  }
-}
-
-/** 配置状态，界面上要如实说明「当前是内置文案还是实时生成」。 */
-export function llmStatus() {
-  const { baseUrl, apiKey, model } = envConfig();
-  let host = '';
-  try {
-    host = baseUrl ? new URL(baseUrl).host : '';
-  } catch {
-    host = baseUrl;
-  }
-  return { configured: !!(baseUrl && apiKey && model), model: model || null, host };
-}
-
-/** 段落规整：统一换行、折叠多余空行、去首尾空白。两条路径共用，版式才一致。 */
-function tidy(text) {
-  return String(text ?? '')
-    .replace(/\r\n?/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-/**
- * 收尾完整性：中文写段落，最后一定是句末标点。
- * 结尾不是标点的，几乎只有一个原因 —— 话没说完就断了。
- * 引号与省略号也算，因为它们就是句中结尾的合法写法。
- */
-function looksComplete(text) {
-  return /[。！？…」』”"]$/.test(text);
-}
-
-/**
- * 流式生成个性化总结。
- *
- * @param {object} params
- * @param {object} params.report buildReport 的返回值
- * @param {string} [params.name] 称呼
- * @param {(delta: string) => void} [params.onDelta] 每收到一小段就回调（用于逐字显示）
- * @param {AbortSignal} [params.signal] 组件卸载时中断
- * @param {{baseUrl?: string, apiKey?: string, model?: string, timeoutMs?: number}} [params.endpoint]
- *        传输配置覆盖项。**只有自检会传**，页面永远不传（读环境变量）。
- * @returns {Promise<{text: string, degraded: boolean, reason: string|null, aborted?: boolean}>}
- */
-export async function streamSummary({
-  report, name = '', onDelta, signal, endpoint = {},
-  /* ★ 10-08：可选的"自定义链路" —— 让群体画像（cohort）复用同一条流式管线，
-     而不必再抄一份 fetch/超时/中断/降级逻辑。
-     不传时行为与以前完全一致（个人版 summary）。 */
-  request, fallback,
-  /* ★ 10-14（任务书 P0：群体链路缺数字校验）。
-     群体画像走的是"自定义链路"（传 request/fallback），此时 report 为 null，
-     以前校验会自动跳过数字白名单那一项 —— 等于班级解读的数字没人把关。
-     现在多传一个 cohort，校验就切到群体版那套（三张白名单 + 口径混淆）。 */
-  cohort = null,
-}) {
-  const cfg = { ...envConfig(), ...endpoint };
-  const degrade = (reason) => ({
-    text: (typeof fallback === 'function' ? fallback() : fallbackText(report, { name })),
-    degraded: true,
-    reason,
-  });
-
-  if (!(cfg.baseUrl && cfg.apiKey && cfg.model)) return degrade('not-configured');
-
-  const { system, user } = request ?? buildSummaryRequest(report, { name });
-
-  // 外部中断（组件卸载）与自身超时合成一个信号 —— fetch 只接受一个 signal
-  const ctrl = new AbortController();
-  let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    ctrl.abort();
-  }, cfg.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-  const onAbort = () => ctrl.abort();
+export async function readLlmStatus({ signal, url = '/api/llm/status' } = {}) {
+  if (typeof window === 'undefined' && !/^https?:\/\//.test(url)) return { checked: true, configured: false, model: null, host: null };
+  if (statusUrl === url && Date.now() - statusTime < 15000) return llmStatus();
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
   signal?.addEventListener('abort', onAbort);
-
+  const timer = setTimeout(() => controller.abort(), 1800);
   try {
-    const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${cfg.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: cfg.model,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-        stream: true,
-        temperature: 0.9,
-        max_tokens: 700,
-      }),
-      signal: ctrl.signal,
-    });
-
-    if (!res.ok || !res.body) return degrade(`http-${res.status}`);
-
-    const acc = await consumeSseStream(res.body, { onDelta, maxChars: MAX_CHARS });
-    const text = tidy(acc);
-
-    if (!text) return degrade('empty');
-    // 组件卸载导致的中断：正文已经有了但不该再显示，交给调用方丢掉
-    if (signal?.aborted) return { text, degraded: false, reason: null, aborted: true };
-    if (!looksComplete(text)) return degrade('truncated');
-
-    // ★ 10-13 审查新增（任务书 P3#4 / 验收"AI 不会将虚构数字混入统计结果"）：
-    //   模型输出在显示之前先过一遍落地校验。
-    //   硬伤（编造数字 / 心理诊断口吻 / 空）**整段降级** —— 一段错的话比没有话更糟：
-    //   用户不会去核对，但答辩时评委一读就发现数字对不上。
-    //   软问题（格式符号、禁用词）照常显示，只把清单带回给调用方（可记控制台）。
-    //
-    // ★ 10-14（任务书 P0）：两条链路用**各自那套**校验。
-    //   · 个人版（report）：百分数白名单（validateSummary）
-    //   · 群体版（cohort）：人数 / 占比 / 分数三张白名单 + 口径混淆（validateCohortSummary）
-    //   以前群体链路传 report:null，数字那一项被整个跳过 —— 班级解读的数字没人把关。
-    let verdict;
-    let hardTypes;
-    if (report) {
-      const facts = buildSummaryFacts(report);
-      verdict = validateSummary(text, { facts });
-      hardTypes = HARD_ISSUE_TYPES;
-    } else if (cohort) {
-      verdict = validateCohortSummary(text, { cohort });
-      hardTypes = COHORT_HARD_ISSUE_TYPES;
-    } else {
-      verdict = validateSummary(text, {});
-      hardTypes = HARD_ISSUE_TYPES;
-    }
-    const hard = verdict.issues.filter((i) => hardTypes.has(i.type));
-    if (hard.length) return degrade('invalid-summary');
-
-    return { text, degraded: false, reason: null, issues: verdict.issues };
-  } catch (e) {
-    if (signal?.aborted) return { text: '', degraded: false, reason: null, aborted: true };
-    return degrade(timedOut ? 'timeout' : 'network');
+    if (signal?.aborted) controller.abort();
+    const response = await fetch(url, { signal: controller.signal, cache: 'no-store', credentials: 'same-origin' });
+    if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) throw new Error('no-relay');
+    const value = await response.json();
+    cachedStatus = { checked: true, configured: value.configured === true, model: typeof value.model === 'string' ? value.model : null, host: typeof value.host === 'string' ? value.host : null };
+    statusUrl = url; statusTime = Date.now();
+    return llmStatus();
+  } catch {
+    return { checked: true, configured: false, model: null, host: null };
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener('abort', onAbort);
+  }
+}
+
+function tidy(text) { return String(text ?? '').replace(/\r\n?/g, '\n').replace(/\n{3,}/g, '\n\n').trim(); }
+function looksComplete(text) { return /[。！？…」』”"]$/.test(text); }
+
+export async function streamSummary({ report, name = '', className = '', onDelta, onStatus, signal, endpoint = {}, request, fallback, cohort = null }) {
+  const degrade = (reason) => ({ text: typeof fallback === 'function' ? fallback() : fallbackText(report, { name }), degraded: true, reason });
+  if (signal?.aborted) return { text: '', aborted: true, degraded: false, reason: null };
+  const direct = Boolean(endpoint.baseUrl && endpoint.apiKey && endpoint.model);
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, endpoint.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  const onAbort = () => controller.abort();
+  signal?.addEventListener('abort', onAbort);
+  try {
+    const status = direct ? { checked: true, configured: true, model: endpoint.model, host: new URL(endpoint.baseUrl).host } : await readLlmStatus({ signal: controller.signal, url: endpoint.statusUrl });
+    onStatus?.(status);
+    if (signal?.aborted) return { text: '', aborted: true, degraded: false, reason: null };
+    if (!status.configured) return degrade('not-configured');
+    let url, headers, body;
+    if (direct) {
+      const prompt = request ?? buildSummaryRequest(report, { name });
+      url = endpoint.baseUrl.replace(/\/+$/, '') + '/chat/completions';
+      headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${endpoint.apiKey}` };
+      body = { model: endpoint.model, messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }], stream: true, temperature: 0.9, max_tokens: 700 };
+    } else {
+      url = endpoint.relayUrl ?? '/api/llm/summary';
+      headers = { 'Content-Type': 'application/json' };
+      body = buildLlmPayload({ report, cohort, name, className });
+    }
+    const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal: controller.signal, credentials: 'same-origin' });
+    if (!response.ok || !response.body) return degrade(response.status === 504 ? 'timeout' : `http-${response.status}`);
+    const text = tidy(await consumeSseStream(response.body, { onDelta, maxChars: MAX_CHARS, requireDone: !direct }));
+    if (signal?.aborted) return { text, aborted: true, degraded: false, reason: null };
+    if (!text) return degrade('empty');
+    if (!looksComplete(text)) return degrade('truncated');
+    const verdict = report ? validateSummary(text, { facts: buildSummaryFacts(report) }) : cohort ? validateCohortSummary(text, { cohort }) : validateSummary(text, {});
+    const hardTypes = cohort && !report ? COHORT_HARD_ISSUE_TYPES : HARD_ISSUE_TYPES;
+    if (verdict.issues.some((issue) => hardTypes.has(issue.type))) return degrade('invalid-summary');
+    return { text, degraded: false, reason: null, model: status.model, issues: verdict.issues };
+  } catch {
+    if (signal?.aborted) return { text: '', aborted: true, degraded: false, reason: null };
+    return degrade(timedOut ? 'timeout' : 'network');
+  } finally {
+    clearTimeout(timer); controller.abort();
     signal?.removeEventListener('abort', onAbort);
   }
 }

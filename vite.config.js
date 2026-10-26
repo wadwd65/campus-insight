@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { campusAi } from './server/vite-plugin.mjs'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [campusAi(), react(), tailwindcss()],
   build: {
     // ★ 10-08：不清空输出目录。
     // 原因：本机环境的"批量删除保护"会拦住 Vite 清空 outDir（报
@@ -39,6 +40,8 @@ export default defineConfig({
     watch: {
       ignored: [
         '**/.browser-profile*/**',
+        '**/.shots-before/**',
+        '**/dist/**',
         '**/.workbuddy-gen/**',
         '**/.smoke-out/**',
       ],

@@ -14,6 +14,18 @@ import { toAttributeMatrix, buildBaseline } from '../lib/matrix.js';
 import { REQUIRED_COLUMNS } from '../lib/surveySchema.js';
 
 const DATA_FILE = '问卷基准数据.csv';
+const COHORT_SAMPLE_FILE = '示例-班级问卷.csv';
+
+/** Explicit demo only; uses the same parsing and cleaning contracts as uploaded CSV. */
+export async function loadSampleCohort() {
+  const response = await fetch(`${import.meta.env.BASE_URL}data/${COHORT_SAMPLE_FILE}`);
+  if (!response.ok) throw new Error('模拟班级暂时无法读取，请稍后重试。');
+  const parsed = parseCsvText(await response.text(), REQUIRED_COLUMNS);
+  if (!parsed.ok) throw new Error('模拟班级文件格式有误，请联系网站维护者。');
+  const cleaned = cleanSurveyRows(parsed.rows);
+  if (!cleaned.ok) throw new Error('模拟班级暂时没有可用记录。');
+  return { fileName: `${COHORT_SAMPLE_FILE}（模拟数据）`, source: 'sample', records: cleaned.records, report: cleaned.report, details: cleaned.details, warnings: parsed.errors, encodings: [] };
+}
 
 let cache = null;
 let pending = null;
