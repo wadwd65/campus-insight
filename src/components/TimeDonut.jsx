@@ -10,6 +10,7 @@
 
 import { useMemo } from 'react';
 import Chart from './Chart.jsx';
+import { timeShareLabel, timeShareTooltip } from '../lib/chartLabels.js';
 import { TIME_COLORS, INK, INK_SOFT, LINE, FONT } from '../lib/theme.js';
 
 export default function TimeDonut({ data }) {
@@ -19,7 +20,7 @@ export default function TimeDonut({ data }) {
     () => ({
       tooltip: {
         trigger: 'item',
-        formatter: (p) => `${p.name}　${p.percent}%`,
+        formatter: timeShareTooltip,
         textStyle: { fontFamily: FONT, fontSize: 12 },
       },
       legend: { show: false },
@@ -35,7 +36,7 @@ export default function TimeDonut({ data }) {
             fontSize: 12,
             fontFamily: FONT,
             lineHeight: 16,
-            formatter: '{b}\n{d}%',
+            formatter: timeShareLabel,
           },
           labelLine: { length: 8, length2: 8, lineStyle: { color: LINE } },
           data: data.map((d) => ({
@@ -54,10 +55,10 @@ export default function TimeDonut({ data }) {
       <Chart
         option={option}
         height={300}
-        ariaLabel={`时间分配环形图：${data.map((d) => `${d.name} ${d.value}%`).join('，')}`}
+        ariaLabel={`时间分配环形图（规则估算，合计100%）：${data.map((d) => `${d.name} ${d.value}%`).join('，')}`}
       />
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <span className="text-[11px] text-[var(--ink-soft)]">最多的时间给了</span>
+        <span className="text-[11px] text-[var(--ink-soft)]">规则估算中占比最高</span>
         <span className="text-lg font-semibold leading-tight" style={{ color: INK }}>
           {top.name}
         </span>

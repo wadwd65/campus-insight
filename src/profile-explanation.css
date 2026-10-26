@@ -29,4 +29,16 @@
 .profile-preview-result { margin-top:14px; font-size:12px; line-height:1.9; min-height:46px; }
 .profile-preview-result b { color:#2b604d; font-weight:600; }
 .profile-whatif > small { display:block; margin-top:7px; font-size:10px; line-height:1.8; color:#82755c; }
+.profile-report-preview { margin-top:14px; padding:18px; border:1px solid #b5c5b8; background:#f0f3e8; }
+.profile-report-preview h5 { font-size:21px; font-weight:650; color:#2b604d; }
+.profile-preview-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:center; }
+.profile-preview-grid svg { width:100%; max-width:300px; }
+.profile-preview-grid p,.profile-report-preview > p { font-size:11px; line-height:1.8; }
+.profile-preview-grid ul { padding:0; margin:10px 0; list-style:none; }
+.profile-preview-grid li { display:grid; grid-template-columns:1fr auto; gap:4px 10px; margin-bottom:9px; font-size:12px; }
+.profile-preview-grid meter { grid-column:1 / -1; width:100%; height:9px; accent-color:#2b6653; }
+.profile-preview-reading { white-space:pre-line; margin-top:12px; }
+.profile-apply-answer { margin:16px 0 8px; min-height:44px; padding:10px 15px; border:1px solid #2b6653; background:#2b6653; color:#fffdf5; font-size:12px; cursor:pointer; }
+.profile-apply-answer:focus-visible { outline:2px solid #976f37; outline-offset:3px; }
+@media(max-width:620px) { .profile-preview-grid { grid-template-columns:1fr; gap:0; } .profile-report-preview { padding:13px; } }
 @media(max-width:620px) { .profile-explanation-heading { align-items:stretch; flex-direction:column; gap:12px; } .profile-explanation h3 { font-size:18px; } .profile-explanation-heading label { flex-direction:row; align-items:center; gap:12px; } .profile-explanation-heading select { width:auto; flex:1; min-width:0; } .profile-calculation { gap:8px; padding:16px 12px; grid-template-columns:1fr 18px 1fr; } .profile-calculation b { font-size:28px; } .profile-calculation div > span { font-size:10px; } .profile-whatif { padding:18px 14px; } .profile-whatif-controls { grid-template-columns:1fr; gap:10px; } .profile-evidence-list p { font-size:12px; } }

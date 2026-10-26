@@ -1,3 +1,7 @@
+import {dayView} from './lib/campusDay.js';
+import { readSurveyReportSnapshot, saveSurveyReport, clearSurveyReport, validSurveyAnswers } from './lib/surveyReportSession.js';
+import { cleanDaySurveyContext } from './lib/daySurveyBridge.js';
+import {cleanStoryReflection} from './lib/campusStory.js';
 /**
  * Application flow: home → personal assessment or circle collection → explained results.
  * Optional campus actions share the base-attribute ledger with assessment.
@@ -9,9 +13,8 @@ import SurveyForm from './components/SurveyForm.jsx';
 import UploadPanel from './components/UploadPanel.jsx';
 import QuizGate from './components/QuizGate.jsx';
 import HubHud from './components/HubHud.jsx';
-import GeometricBackdrop from './components/GeometricBackdrop.jsx';
-import SkyBackdrop from './components/SkyBackdrop.jsx';
-import Mascot from './components/Mascot.jsx';
+import IndustrialBackdrop from './components/IndustrialBackdrop.jsx';
+import ExperienceSettings,{useExperience} from './components/ExperienceSettings.jsx';
 import IntroScene from './scenes/IntroScene.jsx';
 import MapScene from './scenes/MapScene.jsx';
 import EntryScene from './scenes/EntryScene.jsx';
@@ -26,7 +29,6 @@ import ProductFooter from './components/ProductFooter.jsx';
 import './novice-experience.css';
 
 /** 粒子层懒加载：@tsparticles 单独成 chunk，不拖首屏（与入场页同一份配置） */
-const Atmosphere = lazy(() => import('./components/Atmosphere.jsx'));
 import { loadBaseline, loadSampleCohort } from './data/loadSample.js';
 import { useGameStore } from './store/useGameStore.js';
 import { QUESTIONS, vectorOf } from './lib/surveySchema.js';
@@ -38,13 +40,18 @@ const ReportView = lazy(() => import('./components/ReportView.jsx'));
 const CohortPage = lazy(() => import('./components/CohortPage.jsx'));
 const CircleWorkspace = lazy(() => import('./components/CircleWorkspace.jsx'));
 const DeploymentHelp = lazy(() => import('./components/DeploymentHelp.jsx'));
+const CampusStory = lazy(() => import('./components/CampusStory.jsx'));
+const CampusDay = lazy(() => import('./components/CampusDay.jsx'));
+const CampusDayResult = lazy(() => import('./components/CampusDay.jsx').then(module=>({default:module.CampusDayResult}))); 
 
 export default function App() {
-  return <AccountProvider><CampusApp /></AccountProvider>;
+  const isIntro=useGameStore(s=>s.scene==='intro');
+  return <AccountProvider><ExperienceSettings companion={!isIntro}><CampusApp /></ExperienceSettings></AccountProvider>;
 }
 
 function CampusApp() {
   const account = useAccount();
+  const {setMusicScene,setCompanionEgg}=useExperience();
   const [circleContext, setCircleContext] = useState(null);
   const scene = useGameStore((s) => s.scene);
   const applyChoice = useGameStore((s) => s.applyChoice);
@@ -56,7 +63,16 @@ function CampusApp() {
   // ★ 10-07 作品重心修正：默认落地页由「行动地图」改为「入口页」——
   //   一级入口是测评与上传，地图降为附加体验（见 EntryScene 顶部说明）。
   const [stage, setStage] = useState(() => readSiteRoute(typeof window === 'undefined' ? '' : window.location.hash).stage);
+  useEffect(()=>{setMusicScene(scene==='intro'?'intro':stage.startsWith('day')?'day':stage);},[scene,stage,setMusicScene]);
   const [pendingInvite, setPendingInvite] = useState(() => readSiteRoute(typeof window === 'undefined' ? '' : window.location.hash).invite);
+  const [dayRun,setDayRun]=useState(null);
+  const [surveyDayContext,setSurveyDayContext]=useState(null);
+  const [reportDayContext,setReportDayContext]=useState(null);
+  function startDay(){setDayRun(null);setFromCohort(false);setStage('day');}
+  function finishDay(progress){if(!dayView(progress).complete)return;setDayRun(progress);setStage('day-report');}
+  const storyOrigin=useRef('entry');
+  const [storyEpisodeId,setStoryEpisodeId]=useState(null),[storyContext,setStoryContext]=useState(null);
+  function openStory(origin='entry',episodeId='screening'){storyOrigin.current=origin;setStoryEpisodeId(episodeId);setStage('story');}
   useEffect(() => {
     const navigate = () => {
       const route = readSiteRoute(window.location.hash);
@@ -75,7 +91,7 @@ function CampusApp() {
   useEffect(() => {
     if (scene === 'intro') return;
     // Reports and in-progress answers remain memory-only; refreshing returns to a safe page.
-    const page = ['circles', 'upload', 'map'].includes(stage) ? stage : stage === 'entry' ? '' : circleContext ? 'circles' : '';
+    const page = ['circles', 'upload', 'map', 'story', 'day'].includes(stage) ? stage : ['day-report'].includes(stage)?'day':stage === 'entry' ? '' : circleContext ? 'circles' : '';
     const hash = page ? `#/${page}` : '';
     if (window.location.hash !== hash) window.history.pushState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
   }, [stage, scene]);
@@ -113,12 +129,23 @@ function CampusApp() {
   const [quizSnapshot, setQuizSnapshot] = useState(null);
   const [previousAccount, setPreviousAccount] = useState(undefined);
   useEffect(() => {
-    if (account.status !== 'ready') return;
+    if (!['ready', 'offline'].includes(account.status)) return;
     const id = account.user?.id || null;
+    if (previousAccount === id) return;
     if (previousAccount !== undefined && previousAccount !== id) {
       if (previousAccount) clearAccountDrafts(previousAccount);
-      setCircleContext(null); setAnswers(null); setCohort(null); setQuizSnapshot(null); setMapRun(false); resetPlayer();
-      setStage(current => ['quiz', 'report', 'cohort'].includes(current) ? 'circles' : current);
+      clearSurveyReport(undefined, previousAccount);
+      setDayRun(null); setSurveyDayContext(null); setReportDayContext(null); setCircleContext(null); setStoryContext(null); setAnswers(null); setCohort(null); setQuizSnapshot(null); setMapRun(false); resetPlayer();
+      setStage(current => ['day-report'].includes(current)?'day':['quiz', 'report', 'cohort'].includes(current) ? 'circles' : current);
+    }
+    const snapshot = readSurveyReportSnapshot(undefined, id);
+    const restored = snapshot?.answers;
+    if (restored) {
+      setSurveyDayContext(snapshot.dayContext);
+      setReportDayContext(snapshot.dayContext);
+      setAnswers(restored); setMapRun(false); resetPlayer();
+      for (const q of QUESTIONS) applyChoice({ id: `${q.field}=${restored[q.field]}`, label: q.text, delta: vectorOf(q.field, restored[q.field]) });
+      setQuizSnapshot({ ...useGameStore.getState().player.attributes });
     }
     setPreviousAccount(id);
   }, [account.user?.id, account.status]);
@@ -145,17 +172,21 @@ function CampusApp() {
   const hasAnswers = Boolean(answers && Object.keys(answers).length);
   const eggAction = useMemo(
     () =>
-      hasAnswers
+      mapRun ? {label:'查看行动报告 →',kind:'navigate',run:()=>setStage('report')} : hasAnswers
         ? {
-            label: '写进我的档案 ↓',
+            label: '下载我的档案 ↓',kind:'download',
             run: () => {
               const id = makeProfileId();
               downloadText(`campus-insight-档案-${id}.csv`, buildProfileCsv(answers, { id }));
             },
           }
-        : { label: '先答十题 →', run: () => { setCircleContext(null); setStage('quiz'); } },
-    [hasAnswers, answers],
+        : { label: '先答十题 →',kind:'navigate', run: startQuiz },
+    [mapRun,hasAnswers,answers],
   );
+  useEffect(()=>{
+    setCompanionEgg({quip:eggQuip?.text||null,action:eggAction,scope:account.user?.id||'anonymous'});
+    return ()=>setCompanionEgg(null);
+  },[eggQuip,eggAction,account.user?.id,setCompanionEgg]);
 
   // ★ B+C：只有**从问卷直接来**的报告才显示「去地图复测」按钮。
   //   已经走过地图的报告再给一个"去地图"是循环邀请（点了又会回到同一页）。
@@ -195,7 +226,9 @@ function CampusApp() {
     setStage('entry');
   }
 
-  function startQuiz() {
+  function startQuiz(context) {
+    setSurveyDayContext(cleanDaySurveyContext(context?.dayProgress));
+    setStoryContext(cleanStoryReflection(context));
     setCircleContext(null);
     setFromCohort(false);
     setStage('quiz');
@@ -226,9 +259,13 @@ function CampusApp() {
   //   `cohort` 留着不会立刻显示错内容（stage 回地图了），但用户之后再点上传、
   //   或界面某处读到它，就会拿到"上一轮的数据"——这种残留最难查，因为它不报错。
   function restart() {
+    setSurveyDayContext(null);
+    setReportDayContext(null);
+    setStoryContext(null);
     setCircleContext(null);
     resetPlayer();
     setAnswers(null);
+    clearSurveyReport(undefined, account.user?.id);
     setQuizSnapshot(null); // ★ B+C：快照不清，"复测"会拿着上一轮的基线
     setFromCohort(false);
     setMapRun(false);
@@ -238,7 +275,14 @@ function CampusApp() {
     setStage('map');
   }
 
-  function finishQuiz(a) {
+  function finishQuiz(a,context,dayContext=null) {
+    a = validSurveyAnswers(a);
+    if (!a) return;
+    const cleanDay=cleanDaySurveyContext(dayContext);
+    setSurveyDayContext(cleanDay);
+    setReportDayContext(cleanDay);
+    saveSurveyReport(a, undefined, account.user?.id, cleanDay);
+    setStoryContext(cleanStoryReflection(context));
     setAnswers(a);
     setMapRun(false); // 走问卷这条路，报告就读 answers，不读地图的账
 
@@ -299,6 +343,8 @@ function CampusApp() {
             baseline={baseline}
             onReplayIntro={() => useGameStore.getState().backToIntro()}
             onGoQuiz={startQuiz}
+            onOpenReport={answers ? () => { setMapRun(false); setStage('report'); } : undefined}
+            onStartDay={startDay}
             onGoCircles={() => setStage('circles')}
             accountLabel={account.user ? `${account.user.displayName} · 我的圈子` : '登录 / 我的圈子'}
             onGoUpload={() => setStage('upload')}
@@ -306,12 +352,17 @@ function CampusApp() {
             sampleBusy={sampleBusy}
             sampleError={sampleError}
             onGoMap={() => setStage('map')}
+            onGoStory={episodeId => openStory('entry',episodeId)}
             eggQuip={eggQuip}
             eggAction={eggAction}
           />
         </div>
       </div>
     );
+  }
+
+  if (['day','day-report'].includes(stage)) {
+    return <div className="min-h-full flex flex-col term-enter stage-day"><IndustrialBackdrop/><HubHud compact statusLabel="可选探索 · 地图一天" onGoEntry={goEntry} onGoCircles={()=>setStage('circles')} accountLabel={account.user?`${account.user.displayName} · 我的圈子`:'登录 / 我的圈子'}/><main className="day-page-main"><Suspense fallback={<Hint text="正在展开今天的地图…"/>}>{stage==='day-report'&&dayRun?<CampusDayResult progress={dayRun} onBack={startDay} onGoQuiz={()=>startQuiz({dayProgress:dayRun})}/>:<CampusDay key={account.user?.id||'guest'} scope={account.user?.id||'guest'} onExit={goEntry} onGoQuiz={progress=>startQuiz({dayProgress:progress})} onComplete={finishDay}/>}</Suspense></main><ProductFooter/></div>;
   }
 
   if (stage === 'map') {
@@ -322,12 +373,12 @@ function CampusApp() {
             地图页与入口页因此完全没有背景层（指标里 5-map 没有天空层溢出，就是证据）。
             地图页改成浅色之后，这个缺口才暴露出来：它是"浅底但没有天空"的一页，
             与另三页气质割裂。 */}
-        <SkyBackdrop />
+        <IndustrialBackdrop />
         <HubHud onRestart={restart} onGoEntry={goEntry} onGoCircles={() => setStage('circles')} accountLabel={account.user ? `${account.user.displayName} · 我的圈子` : '登录 / 我的圈子'} help={<GettingStartedGuide onStartPersonal={startQuiz} onOpenCircles={() => setStage('circles')} />} compact statusLabel="行动地图" />
         <main className="flex-1 w-full">
           {/* 基准数据还没到也不拦着 —— 地图不依赖基准人群，它只写账本 */}
-          <MapScene
-            guide={<Mascot src={`${import.meta.env.BASE_URL}art/mascot.webp`} quip={eggQuip?.text ?? null} onQuipAction={eggAction.run} actionLabel={eggAction.label} />}
+          <MapScene storyContext={storyContext} onGoStory={episodeId=>openStory('map',episodeId)}
+            guide={null}
             onGoReport={() => {
               setMapRun(true);
               setStage('report');
@@ -343,45 +394,8 @@ function CampusApp() {
 
   return (
     <div className={`min-h-full flex flex-col term-enter stage-${stage}`}>
-      {/* ★ 10-14：几何装饰层（参考《明日方舟》SideStory「众生行记」的界面语言）。
-          放在最外层、fixed 定位、pointer-events:none ——
-          它必须在地图页也可见（地图自己有背景，但那页更需要"坐标系"的感觉），
-          又不能挡掉任何一次点击。入场页不挂它（那页是场景层，不是数据层）。 */}
-      {/* ★ 10-14 v2：两层背景。
-            ① ark-sky —— 顶部一层通透的蓝紫光（众生行记"避开深色、用亮度造神圣感"）
-            ② GeometricBackdrop —— 螺旋 / 圆环 / 制图线 / 几何色块 */}
-      <div className="ark-sky" aria-hidden="true" />
-      <GeometricBackdrop variant="page" />
-      {/* ★ 10-15：天空提到**全站**，不再只挂答题页。
-          用户这次明确「重做的是全部网站的 UI」——
-          背景是整站的地基，只挂一页会让各页变成不同气质。
-          它 fixed 铺满、z-index:-1、pointer-events:none，所有内容压在它之上。
-          ⚠️ 与几何层互斥（见 index.css 的 :has() 规则）：
-             有天空时几何自动让位 —— 两套装饰叠在一起是"一张照片 + 一堆线"。 */}
-      <SkyBackdrop />
-      {/* ★ 10-17 夜：答题流程补粒子层。
-          用户原话：「答题的那个界面也没有那个一些动态粒子效果，这得也得加上去」。
-          · 只挂 gate/quiz 两站（答题这条线），档案页是"纸"，纸上有浮尘不合逻辑
-          · zIndex=-1：压在天空之上、正文之下 —— 粒子在字后面飘，不糊字、不挡点击
-          · 组件内部已处理：prefers-reduced-motion / 软渲染环境直接不渲染 */}
-      {(stage === 'gate' || stage === 'quiz') && (
-        <Suspense fallback={null}>
-          <Atmosphere variant="plain" zIndex={-1} />
-        </Suspense>
-      )}
-      {/* ★ 10-15：立绘小人常驻全站（用户：「除了那个动开场动画那里」）。
-          入场页是 early return，天然不经过这里 —— 正好符合"除了开场动画"。
-          入口页由 EntryScene 自带一份，不在这里重复挂（同页会出现两个）。
-          z-index 在天空之上、内容之下由 .mascot 自身控制，pointer-events 只留可点区。 */}
-      <Mascot
-        src={`${import.meta.env.BASE_URL}art/mascot.webp`}
-        side={stage === 'circles' && !account.user ? 'left' : 'right'}
-        quip={eggQuip?.text ?? null}
-        onQuipAction={eggAction.run}
-        actionLabel={eggAction.label}
-      />
-
-      <HubHud compact statusLabel={{ circles: '我的圈子', quiz: '问卷测评', gate: '准备作答', upload: '数据导入', cohort: '群体分析', report: '档案已生成' }[stage]} onRestart={restart} onGoEntry={goEntry} onGoCircles={() => setStage('circles')} accountLabel={account.user ? `${account.user.displayName} · 我的圈子` : '登录 / 我的圈子'} help={stage !== 'circles' ? <GettingStartedGuide context={circleContext ? 'circles' : 'home'} onStartPersonal={startQuiz} onOpenCircles={() => setStage('circles')} /> : null} />
+      <IndustrialBackdrop />
+      <HubHud compact statusLabel={{ circles: '我的圈子', quiz: '问卷测评', gate: '准备作答', upload: '数据导入', cohort: '群体分析', report: '档案已生成', story: '校园小剧场' }[stage]} onRestart={restart} onGoEntry={goEntry} onGoCircles={() => setStage('circles')} accountLabel={account.user ? `${account.user.displayName} · 我的圈子` : '登录 / 我的圈子'} help={stage !== 'circles' ? <GettingStartedGuide context={circleContext ? 'circles' : 'home'} onStartPersonal={startQuiz} onOpenCircles={() => setStage('circles')} /> : null} />
       {/* 深色 HUD → 浅色正文的过渡带。见 index.css 的 .term-seam 说明：
           不加它，这条边界就是一条硬切的黑白线。 */}
       <div className="term-seam" aria-hidden="true" />
@@ -397,7 +411,7 @@ function CampusApp() {
             : `app-content flex-1 w-full max-w-5xl mx-auto px-6 ${stage === 'circles' ? 'app-circles py-8' : stage === 'quiz' ? 'py-6' : 'py-12'}`
         }
       >
-        {stage === 'circles' ? (
+        {stage === 'story' ? <Suspense fallback={<Hint text="正在接上这段故事…" />}><CampusStory onStartDay={startDay} initialEpisode={storyEpisodeId} key={account.user?.id||'guest'} scope={account.user?.id||'guest'} onBack={()=>setStage(storyOrigin.current==='report'&&(answers||mapRun)?'report':storyOrigin.current==='map'?'map':'entry')} onGoQuiz={startQuiz}/></Suspense> : stage === 'circles' ? (
           <Suspense fallback={<Hint text="正在打开圈子…" />}><div className="circle-workspace"><div className="novice-help-strip"><span>不确定下一步？可以先看指引，也可以直接操作。</span><GettingStartedGuide autoShow context="circles" onStartPersonal={startQuiz} onOpenCircles={() => setStage('circles')} /></div><CircleWorkspace key={account.user?.id || 'guest'} pendingInvite={pendingInvite} onInviteHandled={() => setPendingInvite('')} baseline={baseline} onSkip={startQuiz} onPreviewSample={previewSample} sampleBusy={sampleBusy} sampleError={sampleError} onStartQuiz={context => { setCircleContext(context); setAnswers(null); setFromCohort(false); setMapRun(false); setStage('quiz'); }} /><DeploymentHelp /></div></Suspense>
         ) : error ? (
           <ErrorBlock message={error} onRetry={loadBaselineData} onBack={goEntry} />
@@ -408,17 +422,22 @@ function CampusApp() {
              用户原话「答题应该是一个功能，而不是点进去就是答题」。 */
           <QuizGate onStart={() => setStage('quiz')} onBack={() => fromCohort ? setStage('cohort') : backToMap()} backLabel={fromCohort ? '班级画像' : '校园地图'} />
         ) : stage === 'quiz' ? (
-          <><SurveyForm key={circleContext ? `${circleContext.userId}:${circleContext.id}` : 'guest'} draftScope={circleContext ? `${circleContext.userId}:${circleContext.id}` : ''} contextLabel={circleContext ? `正在为「${circleContext.name}」填报；完成后需确认提交。` : ''} onComplete={finishQuiz} onPause={circleContext ? () => setStage('circles') : goEntry} onCancel={() => setStage(circleContext ? 'circles' : fromCohort ? 'cohort' : 'entry')} /></>
+          <><SurveyForm dayContext={surveyDayContext} storyContext={storyContext} key={circleContext ? `${circleContext.userId}:${circleContext.id}` : 'guest'} draftScope={circleContext ? `${circleContext.userId}:${circleContext.id}` : ''} contextLabel={circleContext ? `正在为「${circleContext.name}」填报；完成后需确认提交。` : ''} onComplete={finishQuiz} onPause={circleContext ? () => setStage('circles') : goEntry} onCancel={() => setStage(circleContext ? 'circles' : fromCohort ? 'cohort' : 'entry')} /></>
         ) : stage === 'report' && (answers || mapRun) ? (
           <Suspense fallback={<Hint text="正在生成你的报告…" />}>
             <ReportView
+              key={JSON.stringify([answers, mapRun])}
+              storyContext={storyContext}
+              onApplyAnswers={mapRun ? undefined : next => finishQuiz(next, storyContext, reportDayContext)}
+              dayContext={reportDayContext}
+              onGoStory={episodeId => openStory('report',episodeId)}
               answers={answers}
               attributes={mapRun ? player.attributes : undefined}
               // ★ B+C：轨迹**两种路径都传**。
               //   问卷的每一题也会 applyChoice 进账本（见 finishQuiz），
               //   所以 trail 里本来就有作答记录 —— 以前只在 mapRun 时传，
               //   结果是问卷路径的报告看不到自己刚答了 10 题。
-              trail={player.trail}
+              trail={mapRun ? player.trail : player.trail.filter(entry => !entry.at)}
               baseline={baseline}
               name={name}
               quizSnapshot={quizSnapshot}

@@ -87,8 +87,11 @@ function dirSize(dir) {
   return n;
 }
 const total = dirSize(DIST);
-const MB = total / 1048576;
-ok(MB < 6, 'dist/ 总体积 < 6MB（防死重量回涨）', MB.toFixed(2) + ' MB');
+// Full recordings are opt-in, preload=none. Keep the original core budget intact.
+const audioDir=path.join(DIST,'audio'),audioBytes=fs.existsSync(audioDir)?dirSize(audioDir):0;
+const MB = (total-audioBytes) / 1048576;
+ok(MB < 6, 'dist/ 核心资源 < 6MB（音乐另计，防死重量回涨）', MB.toFixed(2) + ' MB');
+ok(audioBytes / 1048576 < 20, '九首按需本地曲库 < 20MB（一次仅加载当前一首）', (audioBytes / 1048576).toFixed(2)+' MB');
 
 const mapDir = path.join(DIST, 'map');
 if (fs.existsSync(mapDir)) {

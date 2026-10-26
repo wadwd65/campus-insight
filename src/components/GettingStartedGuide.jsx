@@ -87,8 +87,8 @@ export default function GettingStartedGuide({
     else onStartPersonal?.();
   }
 
-  const titles = ['第一次来？我们陪你走一遍', circle ? '登录和注册，选对一个就好' : '按自己的日常，选最接近的答案', circle ? '进入圈子，一起记录日常' : '现在，开始认识你的校园日常'];
-  const descriptions = ['先选你今天想做的事。不确定也没关系，之后可以随时换。', circle ? '已有账号就登录；第一次使用这个网站，再注册。' : '个人测评一共 10 道选择题，不需要注册账号。', circle ? '这里只带你打开账号页面，加入和提交都由你自己确认。' : '这里只打开答题页面，不会替你填写或提交任何内容。'];
+  const titles = ['第一次来？我们陪你走一遍', circle ? '登录和注册，选对一个就好' : '十个真实回答，直接看到自己的结果', circle ? '进入圈子，一起记录日常' : '现在，开始认识你的校园日常'];
+  const descriptions = ['先选你今天想做的事。不确定也没关系，之后可以随时换。', circle ? '已有账号就登录；第一次使用这个网站，再注册。' : '先填十道校园问卷，不需要注册账号；地图可以之后再玩。', circle ? '这里只带你打开账号页面，加入和提交都由你自己确认。' : '这里只打开问卷，不会替你作答；个人报告生成后，也不会自动交到圈子。'];
 
   return <>
     <button type="button" className={`getting-started-trigger ${className}`.trim()} onClick={showGuide} aria-haspopup="dialog">
@@ -106,7 +106,7 @@ export default function GettingStartedGuide({
             <div className="getting-started-intro"><div><p className="getting-started-kicker">第 {step + 1} 步 / 共 3 步</p><h2 id={titleId} ref={heading} tabIndex={-1}>{titles[step]}</h2><p id={descriptionId}>{descriptions[step]}</p></div><GuideIllustration circle={circle} /></div>
 
             {step === 0 && <fieldset className="getting-started-choices"><legend className="getting-started-sr-only">选择你想做的事</legend>
-              <label className={`getting-started-choice ${!circle ? 'is-selected' : ''}`}><input type="radio" name={`${titleId}-goal`} value="personal" checked={!circle} onChange={() => setGoal('personal')} /><span className="getting-started-choice-copy"><strong>我想看看自己的画像 <em>推荐先体验</em></strong><span>答 10 道选择题，查看自己的校园生活报告。</span><small>不用登录 · 个人体验不会交给圈子管理员</small></span></label>
+              <label className={`getting-started-choice ${!circle ? 'is-selected' : ''}`}><input type="radio" name={`${titleId}-goal`} value="personal" checked={!circle} onChange={() => setGoal('personal')} /><span className="getting-started-choice-copy"><strong>我想填写问卷，看看自己的校园日常 <em>推荐先体验</em></strong><span>回答学习、生活和课余习惯，直接生成个人解读与图表。</span><small>不用登录 · 提交圈子前必须由你确认</small></span></label>
               <label className={`getting-started-choice ${circle ? 'is-selected' : ''}`}><input type="radio" name={`${titleId}-goal`} value="circles" checked={circle} onChange={() => setGoal('circles')} /><span className="getting-started-choice-copy"><strong>我要填报 / 收集答卷</strong><span>成员使用邀请加入，管理员可以创建圈子。</span><small>需要账号 · 提交前会说明谁能看到答卷</small></span></label>
             </fieldset>}
 
@@ -115,16 +115,16 @@ export default function GettingStartedGuide({
               ['第一次来？点「注册」', '受邀成员准备邀请链接或邀请码；想组织收卷，选择创建自己的圈子。两种方式都由你自设6～12位密码。'],
               ['成员填报，管理员收集', '管理员可以创建圈子并发送邀请。成员提交前会再次确认，管理员只能看到已提交给本圈的答卷。'],
             ] : [
-              ['每题点选一个答案', '按照自己的日常选择，没有标准答案，也不用输入长文字。'],
-              ['点「下一题」继续', '想改答案时可以回到上一题；全部答完后再生成报告。'],
-              ['报告出来后慢慢看', '结果用于了解日常倾向；对照数据是模拟基准，不代表真实大学生排名。'],
+              ['选最接近自己的回答', '五个章节、十道题。可以改选，确认后再点下一题；暂停后能继续填写。'],
+              ['填完，直接看个人档案', '个人解读、雷达图和时间倾向会一起生成，还能查看每个回答的计算依据。'],
+              ['保存结果，再决定下一步', '可以保存档案卡、去地图探索；如需交卷，再登录圈子并确认提交。'],
             ]).map(([title, text], index) => <li key={title}><span aria-hidden="true">{index + 1}</span><div><strong>{title}</strong><p>{text}</p></div></li>)}</ol>}
 
-            {step === 2 && <div className="getting-started-ready"><span className="getting-started-ready-icon" aria-hidden="true">✓</span><div><h3>{circle ? '下一站：登录 / 注册' : '下一站：个人测评'}</h3><p>{circle ? '已有账号直接登录。成员没有收到邀请，可以先联系管理员；管理员登录后可创建圈子，再邀请成员。' : '不想登录也能完整体验。你的选择由你决定，之后也可以再修改。'}</p></div></div>}
+            {step === 2 && <div className="getting-started-ready"><span className="getting-started-ready-icon" aria-hidden="true">✓</span><div><h3>{circle ? '下一站：登录 / 注册' : '下一站：我的校园问卷'}</h3><p>{circle ? '已有账号直接登录。成员没有收到邀请，可以先联系管理员；管理员登录后可创建圈子，再邀请成员。' : '不想登录也能完整体验。你的选择由你决定，之后也可以再修改。'}</p></div></div>}
 
             <div className="getting-started-note"><span aria-hidden="true">i</span><p>{step === 0 ? '跳过只会关闭这份指引，所有功能仍可使用。以后点「使用帮助」就能重看。' : circle && step === 1 ? '账号和密码请自己保存；当前没有邮件找回。不确定时，可以先跳过指引，联系管理员。' : '不用一次学会所有功能。你可以随时跳过指引，再从「使用帮助」重新查看。'}</p></div>
           </div>
-          <div className="getting-started-footer"><span className="getting-started-footer-hint">{step === 0 ? '按你的需要选择即可' : '慢慢来，每一步都可以返回'}</span><div>{step > 0 && <button type="button" className="getting-started-secondary" onClick={() => setStep(step - 1)}>上一步</button>}{step < 2 ? <button type="button" className="getting-started-primary" onClick={() => setStep(step + 1)}>下一步 <span aria-hidden="true">→</span></button> : <button type="button" className="getting-started-primary" onClick={start}>{circle ? '打开登录 / 注册' : '开始个人测评'} <span aria-hidden="true">→</span></button>}</div></div>
+          <div className="getting-started-footer"><span className="getting-started-footer-hint">{step === 0 ? '按你的需要选择即可' : '慢慢来，每一步都可以返回'}</span><div>{step > 0 && <button type="button" className="getting-started-secondary" onClick={() => setStep(step - 1)}>上一步</button>}{step < 2 ? <button type="button" className="getting-started-primary" onClick={() => setStep(step + 1)}>下一步 <span aria-hidden="true">→</span></button> : <button type="button" className="getting-started-primary" onClick={start}>{circle ? '打开登录 / 注册' : '开始填写问卷'} <span aria-hidden="true">→</span></button>}</div></div>
         </div>
       </dialog>, document.body)}
   </>;

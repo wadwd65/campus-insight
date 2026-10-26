@@ -11,6 +11,10 @@ import './interaction.css'
 import './campus-map.css'
 import './product-polish.css'
 import './product-unity.css'
+import './industrial-edition.css'
+import './refinement.css'
+import './companion-position.css'
+import './questionnaire-core.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

@@ -10,6 +10,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { createAccountHandler } from '../server/accounts.mjs';
 import { QUESTIONS, MATRIX_VERSION } from '../src/lib/surveySchema.js';
 import { readSurveyDraft, saveSurveyDraft, clearAccountDrafts } from '../src/lib/surveyDraft.js';
+import { JOURNEY_QUESTIONS } from '../src/lib/surveyJourney.js';
 
 const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'campus-accounts-test-'));
 const setupToken = randomBytes(32).toString('hex');
@@ -142,7 +143,7 @@ try {
   expiredDb.close();
   r = await outsider.call('/circles'); check('过期会话无法读取圈内数据', () => assert.equal(r.status, 401));
   const jar = new Map(); const storage = { get length() { return jar.size; }, key: index => [...jar.keys()][index], getItem: key => jar.get(key), setItem: (key, value) => jar.set(key, value), removeItem: key => jar.delete(key) };
-  const firstTwo = Object.fromEntries(QUESTIONS.slice(0, 2).map(q => [q.field, q.options[0].text]));
+  const firstTwo = Object.fromEntries(JOURNEY_QUESTIONS.slice(0, 2).map(q => [q.field, q.options[0].text]));
   saveSurveyDraft(2, firstTwo, storage, 'a:circle-one'); saveSurveyDraft(2, firstTwo, storage, 'b:circle-one'); saveSurveyDraft(2, firstTwo, storage);
   check('圈子和账号分开保存草稿', () => { assert.equal(readSurveyDraft(storage, 'a:circle-two'), null); assert.deepEqual(readSurveyDraft(storage, 'a:circle-one').answers, firstTwo); });
   clearAccountDrafts('a', storage);

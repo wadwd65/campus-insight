@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { PREVIEW_STYLES, buildPreviewReport } from '../lib/previewProfiles.js';
 
 /** Small SVG: the landing page does not need an ECharts instance. */
-export function RadarGlyph({ data, className = '' }) {
+export function RadarGlyph({ data, className = '', labelPrefix = '示例画像' }) {
   const [values, setValues] = useState(() => data.map((d) => d.value));
   const current = useRef(values);
   useEffect(() => {
@@ -32,7 +32,7 @@ export function RadarGlyph({ data, className = '' }) {
     return [130 + Math.cos(a) * 72 * ratio, 108 + Math.sin(a) * 72 * ratio];
   };
   const polygon = (r) => data.map((_, i) => point(i, r).join(',')).join(' ');
-  return <svg className={className} viewBox="0 0 260 220" role="img" aria-label={`示例画像：${data.map((d) => `${d.axis}第${d.value}百分位`).join('，')}`}>
+  return <svg className={className} viewBox="0 0 260 220" role="img" aria-label={`${labelPrefix}：${data.map((d) => `${d.axis}第${d.value}百分位`).join('，')}`}>
     {[1, .75, .5, .25].map((r) => <polygon key={r} points={polygon(r)} fill={r === 1 ? '#e9f1ec' : 'none'} fillOpacity={r === 1 ? '.5' : undefined} stroke="#bed2cd" strokeWidth=".8" />)}
     {data.map((d, i) => <line key={d.key} x1="130" y1="108" x2={point(i, 1)[0]} y2={point(i, 1)[1]} stroke="#bed2cd" strokeWidth=".8" />)}
     <polygon points={data.map((d, i) => point(i, (values[i] ?? d.value) / 100).join(',')).join(' ')} fill="#287a73" fillOpacity=".19" stroke="#1e6a65" strokeWidth="2" />

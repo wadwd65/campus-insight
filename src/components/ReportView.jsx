@@ -1,3 +1,4 @@
+import JourneyContinuity from './JourneyContinuity.jsx';
 /**
  * 结果页 —— 五件套的组装与出场节奏。
  *
@@ -24,6 +25,10 @@ import ProfileExplanation from './ProfileExplanation.jsx';
 import { MonoTag, ArchiveSectionHead } from './TermHead.jsx';
 import { labelOf, QUESTIONS } from '../lib/surveySchema.js';
 import GeometricBackdrop from './GeometricBackdrop.jsx';
+import CampusFieldLog from './CampusFieldLog.jsx';
+import DaySurveyConnection from './DaySurveyConnection.jsx';
+
+import {useAccount} from '../lib/accounts.jsx';
 import NavButton from './NavButton.jsx';
 import { buildProfileCsv, makeProfileId, downloadText } from '../lib/exportProfile.js';
 import { downloadReportCard, reportIdentity } from '../lib/reportCard.js';
@@ -58,6 +63,10 @@ export default function ReportView({
   onRestart,
   onBackToMap,
   submissionPanel,
+  onGoStory,
+  storyContext,
+  onApplyAnswers,
+  dayContext,
 }) {
   const report = useMemo(
     () =>
@@ -261,15 +270,17 @@ export default function ReportView({
         <article className="archive-main" aria-label="个人校园档案">
           <div className="report-user-guide" aria-label="报告使用指引">
             <div className="survey-help-heading"><p className="survey-question-kicker">{submissionPanel ? '我的档案 · 可提交到圈子' : fromMap ? '行动地图报告' : '个人报告 · 本机预览'}</p><button type="button" onClick={() => setShowGuide((visible) => !visible)} aria-expanded={showGuide} aria-controls="report-reading-help">{showGuide ? '跳过说明' : '查看使用说明'}</button></div>
-            <div id="report-reading-help" hidden={!showGuide}><h2>报告已生成，下一步这样做</h2><p>{submissionPanel ? '想把这份答案交到圈子？直接点下方“提交到我的圈子”，选好圈子并确认共享即可，管理员本人也能提交。' : '这是根据你的选择计算的校园生活画像。先看图表和解释，喜欢的话可以保存为图片或复制文字。'}</p><p className="report-guide-note">{submissionPanel ? '只有勾选同意并确认提交后才会保存到圈子，提交成功会有明确提示。' : '生成个人报告不会把答卷交给管理员；在线 AI 解读是单独的服务，状态会在「给你的话」中说明。'}</p></div>
-            <div className="report-guide-links"><a href={submissionPanel ? '#report-submission' : trail?.length ? '#sec-2' : '#sec-1'} onClick={scrollWithinReport}>{submissionPanel ? '查看填报与提交状态' : '先看我的画像'} <span aria-hidden="true">↓</span></a><a href="#report-save-actions" onClick={scrollWithinReport}>保存或复制报告 <span aria-hidden="true">↓</span></a></div>
+            <div id="report-reading-help" hidden={!showGuide}><h2>报告已生成，下一步这样做</h2><p>{submissionPanel ? '想把这份答案交到圈子？直接点下方“提交到我的圈子”，选好圈子并确认共享即可，管理员本人也能提交。' : '这是你本次留下的校园生活记录。先看图表和解释，喜欢的话可以保存为图片或复制文字。'}</p><p className="report-guide-note">{submissionPanel ? '只有勾选同意并确认提交后才会保存到圈子，提交成功会有明确提示。' : '生成个人报告不会把答卷交给管理员；在线 AI 解读是单独的服务，状态会在「给你的话」中说明。'}</p></div>
+            <div className="report-guide-links"><a href={submissionPanel ? '#report-submission' : trail?.length ? '#sec-2' : '#sec-1'} onClick={scrollWithinReport}>{submissionPanel ? '查看填报与提交状态' : '先看我的行迹'} <span aria-hidden="true">↓</span></a><a href="#report-save-actions" onClick={scrollWithinReport}>保存或复制报告 <span aria-hidden="true">↓</span></a></div>
           </div>
           {submissionPanel && <div id="report-submission" className="report-submission-target">{submissionPanel}</div>}
+          {onGoStory&&<JourneyContinuity context={storyContext} answers={answers} onGoStory={onGoStory} onGoMap={onGoMap} fromMap={fromMap}/>}
           <header className="archive-head">
-            <p className="archive-head-kicker">你的称号&nbsp;/&nbsp;DESIGNATION</p>
+            <p className="archive-head-kicker">校园行迹&nbsp;/&nbsp;CAMPUS FIELD NOTES</p>
             <h1 ref={titleRef} tabIndex={-1} className="archive-title" style={{ fontSize: titleSize }}>
-              {report.facts.title}
+              你的校园，有迹可循。
             </h1>
+            <p className="field-rule-title">规则趣味称号 · {report.facts.title}</p>
             <div className="archive-head-meta">
               <span>
                 {fromMap
@@ -280,6 +291,7 @@ export default function ReportView({
               <span>基准为 2000 条模拟数据，非真实调查</span>
             </div>
             <p className="report-opening">{closing}</p>
+            <section className="report-personal-reading" aria-label="基于本次回答的个人解读"><h2>这份回答里，看见了怎样的你？</h2>{fallbackText(report, { name }).split('\n\n').slice(0,2).map((text,index)=><p key={index}>{text}</p>)}<small>本地规则解读 · 与下方图表使用同一份回答 · 可继续查看每一道题的影响</small></section>
             <div className="report-highlights" aria-label="画像中数值较高的三项">
               {[...report.radar].sort((a,b) => b.value - a.value).slice(0,3).map((d) => <div key={d.key}><span>{d.axis}</span><b>{d.value}<small>百分位</small></b></div>)}
             </div>
@@ -290,7 +302,7 @@ export default function ReportView({
                 catch { setCardState('error'); }
               }}>{cardState === 'saving' ? '正在生成…' : cardState === 'saved' ? '再次保存档案卡 ↓' : '保存我的档案卡 ↓'}</button>
               <button type="button" onClick={copyText}>{copied ? '已复制 ✓' : '复制文字版'}</button>
-              <a href={trail?.length ? '#sec-2' : '#sec-1'} onClick={scrollWithinReport}>往下看完整画像 <span aria-hidden="true">↓</span></a>
+              <a href={trail?.length ? '#sec-2' : '#sec-1'} onClick={scrollWithinReport}>往下看记录与图表 <span aria-hidden="true">↓</span></a>
             </div>
             <div className="report-action-status" role="status">
               {copied && '已复制到剪贴板，可以粘贴到聊天或文档中。'}
@@ -300,6 +312,8 @@ export default function ReportView({
             </div>
           </header>
 
+      <DaySurveyConnection context={dayContext} answers={report.answers} />
+      <CampusFieldLog answers={report.answers} />
       <CampusKeepsake answers={report.answers} onSkip={scrollWithinReport} reportLink={trail?.length?'#sec-2':'#sec-1'} />
 
       <div className="space-y-10">
@@ -368,7 +382,7 @@ export default function ReportView({
               </div>
             </div>
           </div>
-          <ProfileExplanation report={report} baseline={baseline} trail={trail} />
+          <ProfileExplanation report={report} baseline={baseline} trail={trail} onApplyAnswers={fromMap ? undefined : onApplyAnswers} />
         </Section>
 
         {/* ★ 10-13 审查补注（任务书 P2#7）：时间分配与四年曲线都由百分位经固定公式
@@ -378,7 +392,7 @@ export default function ReportView({
           n={trail?.length > 0 ? 3 : 2}
           show={step >= 2}
           title="时间去哪了"
-          hint="按你的回答推算的时间分配倾向，不是实测记录"
+          hint="五类规则权重归一化为 100%，用于展示分配倾向；不是实际时长，也不是雷达图百分位的占比"
           art={ART('sec-time.webp')}
           boxed
         >

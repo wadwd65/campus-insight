@@ -1,3 +1,4 @@
+import {cleanStoryReflection,storyEpisode} from '../lib/campusStory.js';
 /**
  * 行动地图 —— 方向 6 的「采集界面」本体。
  *
@@ -152,7 +153,8 @@ function SlotBar({ slots, total }) {
   );
 }
 
-export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry, guide }) {
+export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry, guide, storyContext, onGoStory }) {
+  const reflection=cleanStoryReflection(storyContext),episode=reflection?storyEpisode(reflection.episodeId):null;
   const player = useGameStore((s) => s.player);
   const slotsPerDay = useGameStore((s) => s.slotsPerDay);
   const applyChoice = useGameStore((s) => s.applyChoice);
@@ -189,6 +191,7 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry, gu
   return (
     <div className="map-page term-light term-grid relative min-h-full">
       <div className="relative max-w-5xl mx-auto px-6 py-8">
+        {episode&&<div className="map-story-thread"><div><b>从「{episode.title}」走到自己的一天</b><p>这里安排你的模拟校园行程，行动会接入报告；虚构剧情不计分。</p></div><button type="button" onClick={()=>onGoStory?.(episode.id)}>回到刚才的剧场 ↗</button></div>}
         {/* ★ 10-14 B+C（B4）：让地图**知道问卷的存在**。
             以前从问卷答完 10 题再来地图，界面没有任何提示说"你答的题已经入账了" ——
             玩家会以为地图是另一个从零开始的玩法，于是两个入口永远是两张皮。

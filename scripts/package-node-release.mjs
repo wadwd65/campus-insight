@@ -59,6 +59,19 @@ await copyFile(path.join(root, 'docs/上线与交接-20261023-v34.md'), '本版�
 await copyFile(path.join(root, 'docs/迭代-20261023-校园小车与室内.md'), '本版本变化-v35.md');
 await copyFile(path.join(root, 'docs/迭代-20261023-人物驾驶与屋顶二段跳.md'), '本版本变化-v36.md');
 await copyFile(path.join(root, 'docs/迭代-20261023-参与感与校园片段.md'), '本版本变化-v37.md');
+await copyFile(path.join(root, 'docs/迭代-20261023-B版校园行迹.md'), '本版本变化-v38-B.md');
+await copyFile(path.join(root, 'docs/迭代-20261023-同行曲库与答题收整.md'), '本版本变化-v39-B.md');
+await copyFile(path.join(root, 'docs/迭代-20261024-场景配乐与同行归位.md'), '本版本变化-v40-B.md');
+await copyFile(path.join(root, 'docs/音乐来源与授权-v40.md'), '音乐来源与授权-v40.md');
+await copyFile(path.join(root, 'docs/迭代-20261024-可拖动同行与彩蛋恢复.md'), '本版本变化-v41-B.md');
+await copyFile(path.join(root, 'docs/迭代-20261024-可接续校园故事-v42.md'), '本版本变化-v42-B.md');
+await copyFile(path.join(root, 'docs/迭代-20261024-剧情特效与国内外配乐-v43.md'), '本版本变化-v43-B.md');
+await copyFile(path.join(root, 'docs/音乐来源与授权-v43.md'), '音乐来源与授权-v43.md');
+await copyFile(path.join(root, 'docs/录屏配乐署名-v43.txt'), '录屏配乐署名-v43.txt');
+await copyFile(path.join(root, 'docs/迭代-20261024-多剧场与连续体验-v44.md'), '本版本变化-v44-B.md');
+await copyFile(path.join(root, 'docs/迭代-20261024-地图中的十个决定-v45.md'), '本版本变化-v45-B.md');
+await copyFile(path.join(root, 'docs/迭代-20261024-地图细化与圈子定位-v46.md'), '本版本变化-v46-B.md');
+await copyFile(path.join(root, 'docs/迭代-20261024-问卷主线与游戏联动-v47.md'), '本版本变化-v47-B.md');
 await copyFile(path.join(root, '.env.example'), '.env.example');
 const runtimeArgument = process.argv.find(argument => argument.startsWith('--windows-runtime='));
 if (runtimeArgument) {

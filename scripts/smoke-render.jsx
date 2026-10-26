@@ -36,10 +36,12 @@ import { parseCsvText } from '../src/lib/parseCsv.js';
 import { cleanSurveyRows } from '../src/lib/surveyClean.js';
 import { toAttributeMatrix, buildBaseline } from '../src/lib/matrix.js';
 import { QUESTIONS, REQUIRED_COLUMNS } from '../src/lib/surveySchema.js';
+import { JOURNEY_QUESTIONS } from '../src/lib/surveyJourney.js';
 import { PLACES, SLOTS_PER_DAY } from '../src/data/mapPlaces.js';
 import { nextDelta } from '../src/lib/mapEngine.js';
 import { SCENE_LAYERS, pickSceneBudget } from '../src/lib/introLayers.js';
 import EntryScene from '../src/scenes/EntryScene.jsx';
+import CampusStory from '../src/components/CampusStory.jsx';
 import { INTRO_FORBIDDEN_ASSETS } from '../src/scenes/IntroScene.jsx';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -96,8 +98,10 @@ console.log(`\n使用 ${baseCleaned.records.length} 人基准 / ${cohortCleaned.
 console.log('1 · 答题页');
 const quizHtml = render('答题页', h(SurveyForm, { onComplete: () => {}, onCancel: () => {} }));
 const quizText = plain(quizHtml);
-check('渲染出第一题的题干', quizText.includes(QUESTIONS[0].text));
-check('渲染出第一题的全部选项', QUESTIONS[0].options.every((o) => quizText.includes(o.text)));
+check('渲染出五站路线第一题的情境题干', quizText.includes(JOURNEY_QUESTIONS[0].prompt));
+check('渲染出五站路线第一题的全部选项', JOURNEY_QUESTIONS[0].options.every((o) => quizText.includes(o.text)));
+check('答题页明确当前站点与本题切面', quizText.includes('校园行迹五站') && quizText.includes('本题只看') && quizText.includes('到课节奏'));
+check('底部操作集中在有名称的区域，选项有具体解释', quizHtml.includes('survey-bottom-rail') && quizText.includes('答题进度与翻页') && JOURNEY_QUESTIONS[0].options.every(o=>quizText.includes(o.contextHint)));
 check(
   `显示题号进度 1 / ${QUESTIONS.length}`,
   quizText.includes(`1 / ${QUESTIONS.length}`),
@@ -109,11 +113,12 @@ console.log('\n2 · 结果页（快入口）');
 const reportHtml = render('结果页', h(ReportView, { answers: myAnswers, baseline, name: '陈', onRestart: () => {} }));
 const reportText = plain(reportHtml);
 
-check('渲染出称号', reportText.includes('你的称号'));
+check('行迹作为标题，规则趣味称号保留为次级信息', reportText.includes('你的校园，有迹可循。') && reportText.includes('规则趣味称号'));
+check('报告优先保留实际答卷的十个切面', reportText.includes('10 个生活切面') && reportText.includes('原样保留你的选择') && QUESTIONS.every(q=>reportText.includes(myAnswers[q.field])));
 const submissionAccount = { user: { id: 'render-admin', displayName: '演示管理员' }, request: async () => ({ circles: [] }) };
 const submissionContext = { id: 'render-circle', name: '演示圈子', userId: 'render-admin' };
 const directReport = render('档案直接提交入口', h(ReportView, { answers: myAnswers, baseline, submissionPanel: h(ReportCircleSubmission, { account: submissionAccount, context: submissionContext, answers: myAnswers, onBack() {} }) }));
-check('档案页直接展示圈子提交按钮，位于称号与图表之前', directReport.includes('提交到我的圈子') && directReport.indexOf('提交到我的圈子') < directReport.indexOf('你的称号'));
+check('档案页直接展示圈子提交按钮，位于行迹标题与图表之前', directReport.includes('提交到我的圈子') && directReport.indexOf('提交到我的圈子') < directReport.indexOf('CAMPUS FIELD NOTES'));
 const confirmSubmission = render('提交前共享确认', h(CircleSubmission, { account: submissionAccount, context: submissionContext, answers: myAnswers, onBack() {} }));
 check('提交表单展示目标圈子、完整答案核对和共享范围', ['演示圈子', '展开核对十题答案', '完整十题原始答案和提交时间'].every(text => confirmSubmission.includes(text)));
 check('未同意时确认提交按钮保持禁用', /<button[^>]*disabled[^>]*>③ 确认提交到圈子/.test(confirmSubmission) && !/<input[^>]*type="checkbox"[^>]*checked/.test(confirmSubmission));
@@ -121,7 +126,7 @@ check(
   '结果页五个 section 标题都在',
   ['大学生活者画像', '时间去哪了', '四年心情曲线', '人群冷知识', '给你的话'].every((t) => reportText.includes(t)),
 );
-check('大模型那块有加载态文案', reportText.includes('正在读你的答案'));
+check('个人解读从首帧就显示，无需等待在线模型', reportText.includes('本地规则解读已生成') && reportText.includes('这份回答里，看见了怎样的你'));
 check('「复制文字版」按钮在', reportText.includes('复制文字版'));
 check('结尾句出现了（本地确定性生成，不依赖大模型）', reportText.includes('如果只用一个词概括你的大学，是「'));
 
@@ -289,7 +294,7 @@ console.log('\n4.8 · 从地图生成报告（走账本，不走问卷）');
   );
   const mapReportText = plain(mapReportHtml);
 
-  check('地图路径也能渲染出称号与五个 section', mapReportText.includes('你的称号'));
+  check('地图路径也保留规则趣味称号，且不冒充问卷行迹', mapReportText.includes('规则趣味称号') && !mapReportText.includes('来自实际作答'));
   check(
     '地图路径的五块内容都在',
     ['大学生活者画像', '时间去哪了', '四年心情曲线', '人群冷知识', '给你的话'].every((t) =>
@@ -413,13 +418,15 @@ console.log('\n4.9 · 入场页（第一屏）');
   check('进入按钮不受文字分镜延迟影响', !/class="cinematic-enter"[^>]*animation-delay/.test(introHtml));
   check('入场只有一个一级标题', (introHtml.match(/<h1[ >]/g) || []).length === 1);
   const entryHtml = render('主页', h(EntryScene, { baseline, onPreviewSample: () => {}, onGoCircles: () => {} }));
-  check('主页区分答题、行动地图与独立的 3D 参观', ['示例回答计算所得', '开始测评', '行动地图，安排我的一天', '选择会写入画像', '3D 校园，自由参观', '不改变画像'].every(t => entryHtml.includes(t)));
+  check('主页区分答题、行动地图与独立的 3D 参观', ['示例回答计算所得', '填写校园问卷，生成我的档案', '行动地图，安排我的一天', '选择会写入行动记录', '3D 校园，自由参观', '不改变答卷'].every(t => entryHtml.includes(t)));
   check('3D 参观另开标签页，保留当前画像会话', /href="[^"]*3D[^\"]*" target="_blank" rel="noopener noreferrer"/.test(entryHtml));
-  check('主页可直接试玩三幕，保留跳过与正式测评入口', entryHtml.includes('校园选择小剧场') && entryHtml.includes('跳过试玩') && entryHtml.includes('试玩不写入答卷'));
-  check('个人主入口在圈子收卷前，组织者和CSV入口仍保留', entryHtml.indexOf('开始测评，写我的校园故事') < entryHtml.indexOf('进入圈子，填写或收集答卷') && entryHtml.includes('导入已有 CSV'));
+  check('主页以问卷为主，地图和额外剧场保留为可选探索', entryHtml.includes('可接续的校园小剧场') && entryHtml.includes('晚风放映计划') && ['17号失物柜','旧物复活夜','今晚的空白电台','选一段，走进去'].every(title=>entryHtml.includes(title)) && entryHtml.includes('填写校园问卷，生成我的档案') && entryHtml.indexOf('QUESTIONNAIRE FIRST') < entryHtml.indexOf('landing-explore') && entryHtml.includes('地图中的十个决定'));
+  const storyHtml=render('校园小剧场',h(CampusStory,{onBack:()=>{},onGoQuiz:()=>{}}));
+  check('剧情首幕具备三个真实目的地、独立计分说明与退出入口',storyHtml.includes('data-choice="equipment"')&&storyHtml.includes('data-choice="venue"')&&storyHtml.includes('data-choice="friends"')&&storyHtml.includes('不改变答卷和圈子填报')&&storyHtml.includes('返回主页'));
+  check('个人主入口在圈子收卷前，组织者和CSV入口仍保留', entryHtml.indexOf('填写校园问卷，生成我的档案') < entryHtml.indexOf('进入圈子，填写或收集答卷') && entryHtml.includes('导入已有 CSV'));
   check('主页没有重复的一级标题', (entryHtml.match(/<h1[ >]/g) || []).length === 1);
-  check('主页能直接体验完整合成班级，清楚区分规则与AI职责', entryHtml.includes('先看 48 人模拟班级') && entryHtml.includes('不创建真实圈子') && entryHtml.includes('画像数字由规则计算'));
-  check('主页主线包含确认收卷和规则解释，探索入口默认折叠', entryHtml.includes('确认后收卷') && entryHtml.includes('进入圈子，填写或收集答卷') && /<details class="landing-explore">/.test(entryHtml));
+  check('主页能直接体验完整合成班级，问卷结果无需AI', entryHtml.includes('先看 48 人模拟班级') && entryHtml.includes('不创建真实圈子') && entryHtml.includes('图表和规则解读在本机生成，无需接入 AI 服务'));
+  check('圈子移为可选班级工具并说明明确同意，探索入口默认折叠', entryHtml.includes('成员明确同意后才提交') && entryHtml.includes('班级 / 社团工具（可选）') && entryHtml.includes('进入圈子，填写或收集答卷') && /<details class="landing-explore">/.test(entryHtml));
 
   const introBad = ['undefined', 'NaN', '[object Object]'].filter((s) => introHtml.includes(s));
   check('入场页：HTML 里没有 undefined / NaN / [object Object]', introBad.length === 0, introBad.join(' '));

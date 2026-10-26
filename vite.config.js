@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { campusAi } from './server/vite-plugin.mjs'
 
 export default defineConfig({
+  cacheDir: '.vite-cache',
   plugins: [campusAi(), react(), tailwindcss()],
   build: {
     // ★ 10-08：不清空输出目录。

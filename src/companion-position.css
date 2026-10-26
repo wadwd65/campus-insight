@@ -1,0 +1,54 @@
+/* Restore the original desktop portrait anchor; this is an overlay, never a page row. */
+.field-edition .campus-companion{position:fixed;right:14px;bottom:6px;left:auto;top:auto;display:block;width:138px;max-width:none;min-height:0;margin:0;padding:0;border:0;z-index:30;pointer-events:none;color:#344e56}
+.field-edition .companion-hit{display:block;width:100%;padding:0;border:0;background:transparent;pointer-events:auto;cursor:pointer}
+.field-edition .companion-hit,.field-edition .companion-drag{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.field-edition .campus-companion.is-dragging .companion-hit,.field-edition .campus-companion.is-dragging .companion-drag{cursor:grabbing}
+.field-edition .campus-companion.is-dragging .companion-breath{animation-play-state:paused}
+.field-edition .companion-tools{position:absolute;top:-31px;left:0;right:0;display:flex;align-items:center;justify-content:flex-end;gap:3px;pointer-events:auto}
+.field-edition .companion-tools>button{position:static;flex:0 0 auto;min-height:29px;padding:3px 5px;border:1px solid #a9bbb2;background:#e8efe5ed;color:#445f58;font-size:10px;cursor:pointer}
+.field-edition .companion-tools>.companion-drag{cursor:grab;flex:1}
+.field-edition .campus-companion.has-position .companion-tools{left:0;right:auto;width:138px;max-width:calc(100vw - 16px)}
+.field-edition .companion-tools>button:focus-visible,.field-edition .companion-hit:focus-visible{outline:2px solid #896b34;outline-offset:3px}
+.field-edition .companion-breath{width:138px;height:472px;max-height:calc(100dvh - 110px);display:block}
+.field-edition .companion-pose{height:100%;width:100%}
+.field-edition .companion-breath img{width:100%;height:100%;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 4px 3px #213d4020)}
+.field-edition .companion-name{display:none}
+.field-edition .companion-hide{position:absolute;right:0;top:-30px;min-height:30px;padding:3px 8px;background:#e8efe5eb;border:1px solid #a9bbb2;color:#445f58;font-size:11px;cursor:pointer;pointer-events:auto}
+.field-edition .companion-message{position:fixed;right:4px;bottom:9px;width:205px;max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);overflow:auto;box-sizing:border-box;padding:13px 25px 12px 13px;background:rgba(245,245,234,.68);border:1px solid #a9bcb280;box-shadow:0 3px 10px #223e3808;text-align:left;pointer-events:auto;transform:none}
+.field-edition .companion-message strong{display:block;margin-bottom:4px;font-size:10px;color:#556a60;letter-spacing:.08em}
+.field-edition .companion-message p{margin:0;font-size:11px;line-height:1.8;color:#405b54}
+.field-edition .companion-message>.companion-dismiss{position:absolute;right:0;top:0;min-width:30px;min-height:30px;color:#5c7267;cursor:pointer}
+.field-edition .companion-message.companion-egg{border-color:#ac8a5099;background:rgba(246,241,222,.78)}
+.field-edition .companion-egg-quip{margin-top:9px!important;padding-top:8px;border-top:1px dashed #c8b68c}
+.field-edition .companion-egg-action{display:block;position:static;min-height:36px;width:100%;margin-top:10px;padding:6px;border:1px solid #8c774b;background:#e8dfc1;color:#55482f;font-size:11px;line-height:1.6;cursor:pointer}
+.field-edition .campus-companion.is-moving .companion-pose.is-egg{animation:companion-egg-tilt .7s ease-out forwards}
+@keyframes companion-egg-tilt{0%{transform:rotate(0)}55%{transform:rotate(-6deg)}100%{transform:rotate(-3deg)}}
+.field-edition .campus-companion.is-folded{width:auto;padding:0;margin:0;bottom:14px}
+.field-edition .companion-reopen{max-width:none;pointer-events:auto;min-height:38px;box-shadow:0 3px 10px #23423910}
+.field-edition .music-library-title>a{color:#536c61;font-size:10px;text-decoration:underline;text-underline-offset:3px;line-height:1.7}
+.field-edition .music-scene-toggle{min-height:37px;padding:6px 11px;border:1px solid #9db2a9;color:#496457;background:#f6f7ed;font-size:11px;cursor:pointer}
+.field-edition .music-scene-toggle[aria-pressed=true]{background:#3e5c54;border-color:#3e5c54;color:#f5f6eb}
+.field-edition .music-library select:disabled{opacity:.55;cursor:not-allowed}
+/* Leave room beside reading and answer controls on ordinary laptop screens. */
+@media(min-width:901px) and (max-width:1100px){.field-edition .stage-quiz{padding-right:152px}}
+@media(max-width:900px){
+ .field-edition .campus-companion{right:10px;bottom:6px;width:96px}
+ .field-edition .companion-breath{width:96px;height:329px}
+ .field-edition .companion-message{width:190px}
+ .field-edition .companion-hide{font-size:10px}
+ .field-edition .companion-tools{left:-34px}
+}
+@media(min-width:621px) and (max-width:900px){.field-edition .stage-quiz{padding-right:112px}}
+@media(max-width:620px){
+ .field-edition .campus-companion{right:7px;bottom:7px;width:66px}
+ .field-edition .companion-breath{width:66px;height:226px;max-height:38dvh}
+ .field-edition .companion-message{right:0;width:185px}
+ .field-edition .companion-hide{top:-27px;min-height:27px}
+ .field-edition .companion-tools{left:-64px}
+ .field-edition .campus-companion.is-folded{bottom:9px}
+}
+@media(max-height:650px){.field-edition .companion-breath{max-height:55dvh}.field-edition .companion-message{right:calc(100% + 8px);bottom:10px;transform:none;width:175px}.field-edition .companion-hide{top:-30px}}
+
+/* Translucent panel only; text and controls retain full opacity. No backdrop blur. */
+.field-edition .companion-message:hover,.field-edition .companion-message:focus-within{background:rgba(245,245,234,.94)}
+.field-edition .companion-message.companion-egg:hover,.field-edition .companion-message.companion-egg:focus-within{background:rgba(246,241,222,.95)}

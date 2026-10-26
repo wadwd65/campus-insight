@@ -1,0 +1,25 @@
+/* Questionnaire remains the primary task in both full and compact layouts. */
+.field-edition .landing-main .landing-actions { grid-template-columns:1.3fr 1fr; }
+.field-edition .landing-main .landing-actions>.landing-saved-report { grid-column:1 / -1; }
+.field-edition .landing-main .landing-explore-content>.day-entry { width:100%; max-width:none; }
+.field-edition .landing-main .landing-hero>.profile-preview { width:min(100%,380px); }
+.report-personal-reading { margin:22px 0 20px; padding:20px 23px; border-left:3px solid #ad8b4d; background:#e5ebdd; color:#354e43; }
+.report-personal-reading h2 { margin:0 0 9px; font-size:18px; line-height:1.6; font-weight:650; }
+.report-personal-reading p { font-size:13px; line-height:2; }
+.report-personal-reading small { display:block; font-size:10px; line-height:1.8; color:#62715d; margin-top:10px; }
+@media(max-width:720px) { .field-edition .landing-main .landing-actions:has(>.landing-saved-report) { grid-template-columns:1fr; } .report-personal-reading { padding:16px; } }
+.survey-day-link,.day-survey-connection { padding:18px 21px; margin:16px 0; border:1px solid #a8bbad; border-left:3px solid #ad8b4d; background:#e7eddf; color:#354e43; }
+.survey-day-link>span,.survey-day-link small,.day-survey-connection>small { display:block; font-size:10px; line-height:1.8; color:#6b755e; }
+.survey-day-link p,.day-survey-connection p { font-size:12px; line-height:1.9; margin:8px 0; }
+.survey-day-link strong { display:block; font-size:12px; line-height:1.9; margin-bottom:8px; }
+.survey-day-link button,.day-survey-transfer { min-height:44px; padding:10px 14px; border:1px solid #527759; background:#f8f7ec; color:#375d43; font-size:12px; cursor:pointer; }
+.day-survey-transfer { display:block; margin:0 0 17px; }
+.day-survey-impact { margin:14px 0; padding:13px; background:#e5ebd8; border-left:2px solid #9c8447; font-size:11px; line-height:1.8; color:#51643f; }
+.day-survey-impact>p { margin:6px 0; font-size:11px; }.day-survey-impact>p>span { margin-right:9px; font-weight:650; }
+.day-survey-impact small { font-size:10px; }
+.day-survey-connection h2 { font-size:20px; line-height:1.6; font-weight:650; }
+.day-survey-connection summary { cursor:pointer; padding:13px 0; min-height:44px; font-size:12px; }
+.day-survey-connection ol { padding:0; list-style:none; display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.day-survey-connection li { display:flex; flex-direction:column; gap:5px; padding:13px; border:1px solid #bdcbb5; background:#f8f7ec; font-size:12px; line-height:1.8; }
+.day-survey-connection li small,.day-survey-connection li em { font-size:10px; color:#6d775f; font-style:normal; }.day-survey-connection>small { margin-top:10px; }
+@media(max-width:720px) { .field-edition .landing-main .landing-actions { grid-template-columns:1fr; }.day-survey-connection ol { grid-template-columns:1fr; }.day-survey-connection,.survey-day-link { padding:15px; } }

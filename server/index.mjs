@@ -11,7 +11,7 @@ import { createDeploymentHandler } from './deployment.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = await fs.realpath(path.join(root, 'dist'));
 const config = loadServerConfig({ root });
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg', '.csv': 'text/csv; charset=utf-8', '.ico': 'image/x-icon', '.woff2': 'font/woff2' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg', '.csv': 'text/csv; charset=utf-8', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.wav': 'audio/wav', '.mp3': 'audio/mpeg' };
 const ai = createAiHandler(config);
 const environment = loadEnvironment({ root });
 const deployment = createDeploymentHandler({ root, env: environment });

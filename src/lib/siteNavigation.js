@@ -3,7 +3,7 @@ export function readSiteRoute(hash = '') {
   const match = /^#\/join\/([A-Za-z0-9_-]{12,100})$/.exec(hash);
   if (match) return { stage: 'circles', invite: match[1] };
   const stage = hash.replace(/^#\//, '');
-  return { stage: ['circles', 'upload', 'map'].includes(stage) ? stage : 'entry', invite: '' };
+  return { stage: ['circles', 'upload', 'map', 'story', 'day'].includes(stage) ? stage : 'entry', invite: '' };
 }
 export function invitationLink(token, href) {
   if (!/^[A-Za-z0-9_-]{12,100}$/.test(token)) throw new Error('邀请码格式不正确');

@@ -47,7 +47,7 @@ function reasonText(reason) {
 }
 
 export default function AiSummary({ report, name = '', onText }) {
-  const [body, setBody] = useState('');
+  const [body, setBody] = useState(() => fallbackText(report, { name }));
   const [pending, setPending] = useState(true);
   const [reason, setReason] = useState(null);
   const [round, setRound] = useState(0);
@@ -58,7 +58,7 @@ export default function AiSummary({ report, name = '', onText }) {
     let alive = true;
     let acc = '';
 
-    setBody('');
+    setBody(fallbackText(report, { name }));
     setPending(true);
     setReason(null);
 
@@ -105,7 +105,7 @@ export default function AiSummary({ report, name = '', onText }) {
   return (
     <TermPanel style={{ padding: '20px 22px' }}>
       <p className="summary-mode" role="status">
-        {pending ? (status.configured ? 'AI 正在解读' : '正在准备解读') : reason ? '本地规则解读' : 'AI 实时解读'}
+        {pending ? (status.configured ? '本地解读已生成 · AI 正在补充解读' : '本地规则解读已生成') : reason ? '本地规则解读' : 'AI 实时解读'}
       </p>
       {paragraphs.length === 0 ? (
         <p className="text-sm text-[var(--ink-soft)] flex items-center gap-2">

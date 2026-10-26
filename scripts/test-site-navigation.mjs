@@ -5,6 +5,7 @@ assert.deepEqual(readSiteRoute(`#/join/${token}`), { stage:'circles', invite:tok
 assert.deepEqual(readSiteRoute('#/circles'), { stage:'circles', invite:'' });
 assert.equal(readSiteRoute('#/upload').stage, 'upload');
 assert.equal(readSiteRoute('#/map').stage, 'map');
+assert.equal(readSiteRoute('#/story').stage, 'story');
 for (const hash of ['#/join/<script>', '#/join/short', '#/../../server', '#/report']) assert.deepEqual(readSiteRoute(hash), { stage:'entry', invite:'' });
 const link = invitationLink(token, 'https://campus.example/app/?private=value#/circles');
 const parsed = new URL(link);

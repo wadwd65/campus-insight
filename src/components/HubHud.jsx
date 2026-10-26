@@ -76,7 +76,7 @@ export default function HubHud({ onRestart, onGoEntry, onGoCircles, accountLabel
               它只是"身份标识"，不是可操作项；但在 390px 下它会把
               「◄ 主页 / ◄ 终端 / 这条 / 待采集」挤成两行，顶栏从 64 涨到 130+。
               隐藏它，顶栏只留真正有用的两颗按钮和一个状态。 */}
-          <span className="hub-product-name"><b>校园生活档案</b><small>CAMPUS INSIGHT</small></span>
+          <span className="hub-product-name"><b>校园行迹</b><small>CAMPUS INSIGHT / 校园生活档案</small></span>
 
           <span className="flex-1" />
 

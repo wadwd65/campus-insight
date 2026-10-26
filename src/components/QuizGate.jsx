@@ -15,8 +15,8 @@ export default function QuizGate({ onStart, onBack, backLabel = '校园地图' }
     <div className="survey-gate-top"><NavButton onClick={onBack}>回到{backLabel}</NavButton><span>个人校园测评</span></div>
     <section className="survey-gate-panel">
       <p className="survey-question-kicker">不用准备材料 · 大约 2 分钟</p>
-      <h1>用 {qn} 个日常选择，<br />拼出自己的校园故事</h1>
-      <p className="survey-gate-intro">不是考试，按平时的习惯选就好。每个选择都留下一幕日常；答完看档案，也可以写一句话，做一张自己的校园纪念卡。个人体验不需要注册。</p>
+      <h1>用 {qn} 个日常选择，<br />留下一份校园行迹</h1>
+      <p className="survey-gate-intro">不是考试，按平时的习惯选就好。从学习开场，到生活选择、课后去向、一日收尾，最后留下证据。每一站回答不同的生活切面；答完看档案，也可以写一句话，做一张自己的校园纪念卡。个人体验不需要注册。</p>
       <div className="survey-gate-help">
         <div className="survey-help-heading"><h2>{showHelp ? '第一次用？照着这三步' : '答题说明'}</h2><button type="button" onClick={() => setShowHelp((visible) => !visible)} aria-controls="survey-gate-help" aria-expanded={showHelp}>{showHelp ? '跳过说明' : '重新查看说明'}</button></div>
         <ol className="survey-simple-steps" id="survey-gate-help" hidden={!showHelp}>

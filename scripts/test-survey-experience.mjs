@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { QUESTIONS, MATRIX_VERSION, REQUIRED_COLUMNS } from '../src/lib/surveySchema.js';
+import { MATRIX_VERSION, REQUIRED_COLUMNS } from '../src/lib/surveySchema.js';
+import { JOURNEY_QUESTIONS as QUESTIONS } from '../src/lib/surveyJourney.js';
 import { readSurveyDraft, saveSurveyDraft, clearSurveyDraft, SURVEY_DRAFT_KEY } from '../src/lib/surveyDraft.js';
 import { parseCsvText } from '../src/lib/parseCsv.js';
 import { cleanSurveyRows } from '../src/lib/surveyClean.js';

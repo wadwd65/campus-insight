@@ -15,6 +15,7 @@
 
 import { useMemo } from 'react';
 import Chart from './Chart.jsx';
+import { radarTooltip } from '../lib/chartLabels.js';
 import { BRAND, INK_SOFT, LINE, FONT, AXIS_LABEL_STYLE } from '../lib/theme.js';
 
 export default function RadarChart({ data, compare = null, name = '你的画像' }) {
@@ -63,10 +64,7 @@ export default function RadarChart({ data, compare = null, name = '你的画像'
     return {
       tooltip: {
         trigger: 'item',
-        formatter: (params) =>
-          compare && params.seriesName === compare.name
-            ? `${params.name}：${compare.name}`
-            : `${params.name}：超过 ${params.value}% 的大学生`,
+        formatter: (params) => radarTooltip(data, params),
         textStyle: { fontFamily: FONT, fontSize: 12 },
       },
       legend: compare
@@ -97,7 +95,7 @@ export default function RadarChart({ data, compare = null, name = '你的画像'
     };
   }, [data, compare, name]);
 
-  const label = `大学生活者画像雷达图：${data.map((d) => `${d.axis} ${d.value}`).join('，')}`;
+  const label = `大学生活者画像雷达图（模拟基准百分位，各项不相加）：${data.map((d) => `${d.axis} ${d.value}`).join('，')}`;
 
   return <Chart option={option} height={320} ariaLabel={label} />;
 }
