@@ -109,22 +109,65 @@ export function drawGrassDetail(c,w,h){
 }
 
 export function createGrassMaterial(T,map=null,detail=null){
-  const material=new T.MeshLambertMaterial({color:0xffffff,map}),strength={value:detail?1:0};material.userData.detailStrength=strength;
+  /* 10-29 草地重建：
+     原来"草太平"的根因不是贴图不够细，而是**缺少大尺度明暗**——
+     贴图在 4m/像素 的取景下被 mipmap 抹成一整片同色。
+     这里用世界坐标的程序化噪声（三个尺度）直接调制颜色，
+     与距离无关：22m 的色块、6m 的斑、0.9m 的颗粒，远看近看都有层次。 */
+  const material=new T.MeshLambertMaterial({color:0xffffff,map});
+  const strength={value:detail?1:0};material.userData.detailStrength=strength;
   material.onBeforeCompile=shader=>{
-    shader.uniforms.campusGrassDetail={value:detail};shader.uniforms.campusGrassStrength=strength;
-    shader.vertexShader='varying float vCampusGrassDepth;\n'+shader.vertexShader;
-    shader.vertexShader=shader.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvCampusGrassDepth = -mvPosition.z;');
-    shader.fragmentShader='uniform sampler2D campusGrassDetail;\nuniform float campusGrassStrength;\nvarying float vCampusGrassDepth;\n'+shader.fragmentShader;
-    shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
-      #ifdef USE_MAP
-        float grassNear = 1.0 - smoothstep(100.0, 300.0, vCampusGrassDepth);
-        if (campusGrassStrength > 0.5 && grassNear > 0.005) {
-          float blade = texture2D(campusGrassDetail, vUv * 72.0).r;
-          diffuseColor.rgb *= 1.0 + (blade - 0.5) * 0.55 * grassNear;
-        }
-      #endif`);
+    shader.uniforms.campusGrassDetail={value:detail};
+    shader.uniforms.campusGrassStrength=strength;
+    shader.vertexShader=[
+      'varying float vCampusGrassDepth;',
+      'varying vec2 vCampusXZ;',
+      shader.vertexShader
+    ].join('\n');
+    shader.vertexShader=shader.vertexShader.replace('#include <project_vertex>',
+      '#include <project_vertex>\n'+
+      'vCampusGrassDepth=-mvPosition.z;\n'+
+      'vCampusXZ=(modelMatrix*vec4(transformed,1.0)).xz;');
+    shader.fragmentShader=[
+      'uniform sampler2D campusGrassDetail;',
+      'uniform float campusGrassStrength;',
+      'varying float vCampusGrassDepth;',
+      'varying vec2 vCampusXZ;',
+      'float h21(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
+      'float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);',
+      '  return mix(mix(h21(i),h21(i+vec2(1.0,0.0)),f.x),mix(h21(i+vec2(0.0,1.0)),h21(i+vec2(1.0,1.0)),f.x),f.y);}',
+      shader.fragmentShader
+    ].join('\n');
+    shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',[
+      '#include <map_fragment>',
+      '#ifdef USE_MAP',
+      '  float macroA=vn(vCampusXZ*0.042);',
+      '  float macroB=vn(vCampusXZ*0.155);',
+      '  float micro=vn(vCampusXZ*1.15);',
+      '  float zoneA=vn(vCampusXZ*0.0085);',
+      '  float zoneB=vn(vCampusXZ*0.0210);',
+      '  float zz=zoneA*0.7+zoneB*0.3;',
+      '  vec3 cDeep=vec3(0.78,0.95,0.84);',
+      '  vec3 cLush=vec3(0.96,1.05,0.92);',
+      '  vec3 cDry =vec3(1.16,1.09,0.80);',
+      '  vec3 tint=mix(cDeep,cLush,smoothstep(0.24,0.52,zz));',
+      '  tint=mix(tint,cDry,smoothstep(0.60,0.84,zz));',
+      '  diffuseColor.rgb*=tint;',
+      '  vec3 warm=vec3(1.08,1.02,0.86), cool=vec3(0.90,1.03,0.98);',
+      '  diffuseColor.rgb*=mix(cool,warm,macroA);',
+      '  diffuseColor.rgb*=0.80+0.34*macroA;',
+      '  diffuseColor.rgb*=0.93+0.13*macroB;',
+      '  diffuseColor.rgb*=0.965+0.07*micro;',
+      '  float near=1.0-smoothstep(90.0,280.0,vCampusGrassDepth);',
+      '  if(campusGrassStrength>0.5&&near>0.005){',
+      '    float blade=texture2D(campusGrassDetail,vUv*72.0).r;',
+      '    diffuseColor.rgb*=1.0+(blade-0.5)*0.55*near;',
+      '  }',
+      '#endif'
+    ].join('\n'));
   };
-  material.customProgramCacheKey=()=> 'campus-matte-grass-detail-v2';return material;
+  material.customProgramCacheKey=()=> 'campus-matte-grass-v3';
+  return material;
 }
 
 export function drawFoliageSprite(c,w,h){
@@ -142,35 +185,54 @@ export function drawFoliageSprite(c,w,h){
 }
 
 export function drawFacadeAtlas(c,w,h,{dorm=false,stone=false}={}){
-  const rand=seeded(dorm?781:stone?1283:619),front=w*.75,rows=dorm?6:stone?4:5,cols=dorm?9:10,cw=front/cols,ch=h/rows;
-  c.fillStyle=stone?'#e4e5dc':dorm?'#e5e8df':'#e9ebe3';c.fillRect(0,0,w,h);
-  // Fine mineral grain and joints stay much quieter than the windows.
-  for(let n=0;n<10000;n++){c.fillStyle=n%2?'#ffffff12':'#5d63550b';c.fillRect(rand()*w,rand()*h,.5+rand(),.5);}
-  if(stone)for(let y=0;y<h;y+=ch/3)for(let x=0;x<w;x+=48){c.strokeStyle='#8b908718';c.lineWidth=.6;c.strokeRect(x+(Math.round(y/(ch/3))%2)*24,y,48,ch/3);}
-  const palette=['#9aa28d','#abb09c','#b9b8a5','#969f92','#c4beaa'];
-  function room(x,top,width,height,index){
-    c.fillStyle='#606957';c.fillRect(x-2,top-2,width+4,height+4);
-    const glass=c.createLinearGradient(x,top,x+width*.4,top+height);glass.addColorStop(0,'#d0cfbc');glass.addColorStop(.33,palette[index%palette.length]);glass.addColorStop(1,'#737e6b');c.fillStyle=glass;c.fillRect(x,top,width,height);
-    c.save();c.beginPath();c.rect(x+1,top+1,width-2,height-2);c.clip();
-    c.fillStyle='#354a3c24';c.fillRect(x,top+height*.64,width,height*.36);
-    c.fillStyle='#d9c8a569';c.fillRect(x+4,top+height*.71,width-8,2);
-    c.fillStyle='#4e5c4438';for(let item=0;item<3;item++)c.fillRect(x+7+item*width*.24,top+height*.79,3+rand()*5,height*.12);
-    if(index%4===0){c.fillStyle='#e2d5b8be';c.fillRect(x+2,top+1,width*.27,height-2);for(let pleat=0;pleat<4;pleat++){c.fillStyle='#9b987d25';c.fillRect(x+4+pleat*width*.055,top+2,1,height-4);}}
-    if(index%7===2){for(let slat=0;slat<6;slat++){c.fillStyle='#e8e3cb88';c.fillRect(x,top+2+slat*3.5,width,1.2);}}
-    c.fillStyle='#f4efdb40';c.fillRect(x+2,top+2,width-4,height*.13);
-    c.fillStyle='#36453845';c.fillRect(x,top,width,3);c.fillRect(x,top,2,height);
-    c.restore();
-    c.fillStyle='#e8e5d3';c.fillRect(x+width*.5-1,top,1.8,height);c.fillStyle='#48554333';c.fillRect(x+width*.5+.8,top,1,height);
-    c.fillStyle='#f3f1e5';c.fillRect(x-3,top+height+2,width+6,2.4);c.fillStyle='#5c6b5338';c.fillRect(x-4,top+height+4.4,width+8,2.2);
+  /* 10-29 墙面重做：
+     窗已经全部改成几何构件（独立的洞 + 框 + 台），
+     所以贴图**不再画窗**，只负责"墙是什么材料"：
+     抹灰/涂料的颗粒、分格缝、雨痕、局部的修补色差。
+     以前画窗 + 几何窗两层叠在一起，是"墙很丑"的主因之一。 */
+  const rand=seeded(dorm?781:stone?1283:619);
+  const base=stone?'#e3e0d4':dorm?'#e9ebe1':'#ecedE4';
+  c.fillStyle=base;c.fillRect(0,0,w,h);
+
+  /* 细颗粒（石灰/涂料的砂感） */
+  for(let n=0;n<24000;n++){
+    c.fillStyle=n%2?'#ffffff14':'#565f500f';
+    c.fillRect(rand()*w,rand()*h,.8+rand()*1.6,.8);
   }
-  for(let row=0;row<rows;row++){
-    for(let col=0;col<cols;col++){
-      const x=(col+.13)*cw,y=(row+.17)*ch,width=cw*(dorm?.73:.78),height=ch*.575;room(x,y,width,height,col+row*7);
-      if(dorm){c.fillStyle='#e4e5da';c.fillRect(col*cw+3,y+height*.79,cw-6,7);c.fillStyle='#82907b';c.fillRect(col*cw+3,y+height*.79,cw-6,1);if((col+row)%6===0){c.fillStyle='#9d8e73';c.fillRect(x+width-14,y+height-8,12,5);c.fillStyle='#687e53';for(let leaf=0;leaf<5;leaf++){c.beginPath();c.ellipse(x+width-13+leaf*2.5,y+height-10-(leaf%2)*2,2.5,4,.4,0,Math.PI*2);c.fill();}}}
+  /* 中尺度色差：修补过的墙面从来不是一个颜色 */
+  for(let i=0;i<26;i++){
+    const x=rand()*w,y=rand()*h,r=w*(.03+rand()*.09);
+    const g=c.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,i%3?'#cdb98c14':'#8a938211');
+    g.addColorStop(1,'#00000000');
+    c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2);
+  }
+  /* 分格缝：竖向每 ~2.4m 一道，横向每层一道 */
+  const bays=dorm?7:8;
+  for(let i=0;i<=bays;i++){
+    const x=i*w/bays;
+    c.fillStyle='#6f76631f';c.fillRect(x-.9,0,1.8,h);
+    c.fillStyle='#ffffff10';c.fillRect(x+.9,0,.9,h);
+  }
+  c.fillStyle='#6f766326';c.fillRect(0,0,w,2);
+  c.fillStyle='#ffffff14';c.fillRect(0,2,w,1.4);
+
+  /* 雨痕：从分缝处往下拖，长短不一 */
+  for(let i=0;i<14;i++){
+    const x=rand()*w,len=h*(.18+rand()*.5),y=rand()*h*.5;
+    const g=c.createLinearGradient(0,y,0,y+len);
+    g.addColorStop(0,'#4a53401c');g.addColorStop(1,'#4a534000');
+    c.fillStyle=g;c.fillRect(x,y,1.2+rand()*2.2,len);
+  }
+  /* 石材：加砌缝 */
+  if(stone){
+    for(let y=0;y<h;y+=h/6)for(let x=0;x<w;x+=w/bays){
+      c.strokeStyle='#8b908720';c.lineWidth=1.1;
+      c.strokeRect(x+(Math.round(y/(h/6))%2)*(w/bays/2),y,w/bays,h/6);
     }
-    c.fillStyle='#7f8e781c';c.fillRect(0,(row+1)*ch-6,front,2);c.fillStyle='#f4f3e8';c.fillRect(0,(row+1)*ch-4,front,3);
-    for(const dx of [.13,.76])room(front+(w-front)*dx,(row+.2)*ch,(w-front)*.12,ch*.52,row+Math.round(dx*10));
   }
-  c.fillStyle='#b7bfae';c.fillRect(front+(w-front)*.4,0,(w-front)*.19,h);for(let y=4;y<h;y+=ch/2){c.fillStyle='#dde1d4';c.fillRect(front+(w-front)*.41,y,(w-front)*.17,2);}
-  const plinth=c.createLinearGradient(0,h-12,0,h);plinth.addColorStop(0,'#a4ae9820');plinth.addColorStop(1,'#7c8c7055');c.fillStyle=plinth;c.fillRect(0,h-12,w,12);
+  /* 底部积灰：越靠近层底越暗一点（每题层重复一次，读作楼层交接） */
+  const gb=c.createLinearGradient(0,h*.82,0,h);
+  gb.addColorStop(0,'#5a63500a');gb.addColorStop(1,'#5a635022');
+  c.fillStyle=gb;c.fillRect(0,h*.82,w,h*.18);
 }
