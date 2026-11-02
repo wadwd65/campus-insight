@@ -63,3 +63,6 @@ setup-key.txt
 .shots-before/
 # release-download/ —— 10-26 起允许提交：B-v47 部署包随仓库分发
 # 约束：单个 zip 必须 <100MB（GitHub 硬限制），超限的"更新整包"144MB 不进仓库
+
+# 材质源图（约 2MB/张，可由 tex-data.js 复现，不入库）
+public/map/tex/*.png
