@@ -1,1 +1,9 @@
-{"edition":"B","version":"v47","theme":"校园行迹","matrixVersion":1,"date":"2026-10-24"}
+{
+  "edition": "B",
+  "version": "v50",
+  "theme": "校园行迹",
+  "matrixVersion": 1,
+  "date": "2026-11-04",
+  "change": "问卷地图细节、地图缩放定位、校园一天时段天气与问卷衔接",
+  "base": "v49 + 20261102 flow fixes"
+}

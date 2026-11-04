@@ -42,7 +42,7 @@ export function buildFallbackSummary(report, { name = '' } = {}) {
   const least = byTime[byTime.length - 1];
   const p2 =
     `按这套回答推算，${most.name}占比最大（${most.value}%），${least.name}占 ${least.value}%。这是一种叙事估算，不是实际用时。` +
-    `如果这个顺序与你的实际生活有出入，可以回看题目，或在上方临时换一个答案，观察它怎样影响画像。`;
+    `如果这个顺序与你的实际生活有出入，可以回看每个选择的影响，再回到问卷修改回答。`;
 
   // ── 3. 四年心情曲线 ──
   const byMood = [...moodCurve].sort((a, b) => b.value - a.value);

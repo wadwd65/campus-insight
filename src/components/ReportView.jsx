@@ -59,6 +59,7 @@ export default function ReportView({
   baseline,
   name = '',
   quizSnapshot = null,
+  onStartDay,
   onGoMap,
   onRestart,
   onBackToMap,
@@ -80,6 +81,7 @@ export default function ReportView({
   //   报告转而去读问卷答案、不读账本，「两次测量」也被关掉，整个复测链路断在这里。
   //   正确的判据只有一个：**App 有没有传 attributes**（它只在 mapRun 时传）。
   const fromMap = Boolean(attributes);
+  const openDay = onStartDay || onGoMap;
   const closing = useMemo(() => buildClosing(pickKeyword(report.percents)), [report]);
 
   // 大模型成稿后由 AiSummary 回传，供「复制文字版」使用。
@@ -93,7 +95,7 @@ export default function ReportView({
   const [cardState, setCardState] = useState('idle');
   const titleRef = useRef(null);
   const [exported, setExported] = useState(false);
-  const [showGuide, setShowGuide] = useState(true);
+  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     titleRef.current?.focus({ preventScroll: true });
@@ -274,7 +276,6 @@ export default function ReportView({
             <div className="report-guide-links"><a href={submissionPanel ? '#report-submission' : trail?.length ? '#sec-2' : '#sec-1'} onClick={scrollWithinReport}>{submissionPanel ? '查看填报与提交状态' : '先看我的行迹'} <span aria-hidden="true">↓</span></a><a href="#report-save-actions" onClick={scrollWithinReport}>保存或复制报告 <span aria-hidden="true">↓</span></a></div>
           </div>
           {submissionPanel && <div id="report-submission" className="report-submission-target">{submissionPanel}</div>}
-          {onGoStory&&<JourneyContinuity context={storyContext} answers={answers} onGoStory={onGoStory} onGoMap={onGoMap} fromMap={fromMap}/>}
           <header className="archive-head">
             <p className="archive-head-kicker">校园行迹&nbsp;/&nbsp;CAMPUS FIELD NOTES</p>
             <h1 ref={titleRef} tabIndex={-1} className="archive-title" style={{ fontSize: titleSize }}>
@@ -313,15 +314,14 @@ export default function ReportView({
           </header>
 
       <DaySurveyConnection context={dayContext} answers={report.answers} />
-      <CampusFieldLog answers={report.answers} />
-      <CampusKeepsake answers={report.answers} onSkip={scrollWithinReport} reportLink={trail?.length?'#sec-2':'#sec-1'} />
+      <details className="report-supporting-records">
+        <summary>回看十个选择，留下一张纪念卡</summary>
+        {onGoStory&&<JourneyContinuity context={storyContext} answers={answers} onGoStory={onGoStory} onStartDay={openDay} onGoMap={onGoMap} fromMap={fromMap}/>}
+        <CampusFieldLog answers={report.answers} />
+        <CampusKeepsake answers={report.answers} onSkip={scrollWithinReport} reportLink={trail?.length?'#sec-2':'#sec-1'} />
+      </details>
 
       <div className="space-y-10">
-        {/* ★ 10-14 B+C（B3）：这一块**两种路径都有**。
-            问卷的每一题也会 applyChoice 进账本（见 App.finishQuiz），
-            所以 trail 里本来就躺着 10 条作答记录 —— 以前只有地图路径才显示，
-            于是问卷玩家答完 10 题，报告里却看不到自己答过什么，两个玩法互相看不见。
-            现在合成一条时间线，并用来源标签把"这是你选的"和"这是你走的"分开。 */}
         {trail?.length > 0 && (
           <details id="sec-1" className="archive-answer-trail">
             <summary>这一轮你是怎么走的 · 查看 {trail.length} 条记录</summary>
@@ -336,11 +336,6 @@ export default function ReportView({
           hint="每个数字的意思是：你在模拟基准人群中的相对位置；用于理解这套回答，不代表真实大学生总体排名"
           art={ART('sec-profile.webp')}
         >
-          {/* ★ 10-17 美术返工：原来是"雷达图独占一块图版"。
-              用户要求「雷达图与解释文字采用有明确关系的并置布局」——
-              图解释不了自己，必须有人给它一句话。
-              ★ 右侧那段**不是编的**：前三项由 report.radar 现算排序得出，
-                数字就是图上那几个值；口径说明也是既有事实（映射矩阵 + 百分位）。 */}
           <div className="archive-plate">
             <div className="archive-duo">
               <div>
@@ -385,9 +380,6 @@ export default function ReportView({
           <ProfileExplanation report={report} baseline={baseline} trail={trail} onApplyAnswers={fromMap ? undefined : onApplyAnswers} />
         </Section>
 
-        {/* ★ 10-13 审查补注（任务书 P2#7）：时间分配与四年曲线都由百分位经固定公式
-            "估算"出来，属于叙事性推导，不是实测记录 —— 以前这两处都没说，读者容易
-            把环形图上的百分比当成"他真的这样分配时间"。这里把口径写在标题下方。 */}
         <Section
           n={trail?.length > 0 ? 3 : 2}
           show={step >= 2}
@@ -422,18 +414,9 @@ export default function ReportView({
           art={ART('sec-closing.webp')}
         >
           <AiSummary report={report} name={name} onText={(text) => setAiText(text)} />
-          {/* ★ B+C（C3）：两次测量对比。
-              只在地图路径 + 有问卷快照时出现 —— 也就是"答完题又去走了地图"。
-              它把两个玩法从"并列的两个入口"变成"同一件事的两次测量"：
-              一致 → "两种走法得出了同一个你"；不一致 → 本身就是有意思的结论，
-              而且这里必须说清"不一致不代表谁错了"（口径见下方说明）。 */}
           {fromMap && quizSnapshot && (
             <DualMeasure quizSnapshot={quizSnapshot} baseline={baseline} current={report} />
           )}
-          {/* ★ 10-14 美化：结尾这句是全页最可能被截图的一句话，
-              原来它只是一行 16px 的琥珀色字，混在正文里。
-              现在给它一整个引用块：左侧琥珀竖线 + 极淡的琥珀渐变底 +
-              字号提到 17px。它读起来像"被框起来的一句话"，而不是又一段正文。 */}
           <div
             className="mt-5 pl-4 py-3 pr-3"
             style={{
@@ -449,7 +432,7 @@ export default function ReportView({
         </Section>
       </div>
 
-      {onGoMap && (
+      {openDay && (
         <div className="archive-map-extra mt-9 pt-5" style={{ borderTop: '1px solid var(--rule-strong)' }}>
           <div className="flex flex-wrap items-baseline gap-x-6 gap-y-3">
             <div className="flex-1" style={{ minWidth: 260 }}>
@@ -460,13 +443,14 @@ export default function ReportView({
                 className="text-[12.5px] mt-1.5 leading-[1.8]"
                 style={{ color: 'var(--ink-on-paper-soft)', maxWidth: '56ch' }}
               >
-                用行动地图安排四个时段。地点选择会叠加到这份问卷画像上，
-                回来可以对比探索前后的变化。
+                {dayContext
+                  ? '回到刚才的「校园一天」情境地图，改一个决定并核对问卷变化，生成新的个人档案。'
+                  : '进入「校园一天」情境地图做十个日常决定，行动会带出问卷建议，核对后统一更新个人档案。'}
               </p>
             </div>
             <button
               type="button"
-              onClick={onGoMap}
+              onClick={openDay}
               className="shrink-0 text-[13px] font-semibold"
               style={{
                 color: 'var(--stamp)',
@@ -478,20 +462,23 @@ export default function ReportView({
               安排我的校园一天 →
             </button>
           </div>
+          {onGoMap && onStartDay && (
+            <details className="mt-3 text-xs" style={{ color: 'var(--ink-on-paper-soft)' }}>
+              <summary className="cursor-pointer">可选：打开自由行动账本（四时段地点探索，独立附加体验）</summary>
+              <p className="mt-1.5 leading-5">
+                自由行动账本使用四个时段地点累加属性，与十题情境问卷分属不同玩法。
+                <button type="button" onClick={onGoMap} className="ml-2 underline" style={{ color: 'var(--ark-deep)' }}>
+                  进入自由行动账本 →
+                </button>
+              </p>
+            </details>
+          )}
         </div>
       )}
 
-      {/* ★ 10-14 美化：三个按钮原来是"一个实心紫 + 两个白描边"，
-          三个长得差不多、主次不清。现在：
-            主按钮 = 渐变实底 + 品牌色投影（明确"点这里"）
-            次按钮 = 白底 + 描边 + 悬停抬起（明确"也可以点这里"）
-            三级（回地图）= 只留文字，不加框 —— 它是"离开"，不该抢主按钮 */}
       <div className="flex flex-wrap items-center gap-3 mt-12 pt-8 border-t border-[var(--line)]">
         <a href="#archive-top" className="report-back-top" onClick={scrollWithinReport}>回到档案顶部 ↑</a>
 
-        {/* ★ 10-17：子端的出口。只在问卷路径出现（地图路径没有 answers）。
-            它比"复制文字版"更重要 —— 复制出去是一段话，导出出去是一份
-            **能被别人汇总的数据**，这是"班级画像"这条链路的起点。 */}
         {answers && (
           <button
             type="button"
@@ -515,12 +502,13 @@ export default function ReportView({
         >
           再答一次
         </button>
-        {/* 回地图。改版后地图是主界面，报告是它的一个产出 ——
-            所以"看完这份报告"的默认去向是回地图，而不是重来一遍。
-            没有这个出口，玩家看完报告就只能关掉页面（或按浏览器的后退键）。 */}
-        {onBackToMap && (
-          <NavButton onClick={onBackToMap} icon="←" title="回到行动地图">
-            回到地图
+        {(fromMap ? onBackToMap : openDay || onBackToMap) && (
+          <NavButton
+            onClick={fromMap ? onBackToMap : (openDay || onBackToMap)}
+            icon="←"
+            title={fromMap ? '回到自由行动账本' : '回到校园一天情境地图'}
+          >
+            {fromMap ? '回到行动账本' : '回到校园一天'}
           </NavButton>
         )}
         <span className="text-xs text-[var(--ink-soft)]">
@@ -533,13 +521,6 @@ export default function ReportView({
   );
 }
 
-/**
- * @param {boolean} [boxed] 把内容装进一张卡片。
- *   ★ 10-14 美化：原来三张图是直接铺在页面底色上的，
- *     图表和正文用的是**同一个背景**，读者看不出"这里是一张图"。
- *     装进卡片之后，图有了自己的面，页面才有"标题→图→标题→图"的节奏。
- *     纯文字块（冷知识、给你的话）不加框 —— 它们本来就是正文的一部分。
- */
 function Section({ n, show, title, hint, children, boxed = false, art = null }) {
   return (
     <section
@@ -547,38 +528,18 @@ function Section({ n, show, title, hint, children, boxed = false, art = null }) 
       style={{ opacity: show ? 1 : 0, transform: show ? 'none' : 'translateY(14px)' }}
     >
       <ArchiveSectionHead index={n} title={title} hint={hint} />
-      {/* ★ 10-17：`boxed` 原来是 TermBlock（白底圆角卡片）。
-          在纸面上再套一张白卡，等于把"模板"换个颜色继续用 —— 用户明令禁止。
-          改成 archive-plate：无圆角、无阴影，只有上下细线与极薄的纸色加深，
-          读作"一块印刷图版"，而不是"一张卡片"。 */}
       {boxed ? <div className="archive-plate">{children}</div> : children}
     </section>
   );
 }
 
-/**
- * 纹章 —— 与入场那个同一个图形（六边形 + 内环 + 中心菱形 + 射线）。
- *
- * 这里刻意**没有抽成共用组件**，两个原因：
- *   1. 入场的那个尺寸是 112，还带一个 term-breathe 的呼吸动画（它要"活着"）；
- *      报告这个要小一半、且是静态的 —— 报告已经结束了，还在呼吸是错的语义。
- *   2. 两处的颜色来源不同：入场直接读 TERMINAL 常量，
- *      报告页在浅色底上，用同一组色但透明度不同（浅底上 0.45 会看不见）。
- *   形状共用、参数不共用，硬抽成一个组件会让它长出四个 props，反而更难读。
- */
 function Crest() {
-  // ★ 10-14：纹章的配色也换到蓝紫家族（众生行记主色）。
-  // 原来外环青、内核琥珀，是两套色；现在统一成"一个主色的两个深浅"，
-  // 中心菱形仍是暖色 —— 全页唯一允许出现琥珀的地方，作为"结果出来了"的落点。
   const ARK = '#156b7a';
   const ARK_DEEP = '#0b5a6b';
   const WARM = '#b45309';
   return (
     <svg width="88" height="88" viewBox="0 0 120 120" role="img" aria-label="终端纹章">
       <title>终端纹章</title>
-      {/* ★ 10-14 美化：垫一层径向光晕（中间琥珀、向外透明）。
-          原来纹章是浮在白纸上的一组细线，现在是"一个有光的东西" ——
-          代价只是两个 circle + 一个 radialGradient，不引入图片也不做动画。 */}
       <defs>
         <radialGradient id="crest-glow" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor={ARK} stopOpacity="0.20" />
@@ -596,8 +557,6 @@ function Crest() {
         strokeWidth="0.6"
         opacity="0.28"
       />
-      {/* ★ 10-14：外圈再加一道制图式虚线圆 ——
-          工程制图里虚线表示"参考/辅助"，它让纹章从"一个标志"变成"一张图上的一个基准" */}
       <circle
         cx="60"
         cy="60"
@@ -640,30 +599,15 @@ function Crest() {
   );
 }
 
-/**
- * 行动轨迹 —— 把地图上走过的路按顺序重放一遍。
- *
- * 这一块**只属于地图路径**。为什么值得单独做：
- *   问卷答完，得到的是"你在八个维度上分别是多少" —— 一个**快照**。
- *   地图走完，除了快照还多一样东西：**顺序**。
- *   先图书馆后小吃街，和先小吃街后图书馆，八维可能算出来完全一样，
- *   但那是两种完全不同的人。快照会丢掉这个信息，重放不会。
- *
- * 配色跟内容区走（浅色令牌），不搬场景层的深色 —— 报告页是"报告正文"，
- * 不是仪表盘。这条边界见 index.css 顶部。
- */
 function ActionTrail({ trail, answers }) {
   return (
     <ol className="relative pl-6 space-y-3">
-      {/* 竖线：用绝对定位的一条线串起所有节点，比给每个 li 画边框稳 */}
       <span
         className="absolute left-[7px] top-2 bottom-2 w-px"
         style={{ background: 'var(--line)' }}
         aria-hidden="true"
       />
       {trail.map((t, i) => {
-        // ★ 10-14 B+C：区分来源。地图行动带时间戳（at），问卷作答不带 ——
-        //   这是两个路径在账本里唯一可靠的差别，比按 id 猜稳健。
         const fromMapPath = Boolean(t.at);
         const tag = fromMapPath ? '地图' : '问卷';
         const question = !fromMapPath && QUESTIONS.find(q => t.id?.startsWith(`${q.field}=`) || q.text === t.label);
@@ -680,7 +624,6 @@ function ActionTrail({ trail, answers }) {
             />
             <p className="text-sm text-[var(--ink)] leading-6 flex flex-wrap items-baseline gap-x-2">
               <span className="text-xs text-[var(--ink-soft)] mr-1 tabular-nums">{i + 1}</span>
-              {/* 来源徽标：让"这是你选的"和"这是你走的"在一行里就分得清 */}
               <span
                 className="term-mono text-[10px] px-1.5 py-[1px] shrink-0"
                 style={{
@@ -700,23 +643,6 @@ function ActionTrail({ trail, answers }) {
   );
 }
 
-/**
- * ★ B+C（C3）两次测量对比 —— 这是把问卷与地图粘起来的关键一块。
- *
- * 它存在的理由：两个玩法以前是**并列的两个入口**，答完问卷出报告、
- * 走完地图也出报告，玩家没有任何契机意识到"这俩量的是同一个人"。
- * 现在地图的增量叠在问卷算出的属性上，于是可以并排问一句：
- * 「用答题的方式量出来的你」和「用脚走出来的你」，是不是同一个？
- *
- * 三条设计约束：
- *   ① **不复用 percentileOf 自己算** —— 直接调 buildReportFromAttributes，
- *      保证两边走的是同一条归一化路径（否则对比出的差是口径差，不是行为差）。
- *   ② **不一致不能说成"你答错了"**。两种测量本来就该有差异：
- *      答题是"你觉得自己是什么样"，地图是"你实际选择了什么"。
- *      差异本身是结论，不是错误 —— 这句话必须写在界面上，否则用户会以为出了 bug。
- *   ③ 差值用 ± 与颜色区分方向，但**不做过度的红绿**（本作的约定见 regional_conventions：
- *      涨红跌绿是股市约定，这里是行为数据，用主色/暖色区分更贴合作品气质）。
- */
 function DualMeasure({ quizSnapshot, baseline, current }) {
   const quizReport = useMemo(
     () => buildReportFromAttributes(quizSnapshot, baseline, { answers: null }),
@@ -735,7 +661,6 @@ function DualMeasure({ quizSnapshot, baseline, current }) {
     }));
   }, [quizReport, current]);
 
-  // 最大绝对差：用来把差条归一化到同一长度，否则大差值会把小差值压成一条线
   const maxAbs = Math.max(1, ...rows.map((r) => Math.abs(r.diff)));
 
   return (
@@ -761,7 +686,6 @@ function DualMeasure({ quizSnapshot, baseline, current }) {
               <span className="ci-num text-sm font-semibold w-8" style={{ color: 'var(--ark-deep)' }}>
                 {r.now}
               </span>
-              {/* 差条：从中线向两侧长，长度按最大差归一化 */}
               <span className="flex-1 flex items-center gap-2">
                 <span className="relative h-[6px] flex-1" style={{ background: 'var(--line-soft)' }}>
                   <span

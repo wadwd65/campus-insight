@@ -22,13 +22,33 @@ export function readSurveyDraft(storage, scope = '') {
     const requested=draft.questionId?journeyIndex(draft.questionId):firstMissing;
     const index=requested<0?QUESTIONS.length-1:requested;
     if (draft.questionId && QUESTIONS.slice(0,index).some(q=>!answers[q.field])) return null;
-    return { index, answers, ...(cleanStoryReflection(draft.storyContext)?{storyContext:cleanStoryReflection(draft.storyContext)}:{}), ...(cleanDaySurveyContext(draft.dayContext)?{dayContext:cleanDaySurveyContext(draft.dayContext)}:{}) };
+    const confirmedFields = Array.isArray(draft.confirmedFields)
+      ? draft.confirmedFields.filter(field => Boolean(answers[field]))
+      : null;
+    return {
+      index,
+      answers,
+      ...(cleanStoryReflection(draft.storyContext)?{storyContext:cleanStoryReflection(draft.storyContext)}:{}),
+      ...(cleanDaySurveyContext(draft.dayContext)?{dayContext:cleanDaySurveyContext(draft.dayContext)}:{}),
+      ...(confirmedFields?{confirmedFields}:{}),
+    };
   } catch { return null; }
 }
 
-export function saveSurveyDraft(index, answers, storage, scope = '', storyContext, dayContext) {
+export function saveSurveyDraft(index, answers, storage, scope = '', storyContext, dayContext, confirmedFields) {
   try {
-    (storage ?? globalThis.sessionStorage)?.setItem(scope ? `${SURVEY_DRAFT_KEY}:${scope}` : SURVEY_DRAFT_KEY, JSON.stringify({ version: MATRIX_VERSION, index, questionId: QUESTIONS[index]?.id, answers, ...(cleanStoryReflection(storyContext)?{storyContext:cleanStoryReflection(storyContext)}:{}), ...(cleanDaySurveyContext(dayContext)?{dayContext:cleanDaySurveyContext(dayContext)}:{}) }));
+    const cleanConfirmed = Array.isArray(confirmedFields)
+      ? [...new Set(confirmedFields.filter(field => isKnownOption(field, answers?.[field])))]
+      : undefined;
+    (storage ?? globalThis.sessionStorage)?.setItem(scope ? `${SURVEY_DRAFT_KEY}:${scope}` : SURVEY_DRAFT_KEY, JSON.stringify({
+      version: MATRIX_VERSION,
+      index,
+      questionId: QUESTIONS[index]?.id,
+      answers,
+      ...(cleanStoryReflection(storyContext)?{storyContext:cleanStoryReflection(storyContext)}:{}),
+      ...(cleanDaySurveyContext(dayContext)?{dayContext:cleanDaySurveyContext(dayContext)}:{}),
+      ...(cleanConfirmed?{confirmedFields:cleanConfirmed}:{}),
+    }));
   } catch { /* Disabled storage is a supported browser setting. */ }
 }
 
@@ -39,8 +59,13 @@ export function clearSurveyDraft(storage, scope = '') {
 export function clearAccountDrafts(userId, storage) {
   try {
     const target = storage ?? globalThis.sessionStorage;
+    if (!userId) {
+      target?.removeItem(SURVEY_DRAFT_KEY);
+      return;
+    }
+    const exact = `${SURVEY_DRAFT_KEY}:${userId}`;
     const prefix = `${SURVEY_DRAFT_KEY}:${userId}:`;
-    const keys = Array.from({ length: target.length }, (_, index) => target.key(index)).filter(key => key?.startsWith(prefix));
+    const keys = Array.from({ length: target.length }, (_, index) => target.key(index)).filter(key => key === exact || key?.startsWith(prefix));
     for (const key of keys) target.removeItem(key);
   } catch { /* Disabled storage is supported. */ }
 }

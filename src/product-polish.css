@@ -1,7 +1,7 @@
 /* One product language: forest ink, warm paper, restrained depth. Motion is finite. */
-.account-entry { display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:44px; padding:10px 17px; border:1px solid #2c6858; border-radius:8px; background:#285f50; color:#fffef5; font-size:12px; font-weight:600; box-shadow:0 5px 14px -9px #183f36; transition:background .18s,transform .18s; }
+.account-entry { display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:44px; padding:10px 17px; border:1px solid var(--brand,#315c6b); border-radius:8px; background:var(--brand,#315c6b); color:#fffef5; font-size:12px; font-weight:600; box-shadow:0 5px 14px -9px #183f36; transition:background .18s,transform .18s; }
 .account-entry>span:first-of-type { max-width:220px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.account-entry:hover { background:#1e4f42; transform:translateY(-1px); }
+.account-entry:hover { background:var(--accent-deep,#254653); transform:translateY(-1px); }
 .account-entry:focus-visible { outline:3px solid #ae7c33; outline-offset:3px; }
 .account-entry:active { transform:translateY(0); }
 .landing-header-tools { gap:22px; }

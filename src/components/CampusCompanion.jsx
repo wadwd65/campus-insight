@@ -9,12 +9,21 @@ function viewport(){return {width:window.innerWidth,height:window.innerHeight};}
 function sizeOf(element){const box=element.getBoundingClientRect();return {width:Math.max(box.width,Math.min(138,window.innerWidth-16)),height:box.height};}
 
 export default function CampusCompanion({moving=false,notice,eggData=null,mode='entry'}){
-  const [folded,setFolded]=useState(false),[step,setStep]=useState(0),[broken,setBroken]=useState(false),[showLine,setShowLine]=useState(false),[localBeat,setLocalBeat]=useState(0),[dismissedNotice,setDismissedNotice]=useState(null);
+  const [folded,setFolded]=useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 850px)').matches),[step,setStep]=useState(0),[broken,setBroken]=useState(false),[showLine,setShowLine]=useState(false),[localBeat,setLocalBeat]=useState(0),[dismissedNotice,setDismissedNotice]=useState(null);
   const [position,setPosition]=useState(null),[dragging,setDragging]=useState(false),[bubblePosition,setBubblePosition]=useState(null),[viewportRevision,setViewportRevision]=useState(0);
   const [eggOpen,setEggOpen]=useState(false),[actionDone,setActionDone]=useState(false),[actionError,setActionError]=useState(false);
   const container=useRef(null),message=useRef(null),gesture=useRef(null),currentPosition=useRef(null),suppressClick=useRef(false),stamps=useRef([]);
   const foldedState=useRef(false);foldedState.current=folded;
   const noticeActive=Boolean(notice&&notice.id!==dismissedNotice),line=noticeActive?notice.text:(mode==='day'?DAY_LINES:LINES)[step%LINES.length];
+  useEffect(() => {
+    if (['quiz', 'report', 'circles', 'upload', 'cohort'].includes(mode)) setFolded(true);
+  }, [mode]);
+  useEffect(() => {
+    const smallScreen = window.matchMedia('(max-width: 850px)');
+    const foldOnSmallScreen = () => { if (smallScreen.matches) setFolded(true); };
+    smallScreen.addEventListener('change', foldOnSmallScreen);
+    return () => smallScreen.removeEventListener('change', foldOnSmallScreen);
+  }, []);
 
   function place(next,persist=false){
     if(!container.current)return;

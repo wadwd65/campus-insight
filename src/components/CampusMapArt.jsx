@@ -3,18 +3,35 @@ import {CAMPUS_POSITIONS} from '../lib/campusJourney.js';
 import {CAMPUS_STREETS,CAMPUS_ACCESS,campusRoute,pathPoints} from '../lib/campusPaths.js';
 const LABELS={library:'图书馆',lab:'实验楼',late_class:'阶梯教室',court:'田径场',gym:'体育馆',field:'足球场',lake:'湖畔栈道',canteen:'食堂',nightmarket:'小吃街',convenience:'便利店',printshop:'打印店',dorm:'学生宿舍',rooftop:'观景平台',club:'社团活动室',station:'校门车站',intern:'实践中心'};
 const TREES=[[62,75],[111,116],[312,68],[358,103],[538,94],[628,73],[882,95],[911,125],[72,200],[182,215],[274,199],[434,203],[555,274],[917,292],[807,322],[840,353],[878,382],[911,442],[905,513],[657,525],[685,553],[735,611],[864,614],[290,561],[330,535],[73,542],[79,449],[183,463],[275,445],[414,459],[68,343],[192,332],[273,308],[399,302],[450,342],[544,360],[559,407],[655,377],[655,432],[825,485],[848,454],[806,491],[302,117],[792,211],[755,208],[637,192],[535,536],[354,615]];
-function Tree({x,y,index}){const r=index%3===0?13:10;return <g transform={`translate(${x} ${y})`}><ellipse cx="4" cy="9" rx={r+2} ry="5" fill="#506954" opacity=".12"/><path d="M0 3v12" stroke="#947651" strokeWidth="2"/><path d={`M${-r} 0q-3-10 5-14 8-9 16 0 9 5 2 16-9 6-23-2Z`} fill={index%3===0?'#7eaa83':index%3===1?'#9cb58b':'#b0c49a'} stroke="#7d9c76" strokeWidth=".8"/><path d="M-7-5q5 2 10-5M0-12v14" stroke="#e4e9bf" strokeWidth="1" opacity=".55"/></g>;}
-function Windows({count=4,x=-29,y=-29,gap=16}){return <g fill="#7f9e9c" stroke="#ecedcf" strokeWidth="1">{Array.from({length:count},(_,i)=><g key={i}><rect x={x+i*gap} y={y} width="10" height="13"/><path d={`M${x+i*gap+5} ${y}v13`}/></g>)}</g>;}
+function Tree({x,y,index}) {
+ const r=index%3===0?13:10;
+ return <g transform={`translate(${x} ${y})`}>
+  <ellipse cx="7" cy="10" rx={r+5} ry="5" fill="#53664c" opacity=".13" transform="rotate(-18)"/>
+  <path d="M1-4v18m0-11-6-7m6 4 6-6" stroke="#867456" strokeWidth="2.1" strokeLinecap="round"/>
+  <path d={`M${-r} 0q-3-10 5-14 8-9 16 0 9 5 2 16-9 6-23-2Z`} fill={index%3===0?'#7fa17b':index%3===1?'#98ad81':'#b0ba8b'} stroke="#769072" strokeWidth=".8"/>
+  {[[-6,-9,6], [1,-14,7], [7,-7,6], [-2,-3,6]].map(([cx,cy,size],i)=><ellipse key={i} cx={cx} cy={cy} rx={size} ry={size*.8} fill={i%2?'#c7d1a0':'#7a9c74'} opacity={i%2?'.65':'.45'}/>)}
+  <path d="m-9-8 3-2m5-7 3 1m5 6 3-1m-12 9 3-1m4-5 2 2" stroke="#e2e4bc" strokeWidth="1.2" strokeLinecap="round"/>
+ </g>;
+}
+function Windows({count=4,x=-29,y=-29,gap=16}) {
+ return <g stroke="#f1ecd8" strokeWidth="1">{Array.from({length:count},(_,i)=><g key={i}>
+  <rect x={x+i*gap-1} y={y-1} width="12" height="15" fill="#b7baa4" stroke="#a9b49e" strokeWidth=".6"/>
+  <rect className="map-window" x={x+i*gap} y={y} width="10" height="13" fill={i%3===1?'#a7b3a3':'#7e9990'}/>
+  <path d={`M${x+i*gap+5} ${y}v13m-5-8h10`} strokeWidth=".7"/>
+  <path d={`m${x+i*gap+1} ${y+1} 3 3m-5 11h14`} stroke="#faf4da" strokeWidth="1.1" opacity=".7"/>
+ </g>)}</g>;
+}
 function Building({id,x,y,roof}){
  const h={library:52,lab:42,late_class:51,gym:52,dorm:49,club:41,intern:35,canteen:41,printshop:29,convenience:35,rooftop:32}[id]||40;
  return <g transform={`translate(${x} ${y}) scale(${id==='canteen'?.8:1} 1)`} data-campus-building={id}>
-  <path d={`M-38 -${h-1} 44 -${h-4} 46 -1-34 5Z`} fill="#596c59" opacity=".13"/>
+  <path d={`M-34 -${h-1} 57 -${h-13} 62 10-28 8Z`} fill="#596c59" opacity=".14"/>
   {id==='library'?<><path d="M-46-47 0-64 46-47v8H-46Z" fill="#698c84" stroke="#567b75"/><rect x="-41" y="-39" width="82" height="34" fill="#e4d7b7" stroke="#a79e7e"/><path d="M-31-36v28m16-28v28m30-28v28m16-28v28" stroke="#f6ebce" strokeWidth="6"/><path d="M-8-27h16v22H-8Z" fill="#6a8c82"/><path d="M-48-4h96m-42 4h84" stroke="#acb396" strokeWidth="3"/><path d="M-8-49q8-4 16 0v8q-8-3-16 0Z" fill="#eee1b7" stroke="#f5ebcf"/></>
   :id==='gym'?<><path d="M-45-10v-23q45-44 90 0v23Z" fill="#7299a0" stroke="#587d83" strokeWidth="1.3"/><path d="M-39-30q39-30 78 0m-61-12v28m22-34v34m22-28v28" stroke="#c5d6c5" strokeWidth="2"/><path d="M-39-13h78v9h-78Z" fill="#ddd6bc" stroke="#8a9e89"/><path d="M-12-16h24v12H-12Z" fill="#496f77"/><path d="M-48-2h96" stroke="#b2b59a" strokeWidth="3"/></>
   :id==='rooftop'?<g transform="scale(1 .55)"><path d="M-39-28 0-40 39-28 0-17Z" fill="#ded5b1" stroke="#8a9f83"/><path d="M-39-28v21L0 4l39-11v-21M0-17V4" fill="#b5c2a1" stroke="#8a9f83"/><path d="M-31-29v-10m15 6v-10m16 6v-10m16 10v-10m15 14v-10M-31-39 0-49l31 10" stroke="#759081" strokeWidth="1.2"/><path d="M-8-24 2-28 12-24 2-20Z" fill="#7f9e89"/><path d="m-21-8 11 4m-16-1 11 4" stroke="#eff0d2" strokeWidth="2"/></g>
-  :<><rect x="-37" y={-h} width="74" height={h-5} fill={id==='lab'||id==='intern'?'#ccdad1':id==='canteen'?'#e7d4ad':'#ddd5b7'} stroke="#98a88b" strokeWidth="1.1"/>
+  :<><path d={`M37 -${h} 45 -${h+5}V-10l-8 5Z`} fill="#b0bca3" stroke="#8f9e86" strokeWidth=".8"/><rect x="-37" y={-h} width="74" height={h-5} fill={id==='lab'||id==='intern'?'#d5dfd1':id==='canteen'?'#e7d4ad':'#e2dcc2'} stroke="#98a88b" strokeWidth="1.1"/>
     <path d={`M-42 -${h} 30 -${h+7} 42 -${h-1} -30 -${h-1}Z`} fill={id==='club'?'#b38d68':id==='canteen'?'#849b72':id==='convenience'?'#779c88':'url(#'+roof+')'} stroke="#7f9881" strokeWidth="1"/>
     <Windows count={id==='printshop'?3:4} x={-29} y={-h+9} gap={16}/>
+    <path d={`M-35 -${h-5}h70m-70 ${h-13}h70`} stroke="#f8f1d9" strokeWidth="2"/>
     {id==='dorm'&&<Windows x={-29} y={-h+26} gap={16}/>}
     <rect x="-7" y="-18" width="14" height="13" fill="#648980" stroke="#ebdfbd"/>
     <path d="M-40-3h80" stroke="#acb49a" strokeWidth="3"/>
@@ -23,20 +40,34 @@ function Building({id,x,y,roof}){
     {id==='club'&&<><path d="M-31-42v24m59-24v24" stroke="#927c57"/><path d="m-31-40 12 4-12 6m59-10-12 4 12 6" fill="#b98266"/><path d="m12-15 4-4 5 4-5 4Z" fill="#d6af76"/></>}
     {(id==='canteen'||id==='convenience')&&<><path d="M-40-23h80l4 10h-88Z" fill={id==='canteen'?'#91ab7b':'#7faba0'} stroke="#7f9877"/><path d="M-30-23v10m15-10v10m15-10v10m15-10v10m15-10v10" stroke="#edf1d5" strokeWidth="5"/></>}
     {id==='printshop'&&<rect x="14" y="-15" width="18" height="11" fill="#e9e3ca" stroke="#919f89"/>}
+    {['lab','dorm','intern'].includes(id)&&<g stroke="#82998b" strokeWidth=".7"><path d={`m5 -${h+3} 17-2 8 3-17 2Z`} fill="#c5d0bd"/><path d={`m-24 -${h+1} 12-1 6 2-12 1Z`} fill="#e7e6cc"/></g>}
    </>}
  </g>;
 }
-export default function CampusMapArt({journey={visits:[]}}){
- const uid='campus-'+useId().replace(/[^a-z0-9]/gi,''),roof=uid+'roof',grass=uid+'grass',water=uid+'water';
+export default function CampusMapArt({journey={visits:[]},timeOfDay='morning',weather='clear'}){
+ const uid='campus-'+useId().replace(/[^a-z0-9]/gi,''),roof=uid+'roof',grass=uid+'grass',water=uid+'water',lake=uid+'lake',light=uid+'light',paving=uid+'paving';
  const route=campusRoute(journey.visits||[]);
- return <svg viewBox="0 0 1000 640" preserveAspectRatio="none" className="campus-map-art" aria-hidden="true" fill="none" data-map-detail="v46">
-  <defs><pattern id={grass} width="22" height="22" patternUnits="userSpaceOnUse"><path d="m4 12 2-3 1 4m12-9 1-3 2 3" stroke="#91ad7b" strokeWidth=".7" opacity=".28"/><circle cx="14" cy="17" r=".8" fill="#b4c197"/></pattern><pattern id={water} width="42" height="25" patternUnits="userSpaceOnUse"><path d="M2 8q8-4 16 0m10 12q6-3 12 0" stroke="#e0eee2" strokeWidth="1.2" opacity=".66"/></pattern><pattern id={roof} width="12" height="7" patternUnits="userSpaceOnUse"><rect width="12" height="7" fill="#99afa0"/><path d="M0 1h12M0 6h12m-6-5v5" stroke="#bfd0b5" strokeWidth=".7"/></pattern></defs>
+ return <svg viewBox="0 0 1000 640" preserveAspectRatio="none" className="campus-map-art" aria-hidden="true" fill="none" data-map-detail="v50" data-time-of-day={timeOfDay} data-weather={weather}>
+  <defs>
+   <pattern id={grass} width="36" height="32" patternUnits="userSpaceOnUse"><path d="m4 12 2-3 1 4m15-9 1-3 2 3m-7 20 1-4 2 4m11-10 1-2" stroke="#91a67b" strokeWidth=".7" opacity=".3"/><circle cx="14" cy="17" r=".7" fill="#b4c197"/><path d="m28 5 2 1m-24 20 3-1" stroke="#c8cfaa" strokeWidth="1"/></pattern>
+   <pattern id={paving} width="16" height="12" patternUnits="userSpaceOnUse"><path d="M0 0h16M0 12h16M8 0v6M0 6h16m-12 0v6m8-6v6" stroke="#bdbaa0" strokeWidth=".6" opacity=".4"/></pattern>
+   <pattern id={water} width="42" height="25" patternUnits="userSpaceOnUse"><path d="M2 8q8-4 16 0m10 12q6-3 12 0" stroke="#e0eee2" strokeWidth="1.2" opacity=".66"/></pattern>
+   <pattern id={roof} width="12" height="7" patternUnits="userSpaceOnUse"><rect width="12" height="7" fill="#99afa0"/><path d="M0 1h12M0 6h12m-6-5v5" stroke="#bfd0b5" strokeWidth=".7"/></pattern>
+   <pattern id={uid+'rain'} width="58" height="58" patternUnits="userSpaceOnUse"><path d="m10 5-4 12m35 18-4 12" stroke="#e3edf0" strokeWidth="1.2" opacity=".6"/></pattern>
+   <linearGradient id={lake} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#b1d0c1"/><stop offset=".48" stopColor="#8bb7b4"/><stop offset="1" stopColor="#739e9d"/></linearGradient>
+   <linearGradient id={light} x1="0" y1="0" x2="1" y2="1"><stop stopColor={timeOfDay==='night'?'#25415c':timeOfDay==='sunset'?'#f1b96b':'#fff6c9'} stopOpacity={timeOfDay==='night'?'.36':'.16'}/><stop offset="1" stopColor={timeOfDay==='night'?'#182f48':'#718c9b'} stopOpacity={timeOfDay==='night'?'.52':'.04'}/></linearGradient>
+  </defs>
   <rect width="1000" height="640" fill="#ebeedc"/><path d="M0 0h500v245L0 280Z" fill="#e4e9d5"/><path d="M500 0h500v640H605l-38-177 40-170Z" fill="#deead7"/><path d="M0 395h500v245H0Z" fill="#e9e3cd"/>
   <path d="M629 343q85-55 219-5l69 132-78 35-203-22Z" fill="#ccdcb9"/><path d="M0 0h1000v640H0Z" fill={`url(#${grass})`}/>
+  <g data-campus-feature="landscape-detail">
+   {[[92,35,325,28],[78,285,340,20],[622,295,266,16],[72,504,235,25],[635,546,260,15]].map(([x,y,w,h])=><g key={x+','+y}><rect x={x} y={y} width={w} height={h} rx={h/2} fill="#bdc9a6" opacity=".4"/><path d={`M${x+8} ${y+h/2}h${w-16}`} stroke="#d8dec0" strokeWidth="3" strokeDasharray="8 5" opacity=".6"/></g>)}
+   {[[289,335],[560,371],[863,527],[89,228]].map(([x,y])=><g key={x} transform={`translate(${x} ${y})`}><rect x="-13" y="-5" width="27" height="9" rx="4" fill="#8ea079"/><path d="M-8-3h18" stroke="#c3bf8a" strokeWidth="2"/>{[-7,0,7].map(a=><circle key={a} cx={a} cy={-2-a%3} r="2" fill="#d9b49a"/>)}</g>)}
+  </g>
   <g data-campus-feature="streets" strokeLinecap="round" strokeLinejoin="round">{CAMPUS_STREETS.map(([a,b],i)=><g key={i}><path d={`M${a}L${b}`} stroke="#c4c7ad" strokeWidth="27"/><path d={`M${a}L${b}`} stroke="#f6f2df" strokeWidth="21"/><path d={`M${a}L${b}`} stroke="#d0c7a9" strokeWidth=".8" strokeDasharray="4 7"/></g>)}</g>
   <g stroke="#e9e4ce" strokeWidth="10" strokeLinecap="round">{Object.entries(CAMPUS_ACCESS).map(([id,point])=>{const [x,y]=CAMPUS_POSITIONS[id];return <path key={id} d={`M${point}L${x*10},${y*6.4}`}/>;})}</g>
+  <g data-campus-feature="courtyard-paving">{[[195,106,91,35],[288,290,88,39],[96,389,90,37],[323,449,76,21],[514,446,72,29]].map(([x,y,w,h])=><rect key={x} x={x} y={y} width={w} height={h} rx="3" fill={`url(#${paving})`} stroke="#d6d1b6" strokeWidth=".8"/>)}</g>
   <g stroke="#ffffed" strokeWidth="3" opacity=".85">{[[230,160],[500,250],[600,325],[230,480],[600,580]].map(([x,y])=><path key={x+','+y} d={[-7,-2,3,8].map(offset=>`M${x+offset} ${y-8}v16`).join('')}/>)}</g>
-  <g data-campus-feature="lake"><path d="M725 356c43-25 130-10 151 29s-2 71-45 79-100-8-113-38-13-55 7-70Z" fill="#b9cdb5"/><path d="M733 361c39-20 117-6 135 29s-4 61-39 66-89-8-101-34-13-46 5-61Z" fill="#95bcb8" stroke="#79a8a4" strokeWidth="2"/><path d="M733 361c39-20 117-6 135 29s-4 61-39 66-89-8-101-34-13-46 5-61Z" fill={`url(#${water})`}/><path d="m754 382 47-8m-35 51 52-6" stroke="#d6e8d9" strokeWidth="3" opacity=".6"/><path d="M699 403h34v13h-34Z" fill="#c2aa7d" stroke="#9b885e"/><path d="M705 403v13m8-13v13m8-13v13" stroke="#eadbb8"/><g fill="#f0df9a" stroke="#b49e63"><path d="m798 408 8-3 4 3 9-1q-2 10-12 8Z"/><path d="m832 428 6-2 3 2 7-1q-1 8-9 6Z"/></g><path d="m729 446-2-11m7 14 3-13m115-63 2-13m-8 12-3-12" stroke="#799873" strokeWidth="2"/></g>
+  <g data-campus-feature="lake"><path d="M725 356c43-25 130-10 151 29s-2 71-45 79-100-8-113-38-13-55 7-70Z" fill="#b9cdb5"/><path d="M733 361c39-20 117-6 135 29s-4 61-39 66-89-8-101-34-13-46 5-61Z" fill={`url(#${lake})`} stroke="#79a8a4" strokeWidth="2"/><path d="M733 361c39-20 117-6 135 29s-4 61-39 66-89-8-101-34-13-46 5-61Z" fill={`url(#${water})`}/><path d="m754 382 47-8m-35 51 52-6" stroke="#d6e8d9" strokeWidth="3" opacity=".6"/><path d="M699 403h34v13h-34Z" fill="#c2aa7d" stroke="#9b885e"/><path d="M705 403v13m8-13v13m8-13v13" stroke="#eadbb8"/><g fill="#f0df9a" stroke="#b49e63"><path d="m798 408 8-3 4 3 9-1q-2 10-12 8Z"/><path d="m832 428 6-2 3 2 7-1q-1 8-9 6Z"/></g><path d="m729 446-2-11m7 14 3-13m115-63 2-13m-8 12-3-12" stroke="#799873" strokeWidth="2"/></g>
   <g data-campus-feature="track"><rect x="651" y="28" width="157" height="91" rx="42" fill="#c9997a" stroke="#a88164"/><rect x="660" y="35" width="139" height="76" rx="35" stroke="#f1dcc0"/><rect x="666" y="41" width="127" height="64" rx="29" stroke="#f1dcc0"/><rect x="681" y="49" width="97" height="48" rx="21" fill="#a0b385" stroke="#e6e4c3"/><path d="M729 49v48" stroke="#dde3bf"/><rect x="672" y="11" width="116" height="8" fill="#aab59b"/><path d="M680 11v8m17-8v8m17-8v8m17-8v8m17-8v8m17-8v8m17-8v8" stroke="#d2d6bb"/></g>
   <g data-campus-feature="football"><rect x="625" y="218" width="130" height="64" rx="3" fill="#8eac7b" stroke="#6d956e"/><path d="M632 224h116v52H632Zm58 0v52m-58-40h15v27h-15m116-27h-15v27h15" stroke="#e3e8c7" strokeWidth="1.5"/><circle cx="690" cy="250" r="11" stroke="#e3e8c7"/><path d="M620 240h5v20h-5m135-20h5v20h-5" stroke="#a1ab8d" strokeWidth="2"/><path d="M642 224v52m27-52v52m28-52v52m27-52v52" stroke="#bdd0a2" opacity=".3" strokeWidth="12"/></g>
   {Object.entries(CAMPUS_POSITIONS).filter(([id])=>!['lake','court','field','station','nightmarket'].includes(id)).map(([id,[x,y]])=><Building key={id} id={id} x={x*10-(id==='canteen'?10:0)} y={y*6.4} roof={roof}/>)}
@@ -44,7 +75,11 @@ export default function CampusMapArt({journey={visits:[]}}){
   <g data-campus-feature="bus-stop" transform="translate(150 538)"><path d="M-47-26h92l-8-10h-78Z" fill="#72928b" stroke="#65877e"/><path d="M-38-25v20m71-20v20" stroke="#899c83" strokeWidth="3"/><rect x="-31" y="-20" width="56" height="12" fill="#d3ddc3" stroke="#91ad9a"/><path d="M-34-5h65m-52-3v7m40-7v7" stroke="#9d9d7b" strokeWidth="3"/><rect x="42" y="-32" width="12" height="18" fill="#e2d6af" stroke="#809582"/><path d="M48-14V1" stroke="#809582" strokeWidth="2"/></g>
   <g data-campus-feature="gardens"><path d="M276 263h139v12H276Zm-3 145h39v37h-39Z" fill="#b6c79b" stroke="#96ad82"/><path d="M282 269h127m-130 149h27m-27 12h27" stroke="#d2d8ad" strokeWidth="3"/>{[[286,269],[315,269],[344,269],[374,269],[404,269]].map(([x,y])=><g key={x}><circle cx={x} cy={y} r="4" fill="#cfb481"/><circle cx={x+3} cy={y-2} r="2" fill="#ead4a0"/></g>)}</g>
   <g data-campus-feature="trees">{TREES.map(([x,y],index)=><Tree key={x+','+y} {...{x,y,index}}/>)}</g>
+  <g data-campus-feature="waterside-life"><path d="M748 445q12 4 24 0m54-76q9 3 17 0" stroke="#d5e5d6" strokeWidth="1.1" opacity=".7"/><ellipse className="map-water-ripple" cx="810" cy="419" rx="15" ry="4" stroke="#e2ece0" strokeWidth="1" opacity=".5"/><path d="m735 421-3-11m9 8-2-8m116-9 3-11m-9 9 1-9" stroke="#728e6a" strokeWidth="1.4"/>{[[750,437],[756,441],[851,390]].map(([x,y])=><g key={x}><ellipse cx={x} cy={y} rx="4" ry="2" fill="#9cba90"/><circle cx={x+1} cy={y-1} r="1.5" fill="#e2cbb2"/></g>)}</g>
   <g data-campus-feature="street-furniture" stroke="#8c9778" strokeWidth="1.2">{[[276,180],[337,350],[550,351],[655,401],[888,495],[191,552]].map(([x,y])=><g key={x} transform={`translate(${x} ${y})`}><path d="M-10-5h20m-20 3h20m-18 3h16m-14 0v5m12-5v5" stroke="#9b8b64" strokeWidth="2"/></g>)}{[[454,178],[520,356],[620,465],[250,560],[918,343]].map(([x,y])=><g key={x}><path d={`M${x} ${y}v-15h7`} stroke="#809081"/><circle cx={x+7} cy={y-15} r="3" fill="#e4d2a4" stroke="#a5a385"/></g>)}</g>
+  <rect className="map-lighting-overlay" width="1000" height="640" fill={`url(#${light})`}/>
+  {timeOfDay==='night'&&<g data-campus-feature="evening-lights">{[[461,163],[527,341],[627,450],[257,545],[925,328],[761,504],[821,504]].map(([x,y])=><g key={x}><ellipse cx={x} cy={y+8} rx="19" ry="13" fill="#ffe0a4" opacity=".18"/><circle cx={x} cy={y} r="2.8" fill="#ffe9b7"/></g>)}</g>}
+  {weather==='rain'&&<g className="map-rain" data-campus-feature="rain"><rect width="1000" height="640" fill="#6c8f9d" opacity=".13"/><rect width="1000" height="640" fill={`url(#${uid+'rain'})`}/><path d="M131 378q11-3 24 0m359-52q13-3 26 0m66 158q10-3 22 0" stroke="#eef4df" opacity=".6" strokeWidth="2"/></g>}
   {route.length>1&&<g data-campus-feature="walked-route"><polyline points={pathPoints(route)} stroke="#f9f2d9" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/><polyline points={pathPoints(route)} stroke="#9c7547" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>{journey.visits.map((visit,index)=>{const p=CAMPUS_POSITIONS[visit.id];return p?<circle key={index} cx={p[0]*10} cy={p[1]*6.4} r="3.4" fill="#f5e7b7" stroke="#9c7547"/>:null;})}</g>}
   <g fill="#62795f" fontFamily="Microsoft YaHei, PingFang SC, sans-serif" fontSize="12.5" data-campus-feature="place-labels">{Object.entries(CAMPUS_POSITIONS).map(([id,[x,y]])=>{const width=LABELS[id].length*12.5+10;return <g key={id}><rect x={x*10-width/2} y={y*6.4+5} width={width} height="18" rx="2" fill="#eef0dd" opacity=".9"/><text x={x*10} y={y*6.4+18} textAnchor="middle">{LABELS[id]}</text></g>;})}</g>
   <g fill="#809174" fontFamily="Microsoft YaHei, PingFang SC, sans-serif" fontSize="11" letterSpacing="3" opacity=".72"><text x="76" y="36">北区 · 学习</text><text x="813" y="52">运动与湖畔</text><text x="50" y="615">西区 · 日常</text><text x="655" y="615">南区 · 灯火</text></g>

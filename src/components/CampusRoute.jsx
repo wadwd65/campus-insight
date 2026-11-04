@@ -6,6 +6,7 @@ import { preferCalm } from '../lib/terminalTheme.js';
 import { downloadText } from '../lib/exportProfile.js';
 import { CAMPUS_POSITIONS, buildCampusJourney, buildJourneyText } from '../lib/campusJourney.js';
 import CampusMapArt from './CampusMapArt.jsx';
+import CampusMapViewport from './CampusMapViewport.jsx';
 
 export default function CampusRoute({ model, onPick, busy, trail, slotsPerDay }) {
   const [selectedId, setSelectedId] = useState('library');
@@ -14,6 +15,7 @@ export default function CampusRoute({ model, onPick, busy, trail, slotsPerDay })
   const preview = useRef(null);
   const canvas = useRef(null);
   const journey = useMemo(() => buildCampusJourney(trail, slotsPerDay), [trail, slotsPerDay]);
+  const timeOfDay = ['morning', 'afternoon', 'sunset', 'night'][Math.min(3, Math.floor(journey.used / journey.slots.length * 4))];
   const selected = model.items.find((p) => p.id === selectedId) ?? model.items[0];
   const next = selected.enabled ? nextDelta(selected, model.visited) : null;
   const zone = ZONES.find((zone) => zone.key === selected.zone);
@@ -33,8 +35,8 @@ export default function CampusRoute({ model, onPick, busy, trail, slotsPerDay })
     <div className="campus-explorer-heading"><span>CAMPUS WALK <b>把一天留在校园里</b></span><small>示意布局 · 非真实坐标</small></div>
     <div className="campus-explorer-body">
       <div className="campus-map-column">
-        <div className="campus-map-canvas" ref={canvas} tabIndex={-1}>
-          <CampusMapArt journey={journey} />
+        <CampusMapViewport focusPoint={CAMPUS_POSITIONS[journey.visits.at(-1)?.id || 'dorm']} label="校园行迹图"><div className="campus-map-canvas" ref={canvas} tabIndex={-1}>
+          <CampusMapArt journey={journey} timeOfDay={timeOfDay} />
           <span className="campus-district district-north">教学区</span><span className="campus-district district-east">运动与湖畔</span><span className="campus-district district-west">生活与自由</span><span className="campus-district district-south">烟火日常</span>
           {model.items.map((place,index) => {
             const [x,y] = CAMPUS_POSITIONS[place.id];
@@ -50,7 +52,7 @@ export default function CampusRoute({ model, onPick, busy, trail, slotsPerDay })
             <svg viewBox="0 0 40 32" width="28" height="24" aria-hidden="true"><path d="M10 17c-5-1-6-7-1-10 5-3 10 1 9 5l3 5c6-1 9-3 12-7 3 10-2 16-12 16-8 0-13-2-11-9Z" fill="#d8b65c" stroke="#927a46" strokeWidth="1" /><path d="m7 13-5 2 6 2" fill="#b78349" /><circle cx="12" cy="10" r="1" fill="#594d3c" /></svg>
           </button>
           {whisper && <div className="campus-whisper" role="status"><button type="button" aria-label="收起湖边留言" onClick={() => setWhisper(false)}>×</button><span>湖边的小住客</span><p>不用每一步都走得很快，湖边也值得留一个时段。</p></div>}
-        </div>
+        </div></CampusMapViewport>
         <p className="campus-map-instruction">点选地点看故事与增量，再决定要不要出发。灰色地点仍可查看说明。</p>
         <div className="campus-time-strip" aria-label="四时段行程">{journey.slots.map((slot) => <div key={slot.index} className={slot.visit?'is-filled':''}><span>时段 {slot.index}</span><b>{slot.visit ? slot.visit.name : '留给下一站'}</b>{slot.visit?.cost>1 && <small>{slot.index===slot.visit.start+1?'跨两个时段':'接上一时段'}</small>}</div>)}</div>
       </div>
@@ -63,7 +65,7 @@ export default function CampusRoute({ model, onPick, busy, trail, slotsPerDay })
           {next ? <><p className="campus-preview-kicker">本次属性增量{next.visit>1?` · 第 ${next.visit} 次，已衰减`:''}</p><ul className="campus-preview-deltas">{Object.entries(next.vec).map(([key,value]) => <li key={key} className={value<0?'is-negative':''}>{shortLabelOf(key)} <b>{value>0?'+':''}{value}</b></li>)}</ul></> : <p className="campus-place-unavailable">{selected.reason}。可以看看其他地点，或回顾今天的路线。</p>}
           <button type="button" className="campus-commit" disabled={!selected.enabled||busy} onClick={() => onPick(selected)}>{busy?'正在记下这一站…':!selected.enabled?'这次暂时不能前往':`${selected.times?'再去':'去'}${selected.name} · 用${selected.cost}个时段`}<span aria-hidden="true">→</span></button>
           <p className="campus-preview-footnote">查看地点不消耗时段；确认出发后计入。增量是规则变化，不代表能力评分。</p>
-          <button type="button" className="campus-back-map" onClick={() => { canvas.current?.scrollIntoView({block:'start',behavior:preferCalm()?'instant':'smooth'});canvas.current?.focus({preventScroll:true}); }}>回到地图，再选一站 ↑</button>
+          <button type="button" className="campus-back-map" onClick={() => { canvas.current?.closest('.campus-map-viewport')?.scrollIntoView({block:'start',behavior:preferCalm()?'instant':'smooth'});canvas.current?.focus({preventScroll:true}); }}>回到地图，再选一站 ↑</button>
         </div>
       </aside>
     </div>
