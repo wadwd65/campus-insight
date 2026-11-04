@@ -31,6 +31,7 @@ import DaySurveyConnection from './DaySurveyConnection.jsx';
 import {useAccount} from '../lib/accounts.jsx';
 import NavButton from './NavButton.jsx';
 import { buildProfileCsv, makeProfileId, downloadText } from '../lib/exportProfile.js';
+import { nextStepOf } from '../lib/nextStep.js';
 import { downloadReportCard, reportIdentity } from '../lib/reportCard.js';
 import './survey-guidance.css';
 
@@ -164,6 +165,9 @@ export default function ReportView({
    * 为什么不用随机数：随机会让"同一份档案"每次刷新都换编号，
    * 那它就只是个装饰。派生 id 才有"这是这一份"的含义。
    */
+  /* 2026-11-04 增：报告末给一条能马上做的事（记录者：3号 / WorkBuddy） */
+  const nextStep = useMemo(() => nextStepOf(report.percents), [report.percents]);
+
   const meta = useMemo(() => {
     const now = new Date();
     const p2 = (n) => String(n).padStart(2, '0');
@@ -474,6 +478,15 @@ export default function ReportView({
             </details>
           )}
         </div>
+      )}
+
+      {nextStep && (
+        <section className="report-next-step" aria-label="下一步建议">
+          <p className="report-next-step-kicker">下一步 · 只做一件小事</p>
+          <h2 className="report-next-step-title">你在「{nextStep.label}」上处在 {nextStep.value}% 的位置，不必补短板——先做这一件：</h2>
+          <p className="report-next-step-text">{nextStep.text}</p>
+          <p className="report-next-step-note">这条建议由五维里最低的一项推出，不构成评价；不想做可以换一件同类的小事。</p>
+        </section>
       )}
 
       <div className="flex flex-wrap items-center gap-3 mt-12 pt-8 border-t border-[var(--line)]">

@@ -187,3 +187,71 @@
 .stage-quiz .survey-bottom-rail { background: #fbfaf4; z-index: 5; }
 /* 选中后出现的状态行会撑高页面、造成"答完一跳"，先占住高度 */
 .stage-quiz .survey-selection-status { min-height: 44px; }
+
+/* ==== 2026-11-04 报告末尾「下一步」块（记录者：3号 / WorkBuddy）==== */
+.report-next-step{
+  margin: 32px 0 8px;
+  padding: 20px 22px;
+  background: #fffdf6;
+  border: 1px solid rgba(49,92,107,.18);
+  border-left: 4px solid #b58a4a;
+}
+.report-next-step-kicker{
+  margin: 0 0 8px;
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: #8c774b;
+}
+.report-next-step-title{
+  margin: 0 0 10px;
+  font-size: 17px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: #254653;
+}
+.report-next-step-text{
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.85;
+  color: #2f4a53;
+}
+.report-next-step-note{
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #7b8a8f;
+}
+
+/* ==== 2026-11-04 报告末尾「下一步」块（记录者：3号 / WorkBuddy）==== */
+.report-next-step{
+  margin: 32px 0 8px;
+  padding: 20px 22px;
+  background: #fffdf6;
+  border: 1px solid rgba(49,92,107,.18);
+  border-left: 4px solid #b58a4a;
+}
+.report-next-step-kicker{
+  margin: 0 0 8px;
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: #8c774b;
+}
+.report-next-step-title{
+  margin: 0 0 10px;
+  font-size: 17px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: #254653;
+}
+.report-next-step-text{
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.85;
+  color: #2f4a53;
+}
+.report-next-step-note{
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #7b8a8f;
+}
