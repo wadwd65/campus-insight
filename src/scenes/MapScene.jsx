@@ -156,7 +156,6 @@ function SlotBar({ slots, total }) {
 export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry, guide, storyContext, onGoStory }) {
   const reflection=cleanStoryReflection(storyContext),episode=reflection?storyEpisode(reflection.episodeId):null;
   const player = useGameStore((s) => s.player);
-  const slotsPerDay = useGameStore((s) => s.slotsPerDay);
   const applyChoice = useGameStore((s) => s.applyChoice);
   const undoMapChoice = useGameStore((s) => s.undoMapChoice);
   const [last, setLast] = useState(null);
@@ -248,7 +247,7 @@ export default function MapScene({ onGoReport, onGoQuiz, onUpload, onGoEntry, gu
         {/* ── 左侧：地图格 ── */}
         <div className="map-workspace">
           <div className="space-y-5">
-            <CampusRoute model={model} onPick={pick} busy={busy} trail={player.trail} slotsPerDay={slotsPerDay} />
+            <CampusRoute model={model} onPick={pick} busy={busy} trail={player.trail} slotsPerDay={model.slotsPerDay} />
             <div className="map-live-feedback" role="status" key={last ? `${last.name}-${last.visit}` : 'empty'}>
               {last ? <><span>已到达 <b>{last.name}</b></span><DeltaTags vec={last.vec} /></> : <span>{notice ?? '每一步都会更新你的画像；可随时撤销，不必追求高分。'}</span>}
             </div>

@@ -1,3 +1,5 @@
+.report-supporting-records { margin:20px 0; border-block:1px solid var(--campus-line,#bdc8cb); }
+.report-supporting-records>summary { padding:15px 0; min-height:48px; cursor:pointer; font-size:13px; color:var(--campus-ink,#253a43); }
 .profile-explanation { margin-top:24px; padding:24px 0 0; border-top:1px solid var(--line); color:var(--ink-on-paper,var(--ink)); }
 .profile-explanation-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; }
 .profile-reading-kicker { font:9px/1.6 ui-monospace,monospace; letter-spacing:.17em; color:#65766a; margin-bottom:6px; }

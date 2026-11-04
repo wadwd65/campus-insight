@@ -205,35 +205,12 @@ export default function UploadPanel({ onReady, onBack }) {
               setDragging(false);
               readFiles(e.dataTransfer?.files);
             }}
-            className="relative overflow-hidden px-6 py-14 text-center transition-all duration-200"
+            className="relative overflow-hidden px-6 py-14 text-center transition-colors duration-200"
             style={{
-              // ★ 10-14 v4：白底虚线框 → **深色光场**（upload-bg.webp 作底）。
-              //   以前这是整页最"素"的一块：一圈浅灰虚线 + 两行灰字 + 一个紫按钮，
-              //   看起来像一个空的错误提示框，而不是"把文件投放到这里"的入口。
-              //   众生行记的做法是给操作区一个发光的暗场；这里照做，文字随之反白。
-              clipPath:
-                'polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px))',
+              background: dragging ? '#e6eeeb' : '#f5f5ed',
+              border: `1px dashed ${dragging ? 'var(--brand)' : 'var(--campus-line, #bdc8cb)'}`,
             }}
           >
-            <img
-              src={`${import.meta.env.BASE_URL}art/ark/upload-bg.webp`}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 h-full w-full object-cover ark-art"
-              decoding="async"
-            />
-            {/* ★ 10-15：从"压暗"改成"提亮"。
-                背景换成动漫天空后，深色投放台又是一块黑砖。
-                现在用一层白玻璃盖住底图左侧（文字区），右侧留出 upload-bg 的画面。 */}
-            <span
-              aria-hidden="true"
-              className="absolute inset-0"
-              style={{
-                background:
-                  'linear-gradient(100deg, rgba(255,255,255,0.93) 0%, rgba(255,255,255,0.86) 48%, rgba(255,255,255,0.28) 100%)',
-              }}
-            />
-
             {/* 四角括号 */}
             {[
               { left: 8, top: 8, bl: true, bt: true },

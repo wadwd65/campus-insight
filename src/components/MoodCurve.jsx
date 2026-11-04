@@ -1,23 +1,11 @@
-/**
- * 四年心情曲线。
- *
- * 曲线本身是折线图，但**真正讲故事的是每个节点下面那句话** ——
- * 「大二 · 社交半径达到四年最大，谁过生日你都在场」。
- * 所以台词用 HTML 排在下方，而不是塞进 ECharts 的 label：
- * 图表里放不下这么长的句子，硬塞会挤成一团。
- *
- * 纵轴刻意不显示刻度。它测的不是一个真实存在的量表，
- * 显示「72 分」会让人以为那是某种权威分数 —— 它只是一条相对起伏的线。
- */
-
 import { useMemo } from 'react';
 import Chart from './Chart.jsx';
-import { BRAND, INK, LINE, FONT, AXIS_LABEL_STYLE } from '../lib/theme.js';
+import { BRAND, INK, FONT, AXIS_LABEL_STYLE } from '../lib/theme.js';
 
 export default function MoodCurve({ data }) {
   const option = useMemo(
     () => ({
-      grid: { left: 10, right: 24, top: 28, bottom: 6, containLabel: true },
+      grid: { left: 18, right: 24, top: 28, bottom: 28 },
       tooltip: {
         trigger: 'axis',
         formatter: (ps) => `${ps[0].axisValue}　${Math.round(ps[0].value)}`,
@@ -46,9 +34,6 @@ export default function MoodCurve({ data }) {
           data: data.map((d) => d.value),
           lineStyle: { width: 3, color: BRAND },
           itemStyle: { color: BRAND, borderColor: '#ffffff', borderWidth: 2 },
-          // ★ 10-14 v2（参考《众生行记》）：面积从一层 0.10 的死白改成竖向渐变
-          //   （上 0.26 → 下 0.02）。"光从上面照下来"是通透感最省力的做法；
-          //   而且渐变让曲线起伏更明显 —— 纯色面积会把高低差抹平。
           areaStyle: {
             color: {
               type: 'linear',

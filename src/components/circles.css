@@ -1,5 +1,5 @@
-.circle-workspace { --circle-ink:#243f35; color:var(--circle-ink); line-height:1.75; min-width:0; }
-.circle-workspace :is(h1,h2,h3) { font-weight:650; line-height:1.4; color:#223e32; overflow-wrap:anywhere; }
+.circle-workspace { --circle-ink:var(--campus-ink,#253a43); color:var(--circle-ink); line-height:1.75; min-width:0; }
+.circle-workspace :is(h1,h2,h3) { font-weight:650; line-height:1.4; color:var(--circle-ink); overflow-wrap:anywhere; }
 .circle-workspace h1 { font-size:clamp(29px,4vw,42px); letter-spacing:-.04em; margin:8px 0 12px; }
 .circle-workspace h2 { font-size:21px; margin:0 0 10px; }
 .circle-workspace h3 { font-size:15px; margin:0 0 5px; }
@@ -11,8 +11,8 @@
 .circle-workspace button:hover { background:#eef3e8; border-color:#6c8b74; }
 .circle-workspace button:active { transform:translateY(1px); }
 .circle-workspace button:disabled { opacity:.48; cursor:not-allowed; transform:none; }
-.circle-workspace button.circle-primary { background:#2a6652; border-color:#2a6652; color:#fffff6; box-shadow:0 4px 12px -9px #244e36; }
-.circle-workspace button.circle-primary:hover { background:#205340; }
+.circle-workspace button.circle-primary { background:var(--brand,#315c6b); border-color:var(--brand,#315c6b); color:#fffff6; box-shadow:0 4px 12px -9px #244e36; }
+.circle-workspace button.circle-primary:hover { background:var(--accent-deep,#254653); }
 .circle-workspace button.circle-text-button { background:transparent; border-color:transparent; padding-left:0; margin-top:9px; box-shadow:none; }
 .circle-workspace :is(input,select) { border:1px solid #b3c1ad; background:#fffefa; color:#213f31; border-radius:7px; padding:11px 12px; width:100%; min-width:0; font-size:16px; min-height:45px; }
 .circle-workspace input::placeholder { color:#7c887b; font-size:12px; }

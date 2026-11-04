@@ -92,6 +92,10 @@ export default function RadarChart({ data, compare = null, name = '你的画像'
         },
       },
       series,
+      media: [{
+        query: { maxWidth: 350 },
+        option: { radar: { radius: '52%', nameGap: 8, axisName: { ...AXIS_LABEL_STYLE, fontSize: 11, width: 44, overflow: 'break' } } },
+      }],
     };
   }, [data, compare, name]);
 

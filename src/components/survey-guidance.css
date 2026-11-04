@@ -1,5 +1,21 @@
 /* Local, readable controls for the questionnaire and its report. No backdrop blur. */
-.survey-friendly { color: #243d32; }
+.survey-friendly { color: var(--campus-ink, #253a43); }
+.field-edition .survey-friendly .survey-route { margin:14px 0; gap:5px; }
+.field-edition .survey-friendly .survey-route>span { display:flex; align-items:center; gap:8px; padding:10px 8px; }
+.field-edition .survey-friendly .survey-question { padding:15px 0 10px; }
+.field-edition .survey-friendly .survey-question h1 { margin:4px 0 8px; font-size:clamp(24px,3vw,30px); line-height:1.4; }
+.field-edition .survey-friendly .survey-real-prompt { font-size:15px; line-height:1.8; }
+.survey-question-help summary { min-height:38px; padding:8px 0; cursor:pointer; font-size:12px; color:var(--campus-muted,#53666d); }
+.survey-question-help>p { font-size:13px; line-height:1.8; margin-bottom:8px; }
+.field-edition .survey-friendly .survey-moment-feedback { min-height:52px; padding:10px 13px; margin:12px 0; }
+.field-edition .survey-friendly .survey-navigation { border-radius:2px; }
+.survey-friendly .survey-bottom-rail { position:sticky; bottom:8px; z-index:20; margin-top:10px; }
+.survey-friendly .survey-bottom-rail .survey-navigation { background:#f8f8f2; box-shadow:0 8px 24px #253a4314; }
+@media(max-width:700px) {
+ .field-edition .survey-friendly .survey-route>span { flex-direction:column; gap:5px; padding:8px 2px; font-size:10px; }
+ .field-edition .survey-friendly .survey-real-prompt { font-size:14px; }
+ .survey-question-help summary { min-height:44px; }
+}
 .survey-friendly [hidden], .archive .report-user-guide [hidden] { display: none; }
 .survey-friendly :is(button, a, summary):focus-visible,
 .archive .report-user-guide :is(button, a):focus-visible { outline: 3px solid #a46f2d; outline-offset: 4px; }
@@ -9,7 +25,15 @@
 .survey-progress-track { display: flex; gap: 5px; padding: 0 16px 14px; background: #fffdf4ed; border: 1px solid #c6d2bc; border-top: 0; border-radius: 0 0 14px 14px; }
 .survey-progress-track > span { height: 5px; flex: 1; background: #d9dfcf; border-radius: 3px; }
 .survey-progress-track > .is-done { background: #638762; }
+.survey-progress-track > .is-suggested { background: #a8b99f; border: 1px dashed #638762; }
 .survey-progress-track > .is-current { background: #ba843f; box-shadow: 0 0 0 2px #ba843f30; }
+.survey-progress-breakdown { margin-top: 6px; padding: 0 4px; font-size: 13px; color: #596d57; }
+.guest-report-carryover { margin-bottom: 18px; padding: 16px 20px; border: 1px solid #b5c8ae; border-left: 4px solid #3c6749; border-radius: 12px; background: #f2f6ea; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
+.guest-report-carryover strong { display: block; font-size: 16px; color: #264532; margin-bottom: 4px; }
+.guest-report-carryover p { font-size: 14px; line-height: 1.65; color: #4c6248; max-width: 58ch; }
+.guest-report-carryover-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.guest-report-carryover-actions .carryover-confirm { min-height: 44px; padding: 10px 18px; border-radius: 8px; background: #315f43; color: #fffdf2; border: 1px solid #315f43; font-size: 14px; font-weight: 600; cursor: pointer; }
+.guest-report-carryover-actions .carryover-dismiss { min-height: 44px; padding: 10px 14px; border-radius: 8px; background: #fffdf4; color: #546650; border: 1px solid #c2ceb7; font-size: 14px; cursor: pointer; }
 .survey-context { margin-bottom: 14px; padding: 14px 16px; border: 1px solid #afc4ab; border-radius: 12px; background: #edf3e5f5; font-size: 15px; line-height: 1.7; }
 .survey-instructions { margin-top: 14px; padding: 12px 16px; display: flex; gap: 12px; align-items: flex-start; background: #f9f6e9f5; border-radius: 12px; }
 .survey-instructions.is-collapsed { padding-block: 0; background: transparent; }

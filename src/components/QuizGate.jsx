@@ -2,12 +2,14 @@
 import { useState } from 'react';
 import { QUESTIONS } from '../lib/surveySchema.js';
 import { readSurveyDraft } from '../lib/surveyDraft.js';
+import { useAccount } from '../lib/accounts.jsx';
 import NavButton from './NavButton.jsx';
 import './survey-guidance.css';
 
 export default function QuizGate({ onStart, onBack, backLabel = '校园地图' }) {
   const [showHelp, setShowHelp] = useState(true);
-  const [draft] = useState(() => readSurveyDraft());
+  const account = useAccount();
+  const draft = readSurveyDraft(undefined, account?.user?.id || '');
   const hasDraft = Boolean(draft && Object.keys(draft.answers).length);
   const qn = QUESTIONS.length;
 
