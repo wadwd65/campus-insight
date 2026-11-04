@@ -153,16 +153,7 @@ export function advanceWalk(player,world,keys,seconds){
 // Ground-only canStand remains available to the car and safe spawn searches.
 function advanceSurfaceWalk(player,world,keys,seconds){
   const dt=clamp(Number.isFinite(seconds)?seconds:0,0,.1),intent=walkIntent(keys),len=Math.hypot(intent.forward,intent.right),speed=(intent.fast?WALK.fastSpeed:WALK.speed)/(len||1);
-  /* 10-31 手感：不再"瞬移式"直接位移，改成目标速度 + 指数逼近。
-     地面 14/s（约 70ms 达到 63%）、空中 3/s（保留惯性），松手时地面 16/s 快速停住。
-     这样起步和刹车都有重量，但延迟仍在 1 帧级，不会"拖"。 */
-  const tvx=(Math.sin(player.yaw)*intent.forward+Math.cos(player.yaw)*intent.right)*speed;
-  const tvz=(-Math.cos(player.yaw)*intent.forward+Math.sin(player.yaw)*intent.right)*speed;
-  const hasInput=len>.01, k=hasInput?(player.airborne?3:14):(player.airborne?1.2:16);
-  const a=1-Math.exp(-dt*k);
-  player.vx=(player.vx??0)+(tvx-(player.vx??0))*a;
-  player.vz=(player.vz??0)+(tvz-(player.vz??0))*a;
-  const dx=player.vx*dt,dz=player.vz*dt;
+  const dx=(Math.sin(player.yaw)*intent.forward+Math.cos(player.yaw)*intent.right)*speed*dt,dz=(-Math.cos(player.yaw)*intent.forward+Math.sin(player.yaw)*intent.right)*speed*dt;
   const steps=Math.max(1,Math.ceil(dt/.012),Math.ceil(Math.hypot(dx,dz)/.16)),step=dt/steps,beforeX=player.x,beforeZ=player.z;
   let feet=player.y-WALK.eyeHeight;
   for(let i=0;i<steps;i++){

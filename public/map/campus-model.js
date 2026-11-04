@@ -1,18 +1,13 @@
 export const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 export function shouldUse3D({width,coarse=false}) {
-  /* 10-29：触屏设备原来要求宽度>1024 才开 3D；带触摸屏的笔记本 + 内置预览(约 1000px) 会被判成移动端，.explorer 被整个隐藏，页面只剩顶栏和空白。现在只要宽度>760 就启用。 */
-  return width>560;
+  return width>760 && (!coarse || width>1024);
 }
 export const QUALITY = {
   low: { label:'省电', dpr:1, moveDpr:.85, pixels:1500000, movingPixels:1050000, shadows:false, shadowSize:0 },
-  balanced: { label:'标准', dpr:1.6, moveDpr:1.0, pixels:4200000, movingPixels:1700000, shadows:false, shadowSize:0 },
+  balanced: { label:'标准', dpr:1.6, moveDpr:1, pixels:4200000, movingPixels:1700000, shadows:false, shadowSize:0 },
   high: { label:'清晰', dpr:2, moveDpr:1.2, pixels:6000000, movingPixels:2400000, shadows:false, shadowSize:0 },
 };
 export function renderPlan({width,height,quality='balanced',moving=false,maxSide=4096}) {
-  /* 10-29 内嵌预览（iframe）按低配走，避免把预览进程顶崩 */
-  /* 10-29 分级：内嵌预览(iframe)用省电档避免崩；独立浏览器用清晰档 */
-  if (typeof window !== 'undefined' && window.self !== window.top) quality = 'low';
-  else if (!quality || quality === 'balanced') quality = 'high';
   width=clamp(Number.isFinite(width)?Math.round(width):1,1,32768);
   height=clamp(Number.isFinite(height)?Math.round(height):1,1,32768);
   maxSide=clamp(Number.isFinite(maxSide)?maxSide:4096,1,4096);

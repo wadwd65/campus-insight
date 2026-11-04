@@ -93,127 +93,37 @@ export function createCampusCar(T,car){
 }
 
 export function createCampusInterior(T,kind){
-  /* ===== 10-28 室内改造 =====
-     配色：只保留四类材质 —— 暖白墙 / 橡木 / 亚麻灰绿 / 深墨绿金属件。
-           原来的 0xc9ba9b 地板、0xece9db 墙、0x718774 椅子、0xd5ac78 桌子各说各话，
-           现在全部收进同一套色板，家具骨架统一橡木、坐垫统一亚麻、腿统一墨绿金属。
-     布局：入口玄关(南) → 中央活动区(地毯) → 靠窗安静带(东/西) → 主墙功能带(北)。
-           原来的家具是均匀撒在房间里，没有分区；现在中央留空、功能靠墙，动线成"回"字。
-     灯光：半球环境 + 一盏主光 + 两盏窗侧暖补光，天花板做三条灯槽（发光条+深色框）。
-     细节：踢脚线、门套、窗台、绿植、地毯压边。 */
-  const C={oak:0xb98f60,oakD:0x8f6b45,wall:0xf1eee4,ceil:0xf8f5ee,trim:0x49534c,
-           linen:0xa9b49e,linenL:0xc6cdb9,metal:0x3e4643,glass:0xd7e6e2,plant:0x4f7a55,
-           rug:0x93a08b,stone:0xd6d1c2};
-  const scene=new T.Scene();scene.background=new T.Color(0xd9e6e2);
-  scene.add(new T.HemisphereLight(0xfff6e2,0xa3aa9e,1.0));
-  /* 天花原来是暗橄榄色 —— 半球光的地面色压在上面，整个顶棚发黑。
-     加一盏极弱的环境光把它托起来，只提天花不改地面。 */
-  scene.add(new T.AmbientLight(0xffffff,.28));
-  const key=new T.DirectionalLight(0xfff0d2,.5);key.position.set(-3,7,4);scene.add(key);
-  for(const sx of [-1,1]){const w=new T.PointLight(0xffd9a6,.45,15,2);w.position.set(sx*5.4,2.7,0);scene.add(w);}
-  const root=new T.Group();root.name='campus-interior-'+kind;scene.add(root);
-  const {box,finish}=boxBuilder(T,root);
-  const H=4.1;
-
-  /* 地面：橡木长条（每 1 米一条，深浅交替），中央地毯 */
-  for(let i=0;i<18;i++)box(i%2?C.oak:0xa8834f,0,-.15,-8.5+i,14,.3,.98);
-  box(0x7f8c7c,0,.015,1.2,6.6,.03,5.4);
-  for(const dz of [-2.7,2.7])box(C.trim,0,.03,1.2+dz,6.7,.015,.07);
-
-  /* 天花 + 三条灯槽（深色框 + 暖白发光条） */
-  box(C.ceil,0,H,0,14,.2,18);
-  /* 10-28：灯槽 + 灯泡发光。
-     灯管本身只是一个亮色块，看起来"亮"但不"发光"；真正让人觉得是灯的是
-     ① 一枚加法混合的光晕 Sprite（拉长成灯管的形状）② 一盏点光把天花、墙、地面照亮。 */
-  const glowTex=(()=>{const cv=document.createElement('canvas');cv.width=cv.height=128;const g=cv.getContext('2d'),grd=g.createRadialGradient(64,64,0,64,64,64);grd.addColorStop(0,'rgba(255,242,210,.98)');grd.addColorStop(.32,'rgba(255,214,150,.42)');grd.addColorStop(1,'rgba(255,198,116,0)');g.fillStyle=grd;g.fillRect(0,0,128,128);const t=new T.CanvasTexture(cv);t.minFilter=T.LinearFilter;return t;})();
-  for(const z of [-6.2,-1.2,3.8]){
-    box(C.trim,0,H-.13,z,4.4,.1,.56);
-    box(0xfff6de,0,H-.19,z,3.6,.06,.34);
-    const halo=new T.Sprite(new T.SpriteMaterial({map:glowTex,color:0xffe6bb,transparent:true,opacity:.9,blending:T.AdditiveBlending,depthWrite:false}));
-    halo.position.set(0,H-.3,z);halo.scale.set(4.8,1.6,1);root.add(halo);
-    const lamp=new T.PointLight(0xffd9a0,.9,15,2);lamp.position.set(0,H-.85,z);root.add(lamp);
-  }
-
-  /* 墙体：北墙/东西墙整面，南墙留门洞 */
-  box(C.wall,0,H/2,-9,14,H,.2);
-  box(C.wall,-7,H/2,0,.2,H,18);box(C.wall,7,H/2,0,.2,H,18);
-  for(const x of [-4.4,4.4])box(C.wall,x,H/2,9,5.2,H,.2);
-  box(C.wall,0,3.66,9,3.6,.68,.2);
-  /* 踢脚线：贴墙一圈，深墨绿，给墙面收边 */
-  box(C.trim,0,.07,-8.86,13.6,.14,.1);
-  for(const sx of [-1,1])box(C.trim,sx*6.86,.07,0,.1,.14,17.6);
-
-  /* 窗：不能真的在墙上开洞，所以用"亮面 + 细框"表现。
-     关键是亮面要比墙亮、框要细，否则整扇窗会读成一块深色板。 */
-  for(const sx of [-1,1])for(const z of [-6,0,6]){
-    const x=sx*6.87;
-    box(0xe6f0ea,x,2.35,z,.05,1.72,2.7);
-    box(C.trim,x,3.23,z,.08,.07,2.86);
-    box(C.trim,x,1.47,z,.08,.07,2.86);
-    for(const dz of [-1.39,1.39])box(C.trim,x,2.35,z+dz,.08,1.83,.07);
-    box(C.trim,x,2.35,z,.06,1.78,.05);
-    box(C.stone,x,1.36,z,.3,.08,3.0);
-  }
-
-  /* 门：门套 + 双开玻璃门 + 拉手 */
-  box(C.trim,0,2.1,8.9,3.4,.16,.14);
-  for(const sx of [-1,1]){box(C.trim,sx*.86,2.05,8.88,.1,4.0,.08);box(C.glass,sx*1.72,2.05,8.86,.06,3.7,1.58);}
-  for(const sx of [-1,1])box(C.metal,sx*.2,1.9,8.74,.06,.5,.06);
-
-  /* --- 统一家具族：骨架橡木、坐垫亚麻、腿墨绿金属 --- */
-  function table(x,z,w=2.6,d=1.2){
-    box(C.oak,x,.96,z,w,.1,d,{solid:true});
-    for(const dx of [-w/2+.16,w/2-.16])for(const dz of [-d/2+.14,d/2-.14])box(C.metal,x+dx,.47,z+dz,.07,.94,.07);
-  }
-  function chair(x,z,flip=1){
-    box(C.linen,x,.52,z,.62,.1,.62,{solid:true});
-    box(C.linen,x,.86,z+flip*.27,.62,.52,.08);
-    for(const dx of [-.24,.24])for(const dz of [-.24,.24])box(C.metal,x+dx,.26,z+dz,.05,.52,.05);
-  }
-  function shelf(x,z,w=2.4,hgt=2.5){
-    box(C.oakD,x,hgt/2,z,w,hgt,.42,{solid:true});
-    for(const y of [.55,1.1,1.65,2.2]){box(C.oak,x,y,z,w+.1,.08,.5);for(let i=0;i<7;i++)box([C.linen,C.oak,C.trim,C.plant][i%4],x-w/2+.28+i*.3,y+.26,z+.02,.2,.34,.28);}
-  }
-  function sofa(x,z,w=2.2,flip=1){
-    box(C.linen,x,.46,z,w,.22,1.0,{solid:true});
-    box(C.linen,x,.84,z-flip*.42,w,.62,.22);
-    for(const dx of [-w/2+.12,w/2-.12])box(C.linen,x+dx,.62,z,.2,.4,1.0);
-  }
-  function plant(x,z,s=1){
-    box(C.stone,x,.28*s,z,.5*s,.56*s,.5*s,{solid:true});
-    box(0x6b5b45,x,.86*s,z,.16*s,.9*s,.16*s);
-    box(C.plant,x,1.28*s,z,.62*s,.55*s,.62*s);box(C.plant,x,1.62*s,z,.42*s,.34*s,.42*s);
-  }
-
+  const scene=new T.Scene();scene.background=new T.Color(0xd8e7e3);
+  scene.add(new T.HemisphereLight(0xfff7dc,0x879e89,1.1));const sun=new T.DirectionalLight(0xffe5ad,.65);sun.position.set(-4,8,3);scene.add(sun);
+  const root=new T.Group();root.name='simple-campus-interior-'+kind;scene.add(root);
+  const {box,finish}=boxBuilder(T,root),floor=0;
+  box(0xc9ba9b,0,-.15,0,14,.3,18);
+  box(0xece9db,0,4.1,0,14,.2,18);
+  box(0xece9db,-7,2,0,.2,4,18);box(0xece9db,7,2,0,.2,4,18);box(0xece9db,0,2,-9,14,4,.2);
+  // A visible, split doorway at the south end. The exit can always be used by button.
+  for(const x of [-4.4,4.4])box(0xece9db,x,2,9,5.2,4,.2);
+  box(0xece9db,0,3.65,9,3.6,.7,.2);box(0x5c8874,0,3.12,8.86,2.4,.32,.08);
+  for(const x of [-6.86,6.86])for(const z of [-5,0,5]){box(0x9fc2c4,x,2.2,z,.04,1.6,2.7);box(0xeee9cf,x,2.2,z,.09,.06,2.8);box(0xeee9cf,x,2.2,z,.09,1.65,.06);}
+  for(const z of [-6,-1,4])box(0xfff2d4,0,3.85,z,3.2,.08,.5);
+  function seat(x,z){box(0x718774,x,.52,z,.8,.13,.8,{solid:true});box(0x718774,x,.93,z+.35,.8,.8,.1);for(const dx of [-.3,.3])box(0x596956,x+dx,.25,z,.08,.5,.55);}
+  function table(x,z,w=2.8){box(0xd5ac78,x,.98,z,w,.15,1.25,{solid:true});for(const dx of [-w/2+.2,w/2-.2])box(0x6d7767,x+dx,.45,z,.12,.9,1);}
   if(kind==='library'){
-    /* 北墙书架带 + 中央长桌 + 两侧靠窗阅读位 */
-    for(const x of [-4.6,-1.6,1.6,4.6])shelf(x,-8.3,2.5,2.4);
-    for(const z of [-3.4,1.4]){table(0,z,3.6,1.25);chair(-1.1,z+1.05);chair(1.1,z+1.05);chair(-1.1,z-1.05,-1);chair(1.1,z-1.05,-1);}
-    for(const sx of [-1,1])for(const z of [-5.2,-1.4,2.6])chair(sx*5.5,z);
-    box(C.oakD,4.9,.55,-6.6,2.2,1.1,.8,{solid:true});plant(-5.6,-7.4);plant(5.6,6.6,.9);
-  }else if(kind==='classroom'){
-    /* 北墙讲台 + 中央 3×2 课桌阵 + 后墙置物 */
-    box(C.trim,0,1.9,-8.82,8.2,1.5,.08);box(C.oakD,0,1.06,-6.9,3.2,.12,1.1,{solid:true});
-    for(const x of [-3.2,0,3.2])for(const z of [-4.2,-.4,3.4]){
-      table(x,z,1.9,1.0);chair(x,z+1.0);chair(x,z-1.0,-1);
+    for(const x of [-5,5])for(const z of [-5,-.5]){
+      box(0x9a7952,x,1.3,z,1.25,2.6,3.3,{solid:true});
+      for(const y of [.5,1.15,1.8,2.45]){box(0xd1b68b,x,y,z,1.4,.1,3.5);for(let i=0;i<8;i++)box([0x637f77,0xab7e5d,0xb4a56a][i%3],x,y+.25,z-1.4+i*.39,1.32,.4,.22);}
     }
-    for(const x of [-4.2,4.2])shelf(x,-8.2,2.0,2.2);
-    plant(-5.8,7.2);plant(5.8,7.2,.9);
+    for(const z of [-4,1]){table(0,z,3.4);seat(-1,z+1.1);seat(1,z+1.1);box(0xeee6c9,0,1.1,z,1.1,.08,.65);}
+  }else if(kind==='classroom'){
+    box(0x3c6254,0,2,-8.84,7.6,1.65,.06);box(0xc3b18c,0,1.05,-6.4,3,.15,1.1,{solid:true});
+    for(const x of [-3,1.5])for(const z of [-3.5,0,3.5]){table(x,z);seat(x-.65,z+1.15);seat(x+.65,z+1.15);}
   }else{
-    /* 食堂休息区：两组沙发相对 + 中间茶几 + 靠墙边柜 + 角落绿植。
-       原来那组沙发摆在入口正前方，一进门就被一块浅色大板挡住视线。 */
-    sofa(-3.0,-2.6,3.0,1);sofa(3.0,-2.6,3.0,1);
-    table(0,-.2,2.0,1.0);
-    for(const z of [1.6,4.4]){chair(-2.4,z);chair(2.4,z);}
-    box(C.oakD,0,.6,-8.4,3.4,1.2,.7,{solid:true});
-    box(C.oak,0,1.24,-8.4,3.5,.08,.8);
-    plant(-5.8,-7.4);plant(5.8,-7.4,.9);plant(-5.8,7.2,.85);
+    box(0x7f9c80,0,.8,-6.8,10,1.6,2,{solid:true});box(0xe6d5b0,0,1.65,-6.8,10.3,.12,2.2);box(0x587564,0,2.6,-8.84,6,1.2,.06);
+    for(const x of [-3.2,3.2])for(const z of [-2,2.5]){table(x,z,2.6);seat(x-.7,z+1.1);seat(x+.7,z+1.1);}
   }
-
-  const solids=finish({[C.glass]:{transparent:true,opacity:.34,depthWrite:false}});
+  const solids=finish();
   const world={
     canStand(x,z){return Number.isFinite(x)&&Number.isFinite(z)&&Math.abs(x)<6.4&&Math.abs(z)<8.4&&!solids.some(o=>Math.hypot(Math.max(0,Math.abs(x-o.x)-o.w/2),Math.max(0,Math.abs(z-o.z)-o.d/2))<WALK.radius);},
-    floorAt:()=>0,ceilingAt:()=>H-.3,
+    floorAt:()=>floor,ceilingAt:()=>3.8,
   };
-  return {scene,world,spawn:{x:0,z:6.8,y:WALK.eyeHeight,yaw:0,pitch:0,settling:false},nearExit:p=>p.z>6.4&&Math.abs(p.x)<2,dispose(){disposeTree(root);scene.clear();}};
+  return {scene,world,spawn:{x:0,z:6.6,y:WALK.eyeHeight,yaw:0,pitch:0,settling:false},nearExit:p=>p.z>6.2&&Math.abs(p.x)<2,dispose(){disposeTree(root);scene.clear();}};
 }

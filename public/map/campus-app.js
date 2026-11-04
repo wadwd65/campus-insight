@@ -1,26 +1,22 @@
 import './three-r149.min.js';
-import { createFishing } from './campus-fishing.js';
-import { TEX } from './tex/tex-data.js';
 import {buildCampusScene,TYPE_LABELS} from './campus-scene.js';
 import {QUALITY,initialQuality,constrainView,fitDistance,detailView,renderPlan,clipPlanes,clamp} from './campus-model.js';
 import {LIGHTING,SUN,createStaticShadowLayer} from './campus-lighting.js';
 import {createWaterClock,waterMotionAllowed} from './campus-water.js';
 import {drawGrassDetail,drawFoliageSprite} from './campus-detail.js';
-import {teachingTexture,dormTexture,roadTexture,groundTexture,trackTexture,courtTexture,basketballTexture,badmintonTexture,libraryStoneTexture,libraryGlassTexture,waterTexture,timberTexture,librarySignTexture,windowBandTexture,roofMetalTexture,pavingTexture} from './campus-textures.js';
+import {teachingTexture,dormTexture,roadTexture,groundTexture,trackTexture,courtTexture,basketballTexture,badmintonTexture,libraryStoneTexture,libraryGlassTexture,waterTexture,timberTexture,librarySignTexture,roofMetalTexture,pavingTexture} from './campus-textures.js';
 import {createAtmosphere} from './campus-atmosphere.js';
 import {WALK,createWalkWorld,createWalkControls,hasWalkInput,advanceWalk,turnWalk,jumpWalk,findWalkTarget} from './campus-walk.js';
 import {createFrameMeter} from './campus-performance.js';
-import {createPostChain} from './campus-post.js';
 import {ENTERABLE,vehicleSpawn,vehicleExit,advanceVehicle,canWalkPastVehicle,createCampusCar,createCampusInterior,vehicleCameraPose,roofPracticeStart} from './campus-play.js';
 import {createCampusCharacter} from './campus-character.js';
-let fishing=null,fishingAct=false,fishLastT=0;
 
 export async function startCampus() {
 const T=globalThis.THREE,$=id=>document.getElementById(id),host=$('scene'),loading=$('loading');
 T.ColorManagement.legacyMode=false;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)'),coarse=matchMedia('(pointer: coarse)');
 const state={disposed:false,contextLost:false,frame:0,frames:0,auto:false,flight:null,lastTime:0,selected:null,labels:true,slowFrames:0,dragging:false,interactionUntil:0,settleTimer:0,raster:null,waterEnabled:true,waterVisible:false,waterTick:false,waterFrames:0,waterPhase:0,lastWaterTime:0,waterSlowFrames:0,waterBudgetPaused:false,benchmark:null,moveScale:1,fastWindows:0};
-let renderer,campus,scene,camera,sun,fillLight,ambientLight,post=null,wantPost=null,staticShadow,waterClock,atmosphere,resizeObserver,view,defaultView,qualityName,layout,selectionOutline,walkWorld,walkControls,walking=null,walkReturn=null,landmarks=[];
+let renderer,campus,scene,camera,sun,ambientLight,staticShadow,waterClock,atmosphere,resizeObserver,view,defaultView,qualityName,layout,selectionOutline,walkWorld,walkControls,walking=null,walkReturn=null,landmarks=[];
 const frameMeter=createFrameMeter();let walkFocus=null,walkCardPlace=null,lastFocusCheck=-Infinity;
 let car=null,carModel=null,driving=false,interior=null,pedestrianWorld=null;
 let character=null,lastCharacterPose=null,walkView='first',carView='first',driveLook={yaw:0,pitch:0};
@@ -232,46 +228,7 @@ function render(time){
   const waterMoving=canMoveWater();
   if(waterMoving){if(state.lastWaterTime)state.waterPhase+=Math.min(.4,Math.max(0,(time-state.lastWaterTime)/1000));state.lastWaterTime=time;campus.materials.water.userData.rippleTime.value=state.waterPhase;}else state.lastWaterTime=0;
   const waterTick=state.waterTick;state.waterTick=false;
-  const sceneToDraw=interior?.room.scene||scene;if(wantPost===null)wantPost=new URLSearchParams(location.search).get("post")==="1";if(wantPost&&!post){try{post=createPostChain(T,renderer);post.userData={w:0,h:0};}catch(err){wantPost=false;post=null;console.warn("post init failed",err);}}if(post){const dw=renderer.domElement.width,dh=renderer.domElement.height;if(post.userData.w!==dw||post.userData.h!==dh){post.setSize(dw,dh);post.userData.w=dw;post.userData.h=dh;}}/* 10-29 __ANISO_DONE：把所有贴图的各向异性过滤拉到硬件上限。
-     斜看地面/墙面时，默认 1x 会把远处纹理糊成一片色块 —— 这是"不清晰"的主因之一。 */
-  if(!renderer.__aniso){renderer.__aniso=renderer.capabilities.getMaxAnisotropy?renderer.capabilities.getMaxAnisotropy():1;
-    try{for(const k in textures){const t=textures[k];if(t&&t.isTexture)t.anisotropy=Math.min(16,renderer.__aniso);}}catch(e){}}
-  /* 10-31 钓鱼：漫游时才激活；每帧推进状态机 */
-  if(fishing){
-    const nowF=performance.now();const dtF=fishLastT?Math.min(.05,(nowF-fishLastT)/1000):0;fishLastT=nowF;
-    if(fishingAct!==!!walking){fishingAct=!!walking;fishing.setActive(fishingAct);}
-    if(fishingAct)fishing.update(dtF);
-  }
-  /* 10-29 第一人称看不到影子：阴影相机一直罩着整个校区，
-     2048 贴图摊到 600 米上 ≈ 0.3 米/texel，人视高度就是一团糊。
-     漫游时把阴影相机收缩到玩家周围 70 米，texel 密度提高 8 倍。 */
-  if(sun&&sun.shadow&&sun.userData.__span){
-    const walkingNow=!!walking;
-    const sp=walkingNow?70:sun.userData.__span;
-    if(sun.userData.__sp!==sp){
-      sun.userData.__sp=sp;
-      const c=sun.shadow.camera;c.left=-sp;c.right=sp;c.top=sp;c.bottom=-sp;c.updateProjectionMatrix();
-    }
-    const cx=walkingNow?camera.position.x:sun.userData.__ctr.x;
-    const cz=walkingNow?camera.position.z:sun.userData.__ctr.z;
-    sun.target.position.set(cx,0,cz);sun.target.updateMatrixWorld();
-    if(sun.userData.__dir){/* 漫游时把太阳抬高：低角度会把影子拉成长条、大半落在视野外 */
-      const d=sun.userData.__dir;const st=new T.Vector3(d.x*0.45,1.0,d.z*0.45).normalize();
-      sun.position.copy(new T.Vector3(cx,0,cz)).addScaledVector(st,260);}sun.updateMatrixWorld();
-  }
-
-  /* __FPS_WD 10-31 帧率看门狗：不依赖任何设备侦探，直接看实测帧时间。
-     连续 90 帧均值 > 42ms 就降一档（high→balanced→low），只降不升，避免来回抖。 */
-  {window.__wd=window.__wd||{sum:0,n:0,last:0,done:false};
-   const wd=window.__wd;const tNow=performance.now();
-   if(wd.last){wd.sum+=tNow-wd.last;wd.n++;}
-   wd.last=tNow;
-   if(!wd.done&&!PIN_Q&&wd.n>=WD_N){
-     const avg=wd.sum/wd.n;wd.sum=0;wd.n=0;
-     if(avg>WD_T&&qualityName!=='low'){setQuality(qualityName==='high'?'balanced':'low');}
-     else if(avg<=42){wd.done=true;}
-   }}
-  const before=performance.now();post?post.render(sceneToDraw,camera):renderer.render(sceneToDraw,camera);const elapsed=performance.now()-before;
+  const before=performance.now();renderer.render(interior?.room.scene||scene,camera);const elapsed=performance.now()-before;
   state.frames++;if(waterTick){state.waterFrames++;state.waterSlowFrames=elapsed>24?state.waterSlowFrames+1:0;if(state.waterSlowFrames>=3){state.waterBudgetPaused=true;updateWaterControl();}}updateLabels();
   waterClock?.sync();
   const foreground=document.hasFocus()&&!document.hidden,continuous=!!(state.auto||state.flight||state.benchmark||walkNeedsFrame()||(walking&&time<state.interactionUntil)),stats=frameMeter.frame(time,continuous&&foreground);
@@ -318,32 +275,19 @@ function setPreset(name){
   const place=campus.targets.find(p=>name==='teaching'?p.id==='teach-3':name==='sport'?p.id==='gym':p.type===name);
   if(place){const preset=layout.views[name],{px,py,...cameraView}=preset;select(place);flyTo({...defaultView,x:(px-layout.transform.ox)*layout.transform.k,z:(py-layout.transform.oz)*layout.transform.k,...cameraView});}
 }
-/* __DEV_LOW 10-31 低端设备自动降档：内存/核心数/网络类型任一命中就走省电档。
-   桌面默认仍是"标准/清晰"，不影响正常体验。?q=high 可强制锁定档位（调试用）。 */
-const PIN_Q=new URLSearchParams(location.search).get('q');
-const _USP=new URLSearchParams(location.search);const WD_N=Number(_USP.get('wdn'))||90;const WD_T=Number(_USP.get('wdt'))||42;
-const DEV_LOW=(()=>{try{
-  const m=navigator.deviceMemory||8, c=navigator.hardwareConcurrency||8;
-  const et=(navigator.connection&&navigator.connection.effectiveType)||'4g';
-  return m<=4||c<=4||/(^|-)2g|(^|-)3g/.test(et);
-}catch(e){return false;}})();
 function setQuality(name){
   qualityName=QUALITY[name]?name:'low';$('quality').value=qualityName;state.moveScale=1;state.fastWindows=0;frameMeter.reset();
-  renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;sun.castShadow=true;campus.setDetail(qualityName);updateWaterControl();waterClock?.sync();requestRender();
+  renderer.shadowMap.enabled=false;sun.castShadow=false;campus.setDetail(qualityName);updateWaterControl();waterClock?.sync();requestRender();
 }
 function setLighting(name){
   const mood=LIGHTING[name]||LIGHTING.daylight;$('lighting').value=LIGHTING[name]?name:'daylight';
   ambientLight.color.setHex(mood.sky);ambientLight.groundColor.setHex(mood.bounce);ambientLight.intensity=mood.ambient;
   sun.color.setHex(mood.sun);sun.intensity=mood.strength;renderer.toneMappingExposure=mood.exposure;
-  if(fillLight){fillLight.color.setHex(mood.fillColor||0xa9c6e2);fillLight.intensity=mood.fill==null?.2:mood.fill;}
   campus.materials.ground.color.setHex(mood.ground);campus.materials.roof.color.setHex(mood.roof);campus.materials.libraryStone.color.setHex(mood.stone);
   const sky=document.querySelector('.viewport');sky.style.setProperty('--sky-top',mood.skyTop);sky.style.setProperty('--sky-bottom',mood.skyBottom);sky.style.setProperty('--sun-glow',mood.glow);
   atmosphere?.setLighting(name);staticShadow.material.opacity=mood.shadowOpacity;$('light-name').textContent=mood.label;requestRender();
 }
-function updateSun(){const angle=Number($('sun').value)*Math.PI/180;sun.position.set(Math.cos(angle)*SUN.radius,SUN.height,Math.sin(angle)*SUN.radius);sun.updateMatrixWorld();
-  /* 补光放在太阳的**对侧偏上**，形成"主光-补光-天光"三层，避免暗面糊成一片。 */
-  fillLight.position.set(-Math.cos(angle)*SUN.radius*.75,SUN.height*.55,-Math.sin(angle)*SUN.radius*.75);fillLight.updateMatrixWorld();
-  atmosphere?.setSun(sun.position);staticShadow.bake(angle);requestRender();}
+function updateSun(){const angle=Number($('sun').value)*Math.PI/180;sun.position.set(Math.cos(angle)*SUN.radius,SUN.height,Math.sin(angle)*SUN.radius);sun.updateMatrixWorld();atmosphere?.setSun(sun.position);staticShadow.bake(angle);requestRender();}
 function onResize(preserve=false){
   if(!camera||state.disposed)return;
   const aspect=host.clientWidth/Math.max(1,host.clientHeight),changed=Math.abs(camera.aspect-aspect)>.00001;camera.aspect=aspect;camera.updateProjectionMatrix();
@@ -364,58 +308,6 @@ function interactions(){
   listen($('view-toggle'),'click',togglePersonView);listen($('roof-start'),'click',startRoofPractice);
   listen($('walk-enter'),'click',()=>enterInterior(walkCardPlace));listen($('place-enter'),'click',()=>enterInterior(state.selected));
   document.querySelectorAll('[data-enter]').forEach(button=>listen(button,'click',()=>enterInterior(campus.targets.find(p=>p.key===button.dataset.enter))));
-  /* 10-29：毛玻璃的性能保护 —— 拖拽/滚轮/方向键期间给 body 挂 is-moving，
-     此时 CSS 关掉 backdrop-filter，只留半透明底色；停手 280ms 后恢复模糊。 */
-  {
-    let t=0;
-    const busy=()=>{document.body.classList.add('is-moving');clearTimeout(t);t=setTimeout(()=>document.body.classList.remove('is-moving'),280);};
-    addEventListener('pointerdown',busy,{passive:true});
-    addEventListener('pointermove',e=>{if(e.buttons)busy();},{passive:true});
-    addEventListener('wheel',busy,{passive:true});
-    addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-','='].includes(e.key))busy();});
-  }
-  /* 10-29：可见的版本角标 —— 用来确认你打开的是不是最新构建。 */
-  {const el=document.createElement("div");el.id="build-stamp";el.textContent="BUILD 2026-10-31 22:06";el.style.cssText="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.5 ui-monospace,Menlo,monospace;color:#2f3d36;background:rgba(255,255,255,.86);border:1px solid rgba(0,0,0,.10);border-radius:7px;padding:3px 9px;pointer-events:none;letter-spacing:.02em";document.body.appendChild(el);}
-  /* 10-29：内嵌预览（iframe）里第一人称会白屏 —— 指针锁定/焦点在 iframe 内被限制。
-     检测到被内嵌时，顶栏右侧给一个"在新窗口打开"的入口，一键跳到独立标签页。 */
-  if(window.self!==window.top){
-    try{
-      const bar=document.createElement("button");
-      bar.textContent="在新窗口打开（第一人称需要）";
-      bar.style.cssText="position:fixed;right:14px;top:14px;z-index:99999;padding:7px 12px;border-radius:8px;border:1px solid #c9d3c6;background:#fbfdf8;color:#2f3d36;font:13px/1.2 system-ui,sans-serif;cursor:pointer;box-shadow:0 4px 14px rgba(20,40,30,.12)";
-      bar.onclick=()=>window.open(location.href,"_blank","noopener");
-      document.body.appendChild(bar);
-    }catch(e){}
-  }
-  /* 10-29：?walk=<id> 直接进第一人称，用于验收人视高度下的观感。 */
-  {const wq=new URLSearchParams(location.search).get("walk");if(wq){const p=campus.targets.find(t=>t.id===wq||t.key===wq);if(p)setTimeout(()=>{enterWalk(p);
-    if(new URLSearchParams(location.search).get("fishdemo")==="1")setTimeout(()=>fishing&&fishing.spawnPreview&&fishing.spawnPreview(),800);
-    /* ?fish=1：直接站到湖岸并面朝湖心，省得自己走过去 */
-    if(new URLSearchParams(location.search).get("fish")==="1"&&data&&data.lake&&walking){
-      const k=data.transform.k,ox=data.transform.ox,oz=data.transform.oz;
-      const lw=data.lake.map(([px,py])=>[(px-ox)*k,(py-oz)*k]);
-      const cx=lw.reduce((a,q)=>a+q[0],0)/lw.length, cz=lw.reduce((a,q)=>a+q[1],0)/lw.length;
-      let best=null,bd=1e9;
-      for(const [px,pz] of lw){const d=Math.hypot(px-cx,pz-cz);if(d<bd){bd=d;best=[px,pz];}}
-      if(best){
-        const dx=best[0]-cx,dz=best[1]-cz,len=Math.hypot(dx,dz)||1;
-        walking.x=best[0]+dx/len*5; walking.z=best[1]+dz/len*5;
-        walking.yaw=Math.atan2(-(cx-walking.x),-(cz-walking.z));
-        requestRender();
-      }
-    }
-  },500);}}
-  /* 10-28：窗方案对照用的近景入口 —— ?close=teach-1 直接把机位压到该楼上，
-     方便同一机位比对四种窗做法。只是取景，不改场景。 */
-  {
-    const q=new URLSearchParams(location.search).get('close');
-    if(q){const p=campus.targets.find(t=>t.id===q||t.key===q);if(p){const dq=Number(new URLSearchParams(location.search).get("dist"));const dd=Number.isFinite(dq)&&dq>0?dq:Math.max(90,Math.min(150,p.depth*2.4||110));setTimeout(()=>{view.x=p.x;view.z=p.z;view.distance=dd;view.elevation=.35;requestRender();},700);}}
-  }
-  if(location.search.includes('room=')){
-    const want=(location.search.split('room=')[1]||'').split('&')[0];
-    const hit=Object.entries(ENTERABLE).find(([,v])=>v.kind===want);
-    if(hit)setTimeout(()=>enterInterior({key:hit[0]}),700);
-  }
   listen($('walk-home'),'click',()=>{if(!walking)return;if(interior)exitInterior();driving=false;if(car)car.speed=0;finishBenchmark(false);closeWalkCard({focus:false});lastFocusCheck=-Infinity;walkControls.clear();walkControls.releaseLock();const pose=walkWorld.spawn(campus.targets.find(p=>p.id==='lib'));if(pose)walking=pose;updateWalkHint();renderer.domElement.focus({preventScroll:true});requestRender();});
   function gestureValues(){const p=[...pointers.values()];return {x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2,d:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)};}
   function pan(dx,dy){const scale=view.distance/Math.max(1,host.clientHeight)*.65;view.x+=(-dx*Math.cos(view.azimuth)-dy*Math.sin(view.azimuth))*scale;view.z+=(dx*Math.sin(view.azimuth)-dy*Math.cos(view.azimuth))*scale;}
@@ -423,7 +315,7 @@ function interactions(){
   listen(canvas,'pointermove',e=>{
     if(!pointers.has(e.pointerId))return;const prev=pointers.get(e.pointerId),dx=e.clientX-prev.x,dy=e.clientY-prev.y;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)>5)down.moved=true;
-    if(pointers.size===2){const next=gestureValues();if(gesture){view.distance=clamp(view.distance*gesture.d/Math.max(1,next.d),95,1400);pan(next.x-gesture.x,next.y-gesture.y);}gesture=next;}
+    if(pointers.size===2){const next=gestureValues();if(gesture){view.distance*=gesture.d/Math.max(1,next.d);pan(next.x-gesture.x,next.y-gesture.y);}gesture=next;}
     else if(e.shiftKey||down?.button===2)pan(dx,dy);else{view.azimuth-=dx*.006;view.elevation+=dy*.004;}
     pulseInteraction();
   });
@@ -435,7 +327,7 @@ function interactions(){
   }
   for(const name of ['pointerup','pointercancel','lostpointercapture'])listen(canvas,name,release);
   listen(canvas,'contextmenu',e=>e.preventDefault());
-  listen(canvas,'wheel',e=>{e.preventDefault();if(walking)return;stopMotion();view.distance=clamp(view.distance*Math.exp(clamp(e.deltaY,-120,120)*.0015),95,1400);pulseInteraction();},{passive:false});
+  listen(canvas,'wheel',e=>{e.preventDefault();if(walking)return;stopMotion();view.distance*=Math.exp(clamp(e.deltaY,-120,120)*.0015);pulseInteraction();},{passive:false});
   listen(canvas,'dblclick',()=>{if(!walking)setPreset('overview');});
   listen(canvas,'keydown',e=>{if(walking)return;if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','Home','Escape'].includes(e.key))return;e.preventDefault();stopMotion();if(e.key==='Home'){setPreset('overview');return;}if(e.key==='Escape'){clearSelection();return;}if(e.key==='ArrowLeft')view.azimuth-=.12;if(e.key==='ArrowRight')view.azimuth+=.12;if(e.key==='ArrowUp')view.elevation+=.08;if(e.key==='ArrowDown')view.elevation-=.08;if(e.key==='+'||e.key==='=')view.distance*=.85;if(e.key==='-')view.distance*=1.18;pulseInteraction();});
   document.querySelectorAll('[data-preset]').forEach(button=>listen(button,'click',()=>setPreset(button.dataset.preset)));
@@ -443,7 +335,7 @@ function interactions(){
   listen($('close-place'),'click',clearSelection);listen($('focus-place'),'click',()=>state.selected&&select(state.selected,true));
   listen($('other-side'),'click',()=>{if(!state.selected)return;const p=state.selected,azimuth=state.flight?.to.azimuth??view.azimuth;activateDetail(p);flyTo({...detailView(p,view),azimuth:azimuth+Math.PI/2});$('announce').textContent=`正在查看${p.name}的另一侧。`;});
   listen($('roof-view'),'click',()=>{if(!state.selected)return;activateDetail(state.selected);flyTo(detailView(state.selected,view,{roof:true}));$('announce').textContent=`正在俯看${state.selected.name}的${$('roof-view').dataset.caption}。`;});
-  listen($('zoom-in'),'click',()=>{stopMotion();view.distance=clamp(view.distance*.8,95,1400);pulseInteraction();});listen($('zoom-out'),'click',()=>{stopMotion();view.distance*=1.25;pulseInteraction();});
+  listen($('zoom-in'),'click',()=>{stopMotion();view.distance*=.8;pulseInteraction();});listen($('zoom-out'),'click',()=>{stopMotion();view.distance*=1.25;pulseInteraction();});
   listen($('rotate-left'),'click',()=>{stopMotion();view.azimuth-=Math.PI/6;pulseInteraction();});listen($('reset'),'click',()=>setPreset('overview'));
   listen($('toggle-guide'),'click',()=>setGuideOpen($('toggle-guide').getAttribute('aria-expanded')!=='true'));
   listen($('quality'),'change',()=>setQuality($('quality').value));listen($('sun'),'change',updateSun);
@@ -472,7 +364,7 @@ try{
   $('place-picker').querySelectorAll('optgroup').forEach(group=>group.remove());
   const response=await fetch('./campus-data.json');if(!response.ok)throw new Error('校园布局暂时无法读取，请稍后重试。');const data=await response.json();
   layout=data;
-  try{renderer=new T.WebGLRenderer({antialias:new URLSearchParams(location.search).get("aa")!=="0",alpha:true,powerPreference:deviceMemory<=4||coarse.matches?'low-power':'high-performance'});}catch{throw new Error('此设备未能启用 WebGL。请使用支持硬件加速的浏览器，其他网站功能仍可正常使用。');}
+  try{renderer=new T.WebGLRenderer({antialias:!coarse.matches,alpha:true,powerPreference:deviceMemory<=4||coarse.matches?'low-power':'high-performance'});}catch{throw new Error('此设备未能启用 WebGL。请使用支持硬件加速的浏览器，其他网站功能仍可正常使用。');}
   renderer.setClearColor(0x000000,0);renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1;renderer.shadowMap.autoUpdate=false;renderer.shadowMap.enabled=false;
   const gl=renderer.getContext();$('runtime').dataset.depthBits=String(gl.getParameter(gl.DEPTH_BITS));
   renderer.domElement.tabIndex=0;renderer.domElement.setAttribute('aria-label','三维校园画布。方向键转动，加减号缩放，Home 恢复全景。也可使用地点选择框。');renderer.domElement.setAttribute('role','img');host.appendChild(renderer.domElement);
@@ -483,65 +375,16 @@ try{
   cleanups.push(()=>{outlineGeometry.dispose();outlineMaterial.dispose();});
   ambientLight=new T.HemisphereLight();scene.add(ambientLight);
   sun=new T.DirectionalLight();sun.castShadow=false;scene.add(sun);
-  /* 10-28：补光。主光只从一侧来，背光面会压成死灰；补一盏冷色平行光从反方向
-     低强度打过去（不投影），暗面才有层次 —— 这盏灯和室内那盏补光是同一套逻辑。 */
-  fillLight=new T.DirectionalLight(0xa9c6e2,.2);fillLight.castShadow=false;scene.add(fillLight);
   qualityName=initialQuality({coarse:coarse.matches,memory:navigator.deviceMemory||8,reduced:reduced.matches});
   const facadeScale=qualityName==='low'?1:2;
-  const textures={windowBand:texture(windowBandTexture,512,256,{anisotropy:8,scale:1}),foliage:texture(drawFoliageSprite,512,512,{anisotropy:8}),teaching:texture(teachingTexture,1024,512,{scale:facadeScale,anisotropy:8}),dorm:texture(dormTexture,1024,512,{scale:facadeScale,anisotropy:8}),ground:texture(groundTexture,1024,1024,{scale:facadeScale,anisotropy:8}),grassDetail:texture(drawGrassDetail,512,512,{anisotropy:8}),road:texture(roadTexture,128,1024),basketball:texture(basketballTexture,256,512),badminton:texture(badmintonTexture,256,512),track:texture(trackTexture,512,768),court:texture(courtTexture,256,512),libraryStone:texture(libraryStoneTexture,1024,512,{scale:facadeScale,anisotropy:8}),libraryGlass:texture(libraryGlassTexture,512,1024,{scale:facadeScale,anisotropy:8}),water:texture(waterTexture,1024,512),timber:texture(timberTexture,256,256),librarySign:texture(librarySignTexture,512,96,{scale:facadeScale}),roofMetal:texture(roofMetalTexture,512,512,{anisotropy:8}),paving:texture(pavingTexture,512,128)};
-  /* 10-29 材质替换：程序化纯色 → 生成式实拍级材质（含法线）
-     这些图由绘世/生成模型产出，经去水印、方形裁切、512 压缩、Sobel 法线转换。 */
-  {
-    const L=new T.TextureLoader();
-    const maxA=renderer.capabilities.getMaxAnisotropy?renderer.capabilities.getMaxAnisotropy():8;
-    const mk=(d,rx,ry)=>{const t=L.load(d);t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(rx,ry);
-      t.anisotropy=qualityName==='low'?2:Math.min(16,maxA);t.encoding=T.sRGBEncoding;return t;};
-    const sx=facadeScale*2, sy=facadeScale;
-    textures.teaching=mk(TEX.plaster.map,sx,sy);
-    textures.teachingNormal=mk(TEX.plaster.normal,sx,sy);
-    textures.dorm=mk(TEX.brick.map,sx,sy);
-    textures.dormNormal=mk(TEX.brick.normal,sx,sy);
-    textures.windowBand=mk(TEX.glass.map,1,1);
-    textures.ground=mk(TEX.grass.map,240,240); /* 240 次平铺 ≈ 2.5m 一张，草叶才不会糊 */
-    textures.roof=mk(TEX.roof.map,3,3);
-    textures.paving=mk(TEX.concrete.map,1.5,1.5);
-    textures.libraryStone=mk(TEX.stone.map,3,3);
-    textures.stoneNormal=mk(TEX.stone.normal,3,3);
-    textures.roofNormal=mk(TEX.roof.normal,3,3);
-  }
+  const textures={foliage:texture(drawFoliageSprite,512,512,{anisotropy:8}),teaching:texture(teachingTexture,1024,512,{scale:facadeScale,anisotropy:8}),dorm:texture(dormTexture,1024,512,{scale:facadeScale,anisotropy:8}),ground:texture(groundTexture,1024,1024,{scale:facadeScale,anisotropy:8}),grassDetail:texture(drawGrassDetail,512,512,{anisotropy:8}),road:texture(roadTexture,128,1024),basketball:texture(basketballTexture,256,512),badminton:texture(badmintonTexture,256,512),track:texture(trackTexture,512,768),court:texture(courtTexture,256,512),libraryStone:texture(libraryStoneTexture,1024,512,{scale:facadeScale,anisotropy:8}),libraryGlass:texture(libraryGlassTexture,512,1024,{scale:facadeScale,anisotropy:8}),water:texture(waterTexture,1024,512),timber:texture(timberTexture,256,256),librarySign:texture(librarySignTexture,512,96,{scale:facadeScale}),roofMetal:texture(roofMetalTexture,512,512,{anisotropy:8}),paving:texture(pavingTexture,512,128)};
   textures.grassDetail.encoding=T.LinearEncoding;textures.grassDetail.wrapS=textures.grassDetail.wrapT=T.RepeatWrapping;
   const skyCanvas=document.createElement('canvas');skyCanvas.width=Math.min(renderer.capabilities.maxTextureSize,qualityName==='low'?512:1024);skyCanvas.height=skyCanvas.width;atmosphere=createAtmosphere(T,scene,skyCanvas);cleanups.push(()=>atmosphere.dispose());
-  cleanups.push(()=>Object.values(textures).forEach(t=>t.dispose()));campus=buildCampusScene(T,data,textures);window.__cam=camera;window.__scene=scene;window.__campus=campus;scene.add(campus.root);
-  /* 10-31 钓鱼系统：只在第一人称生效，模型与 UI 全部自包含 */
-  try{
-    const k=data.transform.k,ox=data.transform.ox,oz=data.transform.oz;
-    const lakeWorld=(data.lake||[]).map(([px,py])=>[(px-ox)*k,(py-oz)*k]);
-    fishing=createFishing(T,{scene,camera,getPlayer:()=>walking,lakeWorld});window.__fish=fishing;
-  }catch(err){console.warn('fishing init failed',err);}
-  /* 10-29 真实阴影：此前 renderer.shadowMap.enabled=false，楼与楼之间从不互相投影，
-     地面阴影是一张烘焙贴图 —— 这是玩具感最根本的来源。这里改为 PCFSoft 实时阴影，
-     并把烘焙阴影层关掉，避免两层叠加。 */
-  const COMPAT=new URLSearchParams(location.search).get("shadow")==="0"; /* 10-29 默认关闭实时阴影：它是最可能把低配显卡顶崩的一步；?shadow=1 可开回 */
-  try{
-    renderer.shadowMap.enabled=!COMPAT;renderer.shadowMap.type=T.PCFSoftShadowMap;
-    sun.castShadow=!COMPAT;sun.shadow.mapSize.set(2048,2048);
-    const box=new T.Box3().setFromObject(campus.root),ctr=box.getCenter(new T.Vector3()),span=Math.max(box.max.x-box.min.x,box.max.z-box.min.z)/2+20;
-    sun.shadow.camera.left=-span;sun.shadow.camera.right=span;sun.shadow.camera.top=span;sun.shadow.camera.bottom=-span;
-    sun.userData.__ctr={x:ctr.x,z:ctr.z};sun.userData.__span=span;
-    sun.userData.__dir=new T.Vector3().subVectors(sun.position,new T.Vector3(ctr.x,0,ctr.z)).normalize();
-    sun.shadow.camera.near=1;sun.shadow.camera.far=1600;sun.shadow.bias=-0.0004;sun.shadow.normalBias=0.45;
-    sun.shadow.camera.updateProjectionMatrix();
-    if(sun.target){sun.target.position.set(ctr.x,0,ctr.z);scene.add(sun.target);}
-    if(staticShadow&&staticShadow.layer)staticShadow.layer.visible=false;
-    campus.root.traverse(o=>{if(o.isMesh){o.receiveShadow=true;}});
-  }catch(err){console.warn("shadow setup failed",err);}
-  /* 10-31 初始档位：低端设备直接省电档；?q= 可强制指定 */
-  if(PIN_Q&&QUALITY[PIN_Q])setQuality(PIN_Q);else if(DEV_LOW)setQuality("low");walkWorld=createWalkWorld(data,campus.navigation);
+  cleanups.push(()=>Object.values(textures).forEach(t=>t.dispose()));campus=buildCampusScene(T,data,textures);scene.add(campus.root);walkWorld=createWalkWorld(data,campus.navigation);
   car=vehicleSpawn(walkWorld,campus.targets.find(p=>p.id==='lib'));if(car){carModel=createCampusCar(T,car);scene.add(carModel.root);}else $('drive-toggle').disabled=true;
   pedestrianWorld={...walkWorld,canStand:(x,z)=>walkWorld.canStand(x,z)&&(!car||canWalkPastVehicle(car,x,z))};
   pedestrianWorld.canOccupy=(x,z,feet)=>walkWorld.canOccupy(x,z,feet)&&(!car||feet>car.y+2.15||canWalkPastVehicle(car,x,z));
-  /* 10-29 用户要求移除人物建模：不再创建、不再加入场景（变量保留以便随时回退）。 */
-  character=null;lastCharacterPose=walkWorld.spawn(campus.targets.find(p=>p.id==='lib'));
+  character=createCampusCharacter(T);scene.add(character.root);lastCharacterPose=walkWorld.spawn(campus.targets.find(p=>p.id==='lib'));
   const shadowCanvas=document.createElement('canvas');shadowCanvas.width=1024;shadowCanvas.height=1024;
   staticShadow=createStaticShadowLayer(T,campus,shadowCanvas);cleanups.push(()=>staticShadow.dispose());waterClock=createWaterClock({isAllowed:canMoveWater,render:()=>{state.waterTick=true;requestRender();}});setLighting('daylight');
   const groups=new Map();campus.targets.forEach(p=>{const label=TYPE_LABELS[p.type];if(!groups.has(label))groups.set(label,[]);groups.get(label).push(p);});

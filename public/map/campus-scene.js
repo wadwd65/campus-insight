@@ -1,22 +1,3 @@
-function createHipGeometry(T){
-  /* 单位四坡屋顶：底面 1x1 在 y=0，屋脊在 y=1，脊线沿 X 内收 0.26。
-     绕序按"法线朝上"自动纠正，避免整片屋顶发黑。 */
-  const g=new T.BufferGeometry(),pos=[],uv=[];
-  const r=.26;
-  const A=[-.5,0,-.5],B=[.5,0,-.5],C=[.5,0,.5],D=[-.5,0,.5],R1=[-.5+r,1,0],R2=[.5-r,1,0];
-  const tri=(a,b,c)=>{
-    const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]];
-    const ny=u[2]*v[0]-u[0]*v[2];
-    if(ny<0){const t=b;b=c;c=t;}
-    pos.push(...a,...b,...c);uv.push(0,0,1,0,1,1);
-  };
-  tri(A,B,R2);tri(A,R2,R1);
-  tri(D,R1,R2);tri(D,R2,C);
-  tri(B,C,R2);tri(A,R1,D);
-  g.setAttribute('position',new T.Float32BufferAttribute(pos,3));
-  g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
-  g.computeVertexNormals();return g;
-}
 import { insidePolygon, segmentDistance, closedRibbon, stadiumPlan } from './campus-model.js';
 import {createWaterMaterial} from './campus-water.js';
 import {createVegetationGeometries,reliefFacade,createGrassMaterial} from './campus-detail.js';
@@ -27,7 +8,7 @@ export const TYPE_LABELS={ teaching:'教学与实验', dorm:'学生公寓', libr
 export function buildCampusScene(T,data,textures={}) {
   const root=new T.Group(); root.name='detailed-campus';
   const batches=new Map(), entries=[], targets=[], planted=[], plantingExclusions=[],shadowContacts=[],walkSurfaces=[];
-  const geometries={box:new T.BoxGeometry(1,1,1),hip:createHipGeometry(T),...createVegetationGeometries(T),panel:new T.PlaneGeometry(1,1),contact:new T.PlaneGeometry(1,1).rotateX(-Math.PI/2),junction:new T.CircleGeometry(.5,20).rotateX(-Math.PI/2)};
+  const geometries={box:new T.BoxGeometry(1,1,1),...createVegetationGeometries(T),panel:new T.PlaneGeometry(1,1),contact:new T.PlaneGeometry(1,1).rotateX(-Math.PI/2),junction:new T.CircleGeometry(.5,20).rotateX(-Math.PI/2)};
   // One atlas: long facades occupy the left 3/4, quiet end walls the right 1/4.
   // Every wing has its long axis along local Z, regardless of its world rotation.
   geometries.facade=geometries.box.clone();
@@ -87,7 +68,7 @@ export function buildCampusScene(T,data,textures={}) {
   geometries.portal=new T.ExtrudeGeometry(portalShape,{depth:1,bevelEnabled:false});geometries.portal.translate(0,-.5,-.5);
   geometries.roofBox=geometries.box.clone();const roofBoxUV=geometries.roofBox.attributes.uv;for(let i=0;i<roofBoxUV.count;i++)roofBoxUV.setX(i,roofBoxUV.getX(i)*.85);
   const materials={
-    brick:new T.MeshLambertMaterial({color:0xfff6e6,map:textures.teaching||null,normalMap:textures.teachingNormal||null,normalScale:new T.Vector2(.85,.85)}),
+    brick:new T.MeshLambertMaterial({color:0xffffff,map:textures.teaching || null}),
     sand:new T.MeshLambertMaterial({color:0xffffff,map:textures.dorm || null}),
     white:new T.MeshLambertMaterial({color:0xf2f2eb}),
     roof:new T.MeshLambertMaterial({color:0xffffff,map:textures.roofMetal||null}),
@@ -95,35 +76,16 @@ export function buildCampusScene(T,data,textures={}) {
     glass:new T.MeshLambertMaterial({color:0x777d6b}),
     foliage:new T.MeshLambertMaterial({color:0xffffff,vertexColors:true}),
     trunk:new T.MeshLambertMaterial({color:0x86765f,vertexColors:true}),
-    road:new T.MeshLambertMaterial({color:0xd8d8d6,map:textures.road||null,normalMap:textures.roadNormal||null,normalScale:new T.Vector2(.7,.7)}),
-    asphalt:new T.MeshLambertMaterial({color:0xb0b2ac}),
-    sidewalk:new T.MeshLambertMaterial({color:0xeceee4,map:textures.paving||null}),
-    curb:new T.MeshLambertMaterial({color:0xdcdfd4}),
-    gap:new T.MeshLambertMaterial({color:0x6d7066}),
-    shoreOuter:new T.MeshLambertMaterial({color:0x7f9265}),
-    shoreWet:new T.MeshLambertMaterial({color:0x55654f}),
-    brickLife:new T.MeshLambertMaterial({color:0xffdfae,map:textures.dorm||null,normalMap:textures.dormNormal||null,normalScale:new T.Vector2(.85,.85)}),
-    brickPublic:new T.MeshLambertMaterial({color:0xcfe2f2,map:textures.teaching||null,normalMap:textures.teachingNormal||null,normalScale:new T.Vector2(.85,.85)}),
-    roofLife:new T.MeshLambertMaterial({color:0xdcc9ac,map:textures.roofMetal||null}),
-    roofPublic:new T.MeshLambertMaterial({color:0xa8c0cf,map:textures.roofMetal||null}),
-    curbLife:new T.MeshLambertMaterial({color:0xbfb099}),
-    curbPublic:new T.MeshLambertMaterial({color:0x9fb6c4}),
-    /* 10-28：宿舍屋顶的光伏板。国内校园宿舍楼顶常见成排阵列，
-       航拍时是识别"这是宿舍"最快的信号，比屋顶颜色更直接。 */
-    solar:new T.MeshLambertMaterial({color:0x2e4058}),
+    road:new T.MeshLambertMaterial({color:0xffffff,map:textures.road||null}),
+    asphalt:new T.MeshLambertMaterial({color:0x646969}),
+    sidewalk:new T.MeshLambertMaterial({color:0xd8dcd4,map:textures.paving||null}),
+    curb:new T.MeshLambertMaterial({color:0xf1f2ed}),
     ground:createGrassMaterial(T,textures.ground||null,textures.grassDetail||null),
     base:new T.MeshLambertMaterial({color:0x9aab8f}),
     water:createWaterMaterial(T,textures.water||null),
-    libraryStone:new T.MeshLambertMaterial({color:0xffffff,map:textures.libraryStone||null,normalMap:textures.stoneNormal||null,normalScale:new T.Vector2(.8,.8)}),
+    libraryStone:new T.MeshLambertMaterial({color:0xffffff,map:textures.libraryStone||null}),
     libraryGlass:new T.MeshPhongMaterial({color:0xffffff,map:textures.libraryGlass||null,shininess:16,specular:0x81795f}),
-    /* 10-28：窗带材质。?win=1..4 切换四种做法；贴图里画窗格，材质只管反射强度。 */
-    windowBand:new T.MeshPhongMaterial((()=>{
-      const s=Number((typeof location!=='undefined'&&new URLSearchParams(location.search).get('win'))||2)||2;
-      return {color:0xffffff,map:textures.windowBand||null,
-        shininess:[42,72,30,92,7][s-1]||42,
-        specular:[0x39443f,0x2a3230,0x6a5b46,0x22302b,0xaab4ae][s-1]||0x39443f};
-    })()),
-    paving:new T.MeshLambertMaterial({color:0xd9d7cc,map:textures.paving||null}),
+    paving:new T.MeshLambertMaterial({color:0xffffff,map:textures.paving||null}),
     timber:new T.MeshLambertMaterial({color:0xcfb18a,map:textures.timber||null}),
     canopy:new T.MeshLambertMaterial({color:0xffffff,map:textures.foliage||null,alphaTest:.28,alphaToCoverage:true,vertexColors:true,side:T.DoubleSide}),
     canopyLow:new T.MeshLambertMaterial({color:0xffffff,vertexColors:true}),
@@ -168,10 +130,8 @@ export function buildCampusScene(T,data,textures={}) {
   const siteSurfaces=[{geometry:baseGeo,material:materials.base,tag:'base'}];
   data.roads.forEach(road=>road.pts.slice(1).forEach((b,i)=>{const a=road.pts[i], [ax,az]=coord(...a),[bx,bz]=coord(...b),length=Math.hypot(bx-ax,bz-az),angle=Math.atan2(bx-ax,bz-az);add('box','sidewalk',(ax+bx)/2,.14,(az+bz)/2,road.w+5,.22,length+2,angle);add('box','road',(ax+bx)/2,.29,(az+bz)/2,road.w,.15,length+1,angle);}));
   const junctions=new Map();for(const road of data.roads)for(const p of road.pts){const key=p.join(',');junctions.set(key,{p,w:Math.max(road.w,junctions.get(key)?.w||0)});}
-  for(const {p,w}of junctions.values()){const[x,z]=coord(...p);add('junction','road',x,-0.13,z,w+1,1,w+1);}
-  flatShape(data.lake,.34,'shoreOuter',1.062);
-  flatShape(data.lake,.42,'shoreWet',1.028);
-  flatShape(data.lake,.46,'curb',1.008);
+  for(const {p,w}of junctions.values()){const[x,z]=coord(...p);add('junction','sidewalk',x,.255,z,w+5,1,w+5);add('junction','asphalt',x,.375,z,w,1,w);}
+  flatShape(data.lake,.48,'curb',1.055);
   const water=flatShape(data.lake,.55,'water');
   water.geometry.computeBoundingBox();
   const wb=water.geometry.boundingBox,wp=water.geometry.attributes.position,wu=water.geometry.attributes.uv;
@@ -181,161 +141,16 @@ export function buildCampusScene(T,data,textures={}) {
   targets.push({key:'lake',id:'lake',type:'lake',name:'晴缘湖',x:lakeX,z:lakeZ,height:1,width:wb.max.x-wb.min.x,depth:wb.max.z-wb.min.z,description:'依用户导览图标定：位于校园中部、湖畔图书馆东侧。湖岸为人工描绘，非测绘轮廓。'});
   // Flat, recessed roofs and a thin pale fascia replace the old pitched silhouette.
   // Every part stays in the established local building frame and instanced batches.
-  /* 10-27 重建：片区配色 + 女儿墙 + 立面构件 + 屋顶设备 + 四角壁柱 */
-  /* ============================================================
-     10-29 建筑外观整体重建
-     ------------------------------------------------------------
-     旧做法：一个 box 当楼，靠一张贴图表现窗；细节全靠贴图，
-            所以远看是"白盒子"，近看是"印了窗户的塑料"。
-     新做法：每个体块都由**构件**拼出：
-       ① 勒脚（1.15m 石材基座，外扩 0.08）
-       ② 每层挑出的楼板线（0.22 挑出，4 面一圈）
-       ③ 每开间独立的**凹窗**：玻璃内退 0.24，四边有窗框与窗台
-       ④ 顶部女儿墙 + 压顶 + 滴水线
-       ⑤ 屋顶设备机组 + 天窗带
-       ⑥ 四角壁柱
-     体块尺寸/层数/位置完全沿用原有数据，改的是"怎么把它盖出来"。
-     ============================================================ */
-  function zoneOf(key){
-    const k=String(key||'');
-    if(/^apt|^canteen|^market/.test(k))return 'Life';
-    if(/^gym|^lib|^tennis|^pav/.test(k))return 'Public';
-    return 'Teach';
-  }
-  function parapet(x,z,w,d,yBase,angle,material='curb'){
-    const c=Math.cos(angle),s=Math.sin(angle),th=.38,hh=.56,cy=yBase+hh/2;
-    const put=(ox,oz,ww,dd)=>add('box',material,x+ox*c+oz*s,cy,z+oz*c-ox*s,ww,hh,dd,angle);
-    put(0,(d-th)/2,w,th);
-    put(0,-(d-th)/2,w,th);
-    put((w-th)/2,0,th,Math.max(th,d-th));
-    put(-(w-th)/2,0,th,Math.max(th,d-th));
-  }
-  function innerFaceSkip(nx,nz,wx,wz,p){
-    const [bcx,bcz]=coord(p.px,p.py);
-    const tx=bcx-wx,tz=bcz-wz,tl=Math.hypot(tx,tz)||1;
-    return (nx*tx+nz*tz)/tl>0.15;
-  }
-
   function wing(p,ox,oz,w,d,h,material,color=null) {
-    /* 10-29 彻底磨平版：
-       上一版所有"凸出来"的构件（勒脚、楼层线、暗缝、窗台、窗楣、壁柱、外框）
-       全部删除。外墙是一个干净的方体，窗户只在墙面上"贴"一层玻璃，
-       整个立面没有任何超出墙面的几何。 */
     const c=Math.cos(p.rotation),s=Math.sin(p.rotation);
     const [px,pz]=coord(p.px,p.py),x=px+ox*c+oz*s,z=pz+oz*c-ox*s;
-    const bw=Math.min(w,d),bd=Math.max(w,d);
     const angle=p.rotation+(w>d?Math.PI/2:0);
-    const ca=Math.cos(angle),sa=Math.sin(angle);
-    const zone=zoneOf(p.key||p.id);
-    const face=material==='sand'?'sand':zone==='Life'?'brickLife':zone==='Public'?'brickPublic':'brick';
-    const curbMat=zone==='Life'?'curbLife':zone==='Public'?'curbPublic':'curb';
-    const BX=(lx,ly,lz,ww,hh,dd,mat)=>add('box',mat,x+lx*ca+lz*sa,ly,z+lz*ca-lx*sa,ww,hh,dd,angle,p.key);
-
-    /* 主体：一个方体，无任何外挑 */
-    add(material==='sand'?'dormFacade':'facade',face,x,h/2+.6,z,bw,h,bd,angle,p.key,color);
-
-    const floors=Math.max(2,Math.round(h/3.4));
-    const gH=Math.min(4.2,Math.max(3.6,h*0.30));
-    const upH=(h-gH)/Math.max(1,floors-1);
-    const bayW=material==='sand'?3.6:4.4;
-    const nL=Math.max(2,Math.round(bd/bayW));
-    let yCur=0;
-    for(let f=0;f<floors;f++){
-      const isBase=f===0;
-      const fh=isBase?gH:upH;
-      const y0=yCur;
-      const sillH=isBase?0.55:0.95;
-      const winH=isBase?Math.min(2.2,fh-1.4):Math.min(1.7,fh-1.3);
-      const winWL=bayW*.56;
-      /* 只留长边（正反两面），窗是贴在墙面上的薄片，外表面凸出 2cm */
-      for(const sg of [1,-1]){
-        if(innerFaceSkip(sg*ca,-sg*sa,x,z,p))continue;
-        for(let k=0;k<nL;k++){
-          const lz=-bd/2+(k+.5)*(bd/nL);
-          BX(sg*(bw/2+.01),y0+sillH+winH/2,lz,.04,winH,winWL,'windowBand');
-        }
-      }
-      yCur+=fh;
-    }
-
-    /* 10-29 入口：台阶 + 门斗 + 雨篷。
-       选朝外的那一面（背对本楼中心），放在正中——人视高度最先看到的就是这里。 */
-    if(bw>10 && bd>8){
-      const sg=innerFaceSkip(ca,-sa,x,z,p)?-1:1;      // 朝外的那一面
-      /* 入口对齐到"整栋楼中心"在该立面上的投影，而不是体块自己的中心。
-         一栋楼由多个体块拼成时，体块中心往往偏在一端，看起来像开在墙角。 */
-      const [bcx2,bcz2]=coord(p.px,p.py);
-      const dx2=bcx2-x, dz2=bcz2-z;
-      const lzB=dx2*sa+dz2*ca;                          // 楼心在本体坐标系里的 z
-      const ez=Math.max(-bd/2+3.2,Math.min(bd/2-3.2,lzB));
-      /* 台阶：三级，向外递降 */
-      for(let i=0;i<3;i++){
-        const w=4.6+i*0.5;
-        const sw=5.6-i*0.4; /* 宽 */ BX(sg*(bw/2+0.2+(2-i)*0.42),0.15+i*0.3,ez,0.42,0.3+i*0.0,sw,curbMat);
-      }
-      /* 门斗：玻璃盒子，进深 1.5m */
-      BX(sg*(bw/2+0.78),1.55,ez,1.55,2.9,3.4,'windowBand');
-      /* 门斗两侧与顶部白框 */
-      BX(sg*(bw/2+0.78),3.06,ez,1.62,0.14,3.55,'white');
-      BX(sg*(bw/2+0.78),1.55,ez-1.74,1.62,2.9,0.12,'white');
-      BX(sg*(bw/2+0.78),1.55,ez+1.74,1.62,2.9,0.12,'white');
-      /* 雨篷：比门斗再挑出 0.8m */
-      BX(sg*(bw/2+1.35),3.22,ez,1.9,0.16,4.4,'white');
-    }
-
-    /* 10-29 宿舍阳台：每层、每隔一个开间做一个。
-       这是"有意为之"的凸出——有楼板、有栏板，读得出是阳台，不是乱伸的板。 */
-    if(zone==='Life' && bw>10 && bd>10){
-      const sg2=innerFaceSkip(ca,-sa,x,z,p)?-1:1;
-      const nB=Math.max(2,Math.floor(bd/6));
-      let yb=0;
-      for(let f=0;f<floors;f++){
-        const fh=(f===0?gH:upH);
-        const yb0=yb+0.55;
-        for(let k=0;k<nB;k++){
-          const lz=-bd/2+ (k+0.5)*(bd/nB) + ((k%2)?0:0);
-          /* 楼板：挑出 1.1m */
-          BX(sg2*(bw/2+0.55),yb0,lz,1.15,0.14,2.6,curbMat);
-          /* 栏板：0.95 高，厚 0.08 */
-          BX(sg2*(bw/2+1.08),yb0+0.50,lz,0.08,0.92,2.6,curbMat);
-          /* 两侧短栏板 */
-          BX(sg2*(bw/2+0.55),yb0+0.50,lz-1.28,1.05,0.92,0.08,curbMat);
-          BX(sg2*(bw/2+0.55),yb0+0.50,lz+1.28,1.05,0.92,0.08,curbMat);
-        }
-        yb+=fh;
-      }
-    }
-
-    /* 屋顶：女儿墙 + 压顶，都不超出墙体轮廓 */
-    parapet(x,z,bw-0.9,bd-0.9,h+1.1,angle,curbMat);
-
-    /* 10-29 屋顶设备：楼梯间 / 水箱 / 空调机组。
-       让天际线不再是"一块平板"，航拍能看出屋顶上"有机器在转"。 */
-    if(bw>8 && bd>8){
-      const seed=Math.abs(Math.round((p.px||0)*3.7+(p.py||0)*5.3));
-      const lv=h+1.12;                       // 屋面标高
-      const cx=(seed%5-2)*0.9, cz=((seed>>2)%5-2)*0.9;
-
-      /* 楼梯间：贴着屋面一角，带自己的小女儿墙 */
-      const sx=-(bw/2-3.4), sz=-(bd/2-3.0);
-      add('box',face,x+sx*ca+sz*sa,lv+1.6,z+sz*ca-sx*sa,3.4,3.2,3.0,angle,p.key);
-      parapet(x+sx*ca+sz*sa,z+sz*ca-sx*sa,3.4,3.0,lv+3.2,angle,curbMat);
-
-      /* 水箱：圆柱 + 支腿 */
-      const wx=bw/2-3.2, wz=bd/2-3.2;
-      add('junction','mechanical',x+wx*ca+wz*sa,lv+2.2,z+wz*ca-wx*sa,2.4,2.0,2.4,angle);
-      add('box','mechanical',x+wx*ca+wz*sa,lv+0.55,z+wz*ca-wx*sa,2.2,1.1,2.2,angle);
-
-      /* 空调机组：两排小箱子 */
-      for(let i=0;i<3;i++){
-        const ox=-1.6+i*1.7+cx, oz=(i%2?1.1:-0.4)+cz;
-        add('box','mechanical',x+ox*ca+oz*sa,lv+0.45,z+oz*ca-ox*sa,1.5,0.9,1.1,angle);
-      }
-      /* 屋面再压一道设备基座，避免设备"浮"在板上 */
-      add('box',curbMat,x,lv+0.06,z,bw-2.0,0.12,bd-2.0,angle);
-    }
+    add(material==='sand'?'dormFacade':'facade',material,x,h/2+.6,z,Math.min(w,d),h,Math.max(w,d),angle,p.key,color);
+    add('box','curb',x,h+.9,z,w+1,.3,d+1,p.rotation);
+    add('box','roof',x,h+1.07,z,w-1.3,.12,d-1.3,p.rotation);
+    if(w>8&&d>8){add('roofKit','mechanical',x,h+1.65,z,Math.min(w*.36,4.4),1.2,Math.min(d*.3,5.4),p.rotation);}
+    add('contact','softShadow',x+1,.38,z+1,w+9,1,d+9,p.rotation);
   }
-
   function part(p,ox,y,oz,w,h,d,material,key=null,color=null){const [x,z]=coord(p.px,p.py),c=Math.cos(p.rotation),s=Math.sin(p.rotation);add('box',material,x+ox*c+oz*s,y,z+oz*c-ox*s,w,h,d,p.rotation,key,color);}
   function colonnade(p,ox,oz,count,span=5.5,h=4.8,y=.6){
     const [x,z]=coord(p.px,p.py),c=Math.cos(p.rotation),s=Math.sin(p.rotation);
@@ -349,19 +164,9 @@ export function buildCampusScene(T,data,textures={}) {
     if(planted)for(const dx of [-w*.3,w*.3]){part(p,ox+dx,y+.4,oz+d*.25,3,.45,2,'accent');part(p,ox+dx,y+.9,oz+d*.25,2.7,.55,1.7,'foliage');}
   }
   function entry(p,ox,oz,w=12,y=4.5){
-    /* 10-28：原来是"一块玻璃板 + 两根细杆 + 三级台阶"，人视高度看是飘在墙上的。
-       改成真正的门头：台阶 → 门斗（有进深的玻璃盒）→ 雨棚（带檐口压边）→ 方柱加柱础。 */
-    for(let i=0;i<3;i++)part(p,ox,.16+i*.17,oz+2.6-i*.55,w+3-i*.9,.32+i*.34,2.2,'curb');
-    part(p,ox,1.95,oz-0.2,w*.62,3.9,2.2,'libraryGlass',p.key);
-    part(p,ox,3.98,oz-0.2,w*.66,.2,2.35,'white');
-    part(p,ox,.3,oz-0.2,w*.66,.3,2.35,'curb');
-    part(p,ox,y,oz+1.1,w,.22,3.6,'curb');
-    part(p,ox,y+.17,oz+2.8,w+.24,.38,.3,'white');
-    for(const dx of [-w*.42,w*.42]){
-      part(p,ox+dx,y/2,oz+2.2,.32,y,.32,'white');
-      part(p,ox+dx,.24,oz+2.2,.58,.48,.58,'curb');
-    }
-    part(p,ox,y-.52,oz+2.62,w*.46,.66,.14,'timber');
+    part(p,ox,y,oz,w,.24,4.8,'glass');part(p,ox,y-.18,oz,w-.5,.12,4.4,'timber');
+    for(const dx of [-w*.44,w*.44])part(p,ox+dx,y/2,oz+1.7,.2,y,.2,'white');
+    for(let i=0;i<3;i++)part(p,ox,.16+i*.17,oz+2.4-i*.6,w+2-i*.8,.32+i*.34,2,'curb');
   }
   function fins(p,ox,oz,count,span,height,y,alongX=true,material='white'){
     const [x,z]=coord(p.px,p.py),c=Math.cos(p.rotation),s=Math.sin(p.rotation);
@@ -369,8 +174,7 @@ export function buildCampusScene(T,data,textures={}) {
   }
   function pergola(p,ox,oz,w,d,y){
     const [x,z]=coord(p.px,p.py),c=Math.cos(p.rotation),s=Math.sin(p.rotation);
-    /* 10-29 原为 2.6m 高的整块木构架，看上去是一块大板；改成 1.0m 高的薄格栅。 */
-    add('pergola','timber',x+ox*c+oz*s,y+0.5,z+oz*c-ox*s,w*.92,1.0,d*.92,p.rotation,p.key);
+    add('pergola','timber',x+ox*c+oz*s,y+1.3,z+oz*c-ox*s,w,2.6,d,p.rotation,p.key);
   }
   function garden(p,ox,oz,w=6,d=4){
     part(p,ox,.6,oz,w,.9,d,'accent');part(p,ox,1.15,oz,w-.7,.6,d-.7,'foliage');
@@ -613,12 +417,12 @@ export function buildCampusScene(T,data,textures={}) {
     const {ax,az,bx,bz,length}=path;add('box','paving',(ax+bx)/2,.18,(az+bz)/2,3.4,.2,length+2,Math.atan2(bx-ax,bz-az));
     plantingExclusions.push({x:(ax+bx)/2,z:(az+bz)/2,r:3+length/2});footpaths++;
   }
-  function canPlant(x,z,spacing=9) {
+  function canPlant(x,z,treeSpacing=true) {
     const px=x/data.transform.k+data.transform.ox,py=z/data.transform.k+data.transform.oz;
     if(!insidePolygon(px,py,data.boundary)||insidePolygon(px,py,data.lake))return false;
     if(Math.abs(x-tx)<tw/2+8&&Math.abs(z-tz)<td/2+8)return false;
     if(plantingExclusions.some(p=>Math.hypot(x-p.x,z-p.z)<p.r))return false;
-    if(spacing>0&&planted.some(p=>Math.hypot(x-p.x,z-p.z)<spacing))return false;
+    if(treeSpacing&&planted.some(p=>Math.hypot(x-p.x,z-p.z)<9))return false;
     if(data.roads.some(r=>r.pts.slice(1).some((p,i)=>segmentDistance(px,py,r.pts[i],p)<(r.w/2+2)/data.transform.k)))return false;
     if(targets.some(p=>['plaza','pavilion','court'].includes(p.type)&&!p.elevated&&Math.abs(x-p.x)<p.width/2+3&&Math.abs(z-p.z)<p.depth/2+3))return false;
     // Include the entrance apron and roof overhang, not only the solid walls.
@@ -630,16 +434,12 @@ export function buildCampusScene(T,data,textures={}) {
     }))return false;
     return !blockedByBuilding(x,z);
   }
-  function plant(x,z,size,row=false,spacing=9) {
-    if(!canPlant(x,z,spacing)||planted.length>=380)return false;
+  function plant(x,z,size,row=false) {
+    if(!canPlant(x,z)||planted.length>=132)return false;
     const i=planted.length;planted.push({x,z,row});
-    const hash=n=>{let t=(n+0x9e37)>>>0;t=Math.imul(t^(t>>>15),0x85ebca6b)>>>0;t=Math.imul(t^(t>>>13),0xc2b2ae35)>>>0;return ((t^(t>>>16))>>>0)/4294967296;};
-    const h1=hash(i*7+3),h2=hash(i*13+11),h3=hash(i*29+5);
-    const shape=['treeSoft','treeRound','treeColumn'][Math.floor(h1*3)%3],crownY=4.9+h2*.7;
-    const autumn=h3>0.88;
-    const palette=autumn?[0xb0863f,0x9c7434]:[0x5b7f4d,0x6b8954,0x76945b,0x7c985e,0x638454];
-    add('trunk','trunk',x,2.45,z,.85,4.9,.85,i*.73);
-    add(shape,'canopy',x,crownY,z,size*(0.58+h2*.16),size*(shape==='treeColumn'?0.78:.66),size*.62,i*.73,null,palette[Math.floor(h1*997)%palette.length]);
+    const shape=['treeSoft','treeRound','treeColumn'][i%3],crownY=6.6+(i%4)*.25;
+    add('trunk','trunk',x,3.65,z,3.2,7.2,3.2,i*.73);
+    add(shape,'canopy',x,crownY,z,size,size*(shape==='treeColumn'?1.15:.98),size*.94,i*.73,null,[0x5b7f4d,0x6b8954,0x76945b,0x7c985e,0x638454][i%5]);
     add('contact','softShadow',x+1,.38,z+1,size*3,1,size*2.7);
     if(row&&i%3===0)add('box','accent',x,.4,z,2.8,.4,2.8);
     return true;
@@ -648,37 +448,15 @@ export function buildCampusScene(T,data,textures={}) {
   let rowTrees=0;
   for(const road of data.roads)for(let i=1;i<road.pts.length;i++) {
     const[ax,az]=coord(...road.pts[i-1]),[bx,bz]=coord(...road.pts[i]),length=Math.hypot(bx-ax,bz-az),nx=(bz-az)/length,nz=-(bx-ax)/length;
-    for(let dist=9;dist<length-6;dist+=11)for(const side of [-1,1]) {
-      if(rowTrees>=230)continue;
+    for(let dist=9;dist<length-6;dist+=16)for(const side of [-1,1]) {
+      if(rowTrees>=90)continue;
       const x=ax+(bx-ax)*dist/length+nx*(road.w/2+5)*side,z=az+(bz-az)*dist/length+nz*(road.w/2+5)*side;
       if(plant(x,z,5.1+(rowTrees%4)*.3,true))rowTrees++;
     }
   }
-  /* 10-29 环境层：路灯 + 长椅。
-     沿道路每 26m 一盏，交替放在道路外侧；灯杆 0.16m、高 5.2m，横臂朝车道。
-     这让地面不只是草地和沥青，而有人走的痕迹。 */
-  {let lamps=0,benches=0;
-   for(const road of data.roads)for(let i=1;i<road.pts.length;i++){
-     const[ax,az]=coord(...road.pts[i-1]),[bx,bz]=coord(...road.pts[i]);
-     const len=Math.hypot(bx-ax,bz-az);if(len<1)continue;
-     const dx=(bx-ax)/len,dz=(bz-az)/len,nx=dz,nz=-dx;
-     for(let d=12;d<len-8;d+=26){
-       const side=(Math.floor(d/26)%2)?1:-1;
-       const x=ax+dx*d+nx*(road.w/2+0.9)*side,z=az+dz*d+nz*(road.w/2+1.4)*side;
-       if(!canPlant(x,z,3.2))continue;
-       add("box","mechanical",x,3.25,z,.16,6.5,.16,0);
-       add("box","mechanical",x-nx*.8*side,6.42,z-nz*.8*side,1.7,.12,.12,0);
-       add("box","white",x-nx*1.55*side,6.32,z-nz*1.55*side,.95,.18,.30,0);
-       lamps++;
-       if(lamps%3===0&&benches<40){add("box","timber",x+nx*1.2*side,.45,z+nz*1.2*side,1.8,.42,.55,Math.atan2(dz,dx));benches++;}
-     }
-   }
-  }
   let seed=20261020;const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   const minX=Math.min(...data.boundary.map(p=>p[0])),maxX=Math.max(...data.boundary.map(p=>p[0])),minY=Math.min(...data.boundary.map(p=>p[1])),maxY=Math.max(...data.boundary.map(p=>p[1]));
-  for(let n=0;n<3000&&planted.length<320;n++){const[x,z]=coord(minX+rand()*(maxX-minX),minY+rand()*(maxY-minY));plant(x,z,4.8+rand()*1.8);}
-  for(let n=0;n<6000&&planted.length<560;n++){const[x,z]=coord(minX+rand()*(maxX-minX),minY+rand()*(maxY-minY));plant(x,z,1.9+rand()*1.3,false,4.5);}
-
+  for(let n=0;n<3000&&planted.length<132;n++){const[x,z]=coord(minX+rand()*(maxX-minX),minY+rand()*(maxY-minY));plant(x,z,4.8+rand()*1.8);}
   // Sparse physical blades catch light in the close view. The high-resolution
   // macro lawn and repeated bump texture carry the continuous ground cover.
   let grassTufts=0;
@@ -713,9 +491,7 @@ export function buildCampusScene(T,data,textures={}) {
   }
   for(const[id,objects]of batches) {
     const[kind,material]=id.split(':'),geometry=kind==='facade'&&material==='libraryStone'?geometries.stoneFacade:kind==='box'&&material==='libraryGlass'?geometries.glazing:geometries[kind],mesh=new T.InstancedMesh(geometry,materials[material],objects.length);
-    mesh.name=id;/* 10-29：材质名改成 brickLife/brickPublic 后，原来的白名单失效，建筑全部不再投影。
-       改为黑名单：除了阴影贴片/标牌/玻璃面，其余都投影。 */
-      mesh.castShadow=!['shadow','softShadow','sign','windowBand','road','paving','glass'].includes(material);mesh.receiveShadow=!['shadow','softShadow','sign'].includes(material);
+    mesh.name=id;mesh.castShadow=['brick','sand','white','roof','libraryStone'].includes(material);mesh.receiveShadow=!['shadow','softShadow','sign'].includes(material);
     mesh.userData.keys=objects.map(o=>o.key);
     // r149 shares shader programs between batches using the same material.
     // Supply instance colours consistently, including neutral white batches.

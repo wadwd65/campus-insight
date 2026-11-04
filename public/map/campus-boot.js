@@ -1,14 +1,3 @@
-// 10-29：把未捕获的错误直接显示在页面上，避免"白屏但不知道原因"
-function showError(msg){
-  let el=document.getElementById('boot-error');
-  if(!el){el=document.createElement('pre');el.id='boot-error';
-    el.style.cssText='position:fixed;left:12px;bottom:12px;z-index:999999;max-width:70vw;max-height:40vh;overflow:auto;margin:0;padding:10px 12px;background:#fff3f2;color:#7a1d16;border:1px solid #e6b3ad;border-radius:8px;font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap';
-    document.body.appendChild(el);}
-  el.textContent='页面出错：'+msg;
-}
-addEventListener('error',e=>showError((e.message||'')+' @ '+(e.filename||'').split('/').pop()+':'+e.lineno));
-addEventListener('unhandledrejection',e=>showError(String(e.reason&&e.reason.message||e.reason)));
-
 import {shouldUse3D} from './campus-model.js';
 
 // This tiny entry point runs before importing Three.js, scene code, textures or layout data.

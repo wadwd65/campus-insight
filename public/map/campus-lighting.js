@@ -2,11 +2,8 @@ export const LIGHTING={
   /* 10-26：shadowOpacity 原来 .25/.23 —— 与材质 color 相乘后实际压暗不足 7%，
      肉眼读不出投影。这是投影强度的**唯一真源**：setLighting() 每轮都会覆盖
      material.opacity，改材质里的字面量无效（踩过一次）。 */
-  /* 10-28 光照升级：拉开明暗比。
-     之前 1.14/.78 太阳与天光几乎持平，两个面亮度差不到 10%，楼看着是"平的"。
-     现在太阳 1.55、天光 .56，投影加深到 .74，曝光 .96 压住高光溢出。 */
-  daylight:{label:'晴朗蓝天',sky:0xdcebf6,bounce:0xa9b29b,ambient:.56,sun:0xffeed0,strength:1.95,exposure:1.0,fill:.30,fillColor:0xa9c6e2,ground:0xffffff,roof:0xfffcf2,stone:0xfffdf5,shadowOpacity:.74,skyTop:'#70afe0',skyBottom:'#d8ebf7',glow:'#ffe2b640'},
-  golden:{label:'杏金傍晚',sky:0xf3dec5,bounce:0xa88f70,ambient:.58,sun:0xffd19b,strength:1.42,exposure:.95,fill:.26,fillColor:0xc9a887,ground:0xfff7e8,roof:0xffefd8,stone:0xfff4e2,shadowOpacity:.68,skyTop:'#e5d5c3',skyBottom:'#f2e3ce',glow:'#ffd28d8c'},
+  daylight:{label:'晴朗蓝天',sky:0xdcebf6,bounce:0x8e9879,ambient:.78,sun:0xffeed0,strength:1.14,exposure:1.0,ground:0xffffff,roof:0xfffcf2,stone:0xfffdf5,shadowOpacity:.58,skyTop:'#70afe0',skyBottom:'#d8ebf7',glow:'#ffe2b640'},
+  golden:{label:'杏金傍晚',sky:0xf3dec5,bounce:0xa88f70,ambient:.78,sun:0xffd19b,strength:1.04,exposure:.98,ground:0xfff7e8,roof:0xffefd8,stone:0xfff4e2,shadowOpacity:.52,skyTop:'#e5d5c3',skyBottom:'#f2e3ce',glow:'#ffd28d8c'},
 };
 
 /* 10-26：太阳位置从 app 里的魔法数字收成单一真源。

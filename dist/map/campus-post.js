@@ -21,13 +21,13 @@
  */
 export function createPostChain(T, renderer, options = {}) {
   const params = {
-    strength: 0.58,    // 泛光强度（0.85 时刺眼，0.46 时发灰）
-    threshold: 0.68,   // 亮度阈值
+    strength: 0.20,    // 泛光强度（10-29 由 0.58 上调，亮边更通透）
+    threshold: 0.82,   // 亮度阈值（提高，只让最亮处发光）
     knee: 0.22,
-    saturation: 1.06,  // 饱和度（1.26 会把米白墙推成橄榄绿）
-    contrast: 1.09,    // 对比
+    saturation: 1.10,  // 饱和度（10-29 由 1.06 上调；再高会把米白墙推成橄榄绿）
+    contrast: 1.13,    // 对比（10-29 由 1.09 上调）
     vignette: 0.08,    // 暗角
-    rays: 1.0,         // 光轴强度（无头 SwiftShader 下恒为 0，真机待验）
+    rays: 0.0,         // 光轴强度（默认关：会糊掉建筑边缘）（无头 SwiftShader 下恒为 0，真机待验）
     rayDensity: 0.95,  // 采样跨度（1 = 一直采到太阳）
     rayDecay: 0.972,   // 每步衰减
     rayWeight: 0.11,   // 单步权重
@@ -141,7 +141,11 @@ export function createPostChain(T, renderer, options = {}) {
     vertexShader: VERT, fragmentShader: COMPOSITE, depthTest: false, depthWrite: false, transparent: true
   });
 
-  const rtOptions = { minFilter: T.LinearFilter, magFilter: T.LinearFilter, format: T.RGBAFormat, type: T.UnsignedByteType, depthBuffer: true, stencilBuffer: false };
+  /* 10-29：场景渲染目标加 4×MSAA。
+     之前整条后处理链只有一个无多重采样的 RT，画布本身的 antialias 用不上，
+     所有细边（墙垛、窗棂、栏杆、屋檐）都是硬锯齿 —— 这是"粗糙感"最直接的来源。
+     WebGL2 下 samples:4 由 three 自动走 multisampled renderbuffer；不支持时会被忽略。 */
+  const rtOptions = { minFilter: T.LinearFilter, magFilter: T.LinearFilter, format: T.RGBAFormat, type: T.UnsignedByteType, depthBuffer: true, stencilBuffer: false, samples: 4 };
   let rtScene = null, rtBright = null, rtA = null, rtB = null;
   let width = 0, height = 0;
   let sceneTriangles = 0, sceneCalls = 0;
@@ -152,7 +156,7 @@ export function createPostChain(T, renderer, options = {}) {
     [rtScene, rtBright, rtA, rtB].forEach(rt => rt && rt.dispose());
     rtScene = new T.WebGLRenderTarget(w, h, rtOptions);
     const bw = Math.max(1, w >> 1), bh = Math.max(1, h >> 1);
-    const small = Object.assign({}, rtOptions, { depthBuffer: false });
+    const small = Object.assign({}, rtOptions, { depthBuffer: false, samples: 0 });
     rtBright = new T.WebGLRenderTarget(bw, bh, small);
     rtA = new T.WebGLRenderTarget(bw, bh, small);
     rtB = new T.WebGLRenderTarget(bw, bh, small);
