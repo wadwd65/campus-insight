@@ -23,9 +23,9 @@ v32 新增首页一键48人合成班级、前置来源与统计范围、少于5�
 ## 当前版本与访问方式
 
 - 完整功能是 React + Vite 前端、Node.js 同源服务、私有 SQLite 和可选模型接口。个人测评不需账号，在线圈子需注册登录。
-- [公开仓库](https://github.com/wadwd65/campus-insight) 已于 **2026-10-26 同步至 B-v47**：`main` 分支共 99+ 次细粒度提交，`dist/build-edition.json` 标记 `{"edition":"B","version":"v47","theme":"校园行迹"}`。仓库内 `dist/` 与 `release-download/` 两个部署包来自同一次构建，64 个产物文件可逐字节核对。
-- [用户的公网实例](https://campus-insight.app.workbuddy.host/) 在2026-10-24上一轮验收时已运行v46完整账号服务（API与React交互分别验收）；本轮v47是否部署以线上版本标记为准。本机 `127.0.0.1` 地址不能发给异地成员使用。
-- 最新参赛包另提供"源码校对版 ZIP"和管理员 ZIP；仓库内 `release-download/` 存放 B-v47 的 Windows 解压即用包与服务器通用包，与源码同一次构建。
+- [公开仓库](https://github.com/wadwd65/campus-insight) 已于 **2026-11-04 同步至 B-v50**：`main` 分支为细粒度提交历史，`dist/build-edition.json` 标记 `{"edition":"B","version":"v50","theme":"校园行迹"}`。仓库内 `dist/` 与源码同一次构建，克隆后可直接 `npm start`（见第 4 节路径 A）。
+- [用户的公网实例](https://campus-insight.app.workbuddy.host/) 当前运行 **B-v50**，`/build-edition.json` 可核对版本；本机 `127.0.0.1` 地址不能发给异地成员使用。
+- 安装包（Windows 解压即用 / 服务器通用 / 管理员）**不再随仓库分发**：仓库只保留源码与 `dist/`，避免每次发布上传上百 MB；需要时另行提供。
 - 技术文档、两个 AI 的原始对话链和录制素材随仓库提供。最终 5-8 分钟 MP4 与个人中心提交仍待完成；录制分镜不等于最终视频。
 
 ## 10 分钟本机复现
@@ -82,13 +82,28 @@ v32 新增首页一键48人合成班级、前置来源与统计范围、少于5�
 
 **一个变量都不配也能完整运行**：规则计算、本地解读、账号圈子全部可用，只有在线模型解读会降级。
 
-### 4. 三步启动
+### 4. 启动（两条路径，按需选一）
+
+**路径 A：直接运行（仓库自带 `dist/`，推荐）**
 
 ```powershell
-npm ci          # 按锁文件安装依赖，约 1-3 分钟
-npm run build   # 构建 dist，实测 923ms
+npm install     # 约 1-3 分钟
 npm start       # 同源服务，默认 http://127.0.0.1:5191
 ```
+
+仓库里已提交构建产物 `dist/`，**这一步不需要 `npm run build`**。
+
+**路径 B：改过源码后重新构建**
+
+```powershell
+npm install
+npm run build   # 构建 dist，实测约 0.9 秒
+npm start
+```
+
+> ⚠️ 只要动过 `src/`、`public/` 或 `map-src/`，就必须走路径 B。
+> `npm run build` 的第一步是 `build-campus-web.mjs`：把 `map-src/` 复制到 `public/map/`，再打包进 `dist/`。
+> 不重新构建，页面仍是旧产物；反过来，直接手改 `public/map/` 里的文件，下次构建会被 `map-src/` 覆盖。
 
 打开启动日志打印的网址。开发调试用 `npm run dev`，但**不要用纯静态预览代替同源后端验收**——账号与圈子依赖后端 API。
 
