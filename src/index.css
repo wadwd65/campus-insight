@@ -1,4 +1,7 @@
-@import "tailwindcss";
+/* 构建只扫描真实界面源码，不依赖 .git/.gitignore 或工作目录中的缓存。 */
+@import "tailwindcss" source(none);
+@source "./";
+@source "../index.html";
 
 /* 全站基调：浅色、克制。配色统一在这里改。 */
 :root {

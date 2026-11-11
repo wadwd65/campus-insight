@@ -7,7 +7,7 @@ dist
 **/*.sqlite*
 **/setup-key.txt
 .shots-before
-.browser-profile*
+.browser-*
 .smoke-out
 .workbuddy-gen
 outputs

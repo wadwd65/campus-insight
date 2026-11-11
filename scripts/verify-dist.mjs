@@ -14,6 +14,7 @@
  *   Vite 不会自动重建目录 —— 那时"构建成功但 dist 不存在"就是假绿。
  */
 import fs from 'node:fs';
+import { collectBuildInputs, compareBuildInputs } from './build-inputs.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -102,6 +103,12 @@ try {
     return content.length === artifact.bytes && createHash('sha256').update(content).digest('hex') === artifact.sha256;
   });
   ok(intact, '首页与JS/CSS内容符合本次构建清单');
+  const descriptor = edition.build?.inputsManifest;
+  const inputBytes = fs.readFileSync(path.join(DIST, 'build-inputs.json'));
+  const inputs = JSON.parse(inputBytes.toString());
+  ok(descriptor?.path === '/build-inputs.json' && descriptor.files === inputs.files.length && createHash('sha256').update(inputBytes).digest('hex') === descriptor.sha256 && inputs.sourceSha256 === edition.build.sourceSha256, '构建输入清单内容与摘要匹配');
+  const current = collectBuildInputs(ROOT), difference = compareBuildInputs(current, inputs);
+  ok(current.sourceSha256 === inputs.sourceSha256 && Object.values(difference).every(files => files.length === 0), '输入清单覆盖当前源码，逐文件可核对');
 } catch {
   ok(false, '构建标识可读取（请先运行npm run build）');
 }

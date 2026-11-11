@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { compareBuildInputs } from './build-inputs.mjs';
 
 const input = process.argv[2];
 if (!input) { console.error('用法：npm run verify:live -- https://你的网站'); process.exit(1); }
@@ -14,6 +15,16 @@ async function get(route) {
 }
 const actual = JSON.parse((await get('/build-edition.json')).toString());
 if (actual.edition !== expected.edition || actual.version !== expected.version || !actual.build?.sourceSha256 || actual.build.sourceSha256 !== expected.build?.sourceSha256) throw new Error('线上版本或源码摘要与本次本机构建不一致');
+// Keep source identity strict; the diagnostic file explains differences instead of waiving them.
+if (expected.build.inputsManifest) {
+  const descriptor = actual.build.inputsManifest;
+  if (descriptor?.path !== '/build-inputs.json' || !/^[a-f0-9]{64}$/.test(descriptor.sha256)) throw new Error('线上缺少本版构建输入清单');
+  const bytes = await get(descriptor.path);
+  if (createHash('sha256').update(bytes).digest('hex') !== descriptor.sha256) throw new Error('线上构建输入清单内容不一致');
+  const inputs = JSON.parse(bytes.toString());
+  compareBuildInputs(inputs, inputs);
+  if (inputs.sourceSha256 !== actual.build.sourceSha256 || inputs.files.length !== descriptor.files) throw new Error('线上构建输入清单与版本标识不一致');
+}
 // A platform may rebuild the same source with different asset names. Validate
 // its own declared artifacts rather than pinning this machine's Vite hashes.
 const artifacts = actual.build.artifacts;

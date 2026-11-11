@@ -1,9 +1,9 @@
 {
   "edition": "B",
-  "version": "v53.2",
+  "version": "v53.3",
   "theme": "校园行迹",
   "matrixVersion": 1,
   "date": "2026-11-11",
-  "change": "静态文本支持Brotli/gzip协商传输；基准数据读取增加超时与有限自动重试；补齐默认站点图标，保持3D本体不变",
-  "base": "v53.1"
+  "change": "固定Tailwind扫描业务源码与入口；构建输出逐文件输入摘要用于定位部署残留；保留严格版本校验和原账号数据",
+  "base": "v53.2"
 }

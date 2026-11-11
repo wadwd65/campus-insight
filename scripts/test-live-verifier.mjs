@@ -11,10 +11,13 @@ const homepage = '<!doctype html><html><head><link rel="stylesheet" href="/asset
 const resources = new Map([['/index.html', homepage], ['/assets/index-rebuilt.js', '// Synthetic verifier fixture'], ['/assets/index-rebuilt.css', 'body{margin:0}'], ['/map/校园地图-3D实景.html', '<html>Synthetic current map fixture</html>']]);
 const digest = value => createHash('sha256').update(value).digest('hex');
 const edition = { ...expected, build: { ...expected.build, artifacts: [...resources].map(([path, value]) => ({ path, sha256: digest(value), bytes: Buffer.byteLength(value) })) } };
+if (expected.build.inputsManifest) resources.set('/build-inputs.json', await fs.readFile(new URL('../dist/build-inputs.json', import.meta.url)));
 let mode = 'rebuilt';
 const server = http.createServer((req, res) => {
   const route = decodeURIComponent(new URL(req.url, 'http://local').pathname);
-  if (route === '/build-edition.json') { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(mode === 'wrong-source' ? { ...edition, build: { ...edition.build, sourceSha256: '0'.repeat(64) } } : edition)); return; }
+  if (route === '/build-edition.json') { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(mode === 'wrong-source' ? { ...edition, build: { ...edition.build, sourceSha256: '0'.repeat(64) } } : mode === 'missing-manifest-link' ? { ...edition, build: { ...edition.build, inputsManifest: undefined } } : edition)); return; }
+  if (route === '/build-inputs.json' && mode === 'missing-inputs') { res.writeHead(404); res.end(); return; }
+  if (route === '/build-inputs.json' && mode === 'corrupt-inputs') { res.end('{}'); return; }
   if (route === '/' && mode === 'stale-home') { res.end('<html>old homepage</html>'); return; }
   if (route === '/assets/index-rebuilt.css' && mode === 'missing-resource') { res.writeHead(404); res.end(); return; }
   if (route === '/map/校园地图-3D实景.html' && mode === 'stale-map') { res.end('<html>old map</html>'); return; }
@@ -34,7 +37,12 @@ try {
     await assert.rejects(verify);
     console.log(`✓ ${label}`);
   }
-  console.log('发布核验器：6项通过（合成资源，不替代真实浏览器功能验收）');
+  if (expected.build.inputsManifest) for (const [scenario, label] of [['missing-manifest-link', '同源码但缺少本版输入清单链接仍被拒绝'], ['missing-inputs', '构建输入清单404时验收失败'], ['corrupt-inputs', '构建输入清单损坏时验收失败']]) {
+    mode = scenario;
+    await assert.rejects(verify);
+    console.log(`✓ ${label}`);
+  }
+  console.log(`发布核验器：${expected.build.inputsManifest ? 9 : 6}项通过（合成资源，不替代真实浏览器功能验收）`);
 } finally {
   server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));

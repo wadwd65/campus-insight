@@ -19,6 +19,8 @@
     "smoke:csv": "node scripts/smoke-csv.mjs",
     "verify:dist": "node scripts/verify-dist.mjs",
     "verify:live": "node scripts/verify-live.mjs",
+    "compare:inputs": "node scripts/compare-build-inputs.mjs",
+    "test:build-inputs": "node scripts/test-build-inputs.mjs && node scripts/test-tailwind-sources.mjs",
     "test:cohort-flow": "node scripts/test-cohort-flow.mjs",
     "test:proxy": "node scripts/test-proxy-limits.mjs",
     "test:delivery": "node scripts/test-static-delivery.mjs && node scripts/test-baseline-retry.mjs",
@@ -55,7 +57,7 @@
     "test:field": "node scripts/test-industrial-journey.mjs && node scripts/test-companion-position.mjs && node scripts/test-campus-story.mjs && node scripts/test-story-atmosphere.mjs && node scripts/test-story-library.mjs && node scripts/test-campus-day.mjs && node scripts/test-campus-paths.mjs",
     "test:report-core": "node scripts/test-survey-report-core.mjs",
     "test:day-survey": "node scripts/test-day-survey-bridge.mjs",
-    "test:release": "node scripts/test-live-verifier.mjs && npm run test:delivery"
+    "test:release": "node scripts/test-live-verifier.mjs && npm run test:delivery && npm run test:build-inputs"
   },
   "dependencies": {
     "@tsparticles/engine": "^4.4.0",
