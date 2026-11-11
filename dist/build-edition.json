@@ -7,10 +7,10 @@
   "change": "静态文本支持Brotli/gzip协商传输；基准数据读取增加超时与有限自动重试；补齐默认站点图标，保持3D本体不变",
   "base": "v53.1",
   "build": {
-    "sourceCommit": "f8b4de6d5c5537c708d5ca39a5e826de6603eb7f",
-    "sourceDirty": true,
+    "sourceCommit": "5d761cb2fce74bb7a6cb62ac3f6c638e8c823ab8",
+    "sourceDirty": false,
     "sourceSha256": "2c2bfe6b70e4d7fb45f3bc9326712ee41c5404ba2284233ef497f2cd5e29ec86",
-    "builtAt": "2026-11-11T09:13:43.183Z",
+    "builtAt": "2026-11-11T09:32:27.709Z",
     "artifacts": [
       {
         "path": "/assets/CampusDay-_9Mtr7ln.css",
