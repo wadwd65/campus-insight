@@ -25,6 +25,7 @@ export function AccountProvider({ children }) {
       throw serviceFailure(html ? 'unavailable' : 'response', html ? '当前地址返回的是网页，没有提供可识别的账号服务。请联系网站管理员获取可用网址；个人测评和模拟示例仍可体验。' : '账号服务返回的内容暂时无法识别，尚不能确认是否可用。请稍后重新连接。');
     }
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw serviceFailure('response', '账号服务返回的内容暂时无法识别，尚不能确认是否可用。请稍后重新连接。');
+    if (response.status === 503 && (data.code === 'ACCOUNT_ORIGIN_REQUIRED' || /^上线前请配置 APP_ORIGIN/.test(data.error || ''))) throw serviceFailure('configuration', '本站账号服务尚未完成上线配置，暂时无法登录或注册。请联系网站管理员；个人问卷仍可使用。');
     if (!response.ok) {
       if (response.status === 401 && route !== '/login' && route !== '/password' && epoch === sessionEpoch.current) { csrf.current = null; setSession(s => ({ ...s, user: null, csrf: null })); }
       throw new Error(data.error || '操作失败，请稍后再试');

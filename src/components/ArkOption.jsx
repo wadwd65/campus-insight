@@ -76,7 +76,7 @@ export default function ArkOption({
       onClick={onClick}
       disabled={disabled}
       aria-pressed={active}
-      className={`group relative w-full text-left transition-all duration-200 ${
+      className={`answer-option group relative w-full text-left transition-all duration-200 ${
         active ? 'is-active' : ''
       } ${disabled ? 'opacity-40' : 'ci-lift cursor-pointer'}`}
     >
@@ -126,7 +126,7 @@ export default function ArkOption({
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline gap-2">
             <span
-              className="text-[16px] font-semibold leading-[1.5]"
+              className="answer-option-label text-[16px] font-semibold leading-[1.5]"
               style={{ color: active ? 'var(--accent-warm-deep)' : 'var(--ink-strong)' }}
             >
               {children}
@@ -142,7 +142,7 @@ export default function ArkOption({
           </span>
           {hint && (
             <span
-              className="mt-1 block text-[12.5px] leading-[1.7]"
+              className="answer-option-hint mt-1 block text-[12.5px] leading-[1.7]"
               style={{ color: active ? 'var(--accent-warm)' : 'var(--ink-soft)' }}
             >
               {hint}

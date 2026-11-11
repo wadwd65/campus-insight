@@ -157,6 +157,17 @@ try {
     const response = await fetch(`http://127.0.0.1:${secureServer.address().port}/api/campus/setup`, { method: 'POST', headers: { Origin: 'https://campus.example.test', 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'secure', displayName: 'HTTPS测试', password, setupToken }) });
     check('HTTPS 部署使用 Secure 主机专属 Cookie', () => { assert.equal(response.status, 200); assert.match(response.headers.get('set-cookie'), /^__Host-campus_sid=/); assert.match(response.headers.get('set-cookie'), /; Secure$/); assert.ok(!response.headers.get('set-cookie').includes('Domain=')); });
   } finally { secureServer.closeAllConnections(); await new Promise(resolve => secureServer.close(resolve)); secureHandler.close(); }
+  const unconfigured = createAccountHandler({dataDir:path.join(temporary,'missing-origin'),origin:''});
+  const unconfiguredServer = http.createServer((req,res)=>unconfigured(req,res,()=>res.end()));
+  await new Promise(resolve=>unconfiguredServer.listen(0,'127.0.0.1',resolve));
+  try {
+    const result=await new Promise((resolve,reject)=>{
+      http.get({hostname:'127.0.0.1',port:unconfiguredServer.address().port,path:'/api/campus/session',headers:{Host:'campus.example.test'}},response=>{
+        let body='';response.on('data',chunk=>body+=chunk);response.on('end',()=>resolve({status:response.statusCode,body:JSON.parse(body)}));
+      }).on('error',reject);
+    });
+    check('公网缺少来源配置时保持拒绝，并提供可识别的错误码',()=>{assert.equal(result.status,503);assert.equal(result.body.code,'ACCOUNT_ORIGIN_REQUIRED');});
+  } finally {unconfiguredServer.closeAllConnections();await new Promise(resolve=>unconfiguredServer.close(resolve));unconfigured.close();}
   console.log(`账号、邀请、权限隔离与持久化：${checks} 项通过`);
 } finally {
   if (server?.listening) await stop();

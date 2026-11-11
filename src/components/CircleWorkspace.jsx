@@ -25,7 +25,8 @@ function CircleSteps({ admin = false, submitted = false, hasMembers = false }) {
   const steps = admin
     ? [{ title: '圈子已建好', text: '你是这个圈子的管理员。', done: true }, { title: '邀请大家加入', text: '生成邀请，再把链接发给成员。', done: hasMembers }, { title: '查看收到的答卷', text: '成员确认提交后，这里会更新。', done: submitted }]
     : [{ title: '已经加入', text: '确认上方圈子名称是否正确。', done: true }, { title: '填写并核对十题', text: '可以暂停，答案不会自动交出。', done: submitted }, { title: '确认后交给管理员', text: '勾选共享同意，再点击提交。', done: submitted }];
-  return <ol className="circle-guide-steps" aria-label={admin ? '管理员操作步骤' : '成员填报步骤'}>{steps.map((step, index) => <li key={step.title} className={step.done ? 'is-complete' : ''}><span className="circle-step-number" aria-hidden="true">{step.done ? '✓' : index + 1}</span><div><strong>{step.title}</strong><small>{step.text}</small></div></li>)}</ol>;
+  const nextStep = steps.find(step => !step.done);
+  return <details className="circle-route-help"><summary><span>{nextStep ? `下一步：${nextStep.title}` : admin ? '已有答卷，可以查看收集结果' : '答卷已提交，可以回看或修改'}</span><small>查看操作路线</small></summary><ol className="circle-guide-steps" aria-label={admin ? '管理员操作步骤' : '成员填报步骤'}>{steps.map((step, index) => <li key={step.title} className={step.done ? 'is-complete' : ''}><span className="circle-step-number" aria-hidden="true">{step.done ? '✓' : index + 1}</span><div><strong>{step.title}</strong><small>{step.text}</small></div></li>)}</ol></details>;
 }
 
 function AdminMembers({ circle, members, busy, run, account, reload, setNotice }) {

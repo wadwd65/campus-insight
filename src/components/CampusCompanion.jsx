@@ -9,21 +9,24 @@ function viewport(){return {width:window.innerWidth,height:window.innerHeight};}
 function sizeOf(element){const box=element.getBoundingClientRect();return {width:Math.max(box.width,Math.min(138,window.innerWidth-16)),height:box.height};}
 
 export default function CampusCompanion({moving=false,notice,eggData=null,mode='entry'}){
-  const [folded,setFolded]=useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 850px)').matches),[step,setStep]=useState(0),[broken,setBroken]=useState(false),[showLine,setShowLine]=useState(false),[localBeat,setLocalBeat]=useState(0),[dismissedNotice,setDismissedNotice]=useState(null);
+  const [foldPreference,setFoldPreference]=useState(null);
+  const [compact,setCompact]=useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 850px)').matches);
+  const folded=foldPreference??compact;
+  const setFolded=value=>setFoldPreference(value);
+  const [step,setStep]=useState(0),[broken,setBroken]=useState(false),[showLine,setShowLine]=useState(false),[localBeat,setLocalBeat]=useState(0),[dismissedNotice,setDismissedNotice]=useState(null);
   const [position,setPosition]=useState(null),[dragging,setDragging]=useState(false),[bubblePosition,setBubblePosition]=useState(null),[viewportRevision,setViewportRevision]=useState(0);
   const [eggOpen,setEggOpen]=useState(false),[actionDone,setActionDone]=useState(false),[actionError,setActionError]=useState(false);
   const container=useRef(null),message=useRef(null),gesture=useRef(null),currentPosition=useRef(null),suppressClick=useRef(false),stamps=useRef([]);
   const foldedState=useRef(false);foldedState.current=folded;
   const noticeActive=Boolean(notice&&notice.id!==dismissedNotice),line=noticeActive?notice.text:(mode==='day'?DAY_LINES:LINES)[step%LINES.length];
-  useEffect(() => {
-    if (['quiz', 'report', 'circles', 'upload', 'cohort'].includes(mode)) setFolded(true);
-  }, [mode]);
-  useEffect(() => {
-    const smallScreen = window.matchMedia('(max-width: 850px)');
-    const foldOnSmallScreen = () => { if (smallScreen.matches) setFolded(true); };
-    smallScreen.addEventListener('change', foldOnSmallScreen);
-    return () => smallScreen.removeEventListener('change', foldOnSmallScreen);
-  }, []);
+  // Reading pages use CSS to avoid covering controls. Do not change the user's
+  // open/closed choice when navigating or resizing the window.
+  useEffect(()=>{
+    const query=window.matchMedia('(max-width: 850px)');
+    const update=()=>setCompact(query.matches);
+    query.addEventListener('change',update);
+    return()=>query.removeEventListener('change',update);
+  },[]);
 
   function place(next,persist=false){
     if(!container.current)return;
@@ -92,7 +95,7 @@ export default function CampusCompanion({moving=false,notice,eggData=null,mode='
     catch{setActionError(true);}
   }
   const dragEvents={onPointerDown:startDrag,onPointerMove:moveDrag,onPointerUp:finishDrag,onPointerCancel:event=>finishDrag(event,true),onLostPointerCapture:event=>finishDrag(event,true)};
-  return <aside ref={container} className={`campus-companion ${moving?'is-moving':'is-still'} ${folded?'is-folded':''} ${dragging?'is-dragging':''} ${position?'has-position':''}`} style={position?{left:position.x,top:position.y,right:'auto',bottom:'auto'}:undefined} aria-label="校园同行小人">
+  return <aside ref={container} data-mode={mode} className={`campus-companion ${moving?'is-moving':'is-still'} ${folded?'is-folded':''} ${dragging?'is-dragging':''} ${position?'has-position':''}`} style={position?{left:position.x,top:position.y,right:'auto',bottom:'auto'}:undefined} aria-label="校园同行小人">
     {folded?<button type="button" className="companion-reopen" onClick={()=>setFolded(false)}>打开同行小人 ↗</button>:<>
       <div className="companion-tools"><button type="button" className="companion-drag" {...dragEvents} onKeyDown={moveWithKeys} aria-label="移动小人：拖动或用方向键，Home归位" title="按住立绘拖动；也可用方向键微调">↔ 移动</button><button type="button" className="companion-reset" onClick={resetPosition} aria-label="小人回到原位">归位</button><button type="button" className="companion-hide" onClick={()=>{closeMessage();setFolded(true);}} aria-label="收起同行小人">收起 −</button></div>
       <button type="button" className="companion-hit" {...dragEvents} onClick={poke} aria-label="和同行小人打个招呼" title="按住拖动换位置；点一点，或许有惊喜">

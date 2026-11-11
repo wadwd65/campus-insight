@@ -50,23 +50,21 @@ export default function CircleAuth({ pendingInvite = '', onInviteHandled, onSkip
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }
   }
-  const previewSample = onPreviewSample && <div className="circle-sample-preview"><strong>想先看看收卷后的样子？</strong><p>可以先看一份模拟结果，了解圈子汇总能做什么。</p><button type="button" disabled={busy || sampleBusy} onClick={async () => { if (busy || sampleBusy) return; setPreviewFailure(''); try { await onPreviewSample(); } catch { setPreviewFailure('模拟示例暂时没能打开，请稍后再试。'); } }}>{sampleBusy ? <><span className="ui-spinner" /> 正在打开模拟示例…</> : '先看收卷后的模拟示例'}</button><p className="circle-sample-disclosure">仅展示合成示例，不是本站成员的在线答卷。你也可以直接注册，创建自己的圈子。</p>{(sampleError || previewFailure) && <p role="alert" className="circle-error">{sampleError || previewFailure}</p>}</div>;
+  const previewSample = onPreviewSample && <details className="circle-sample-preview"><summary>想先看看圈子汇总的样子？</summary><button type="button" disabled={busy || sampleBusy} onClick={async () => { if (busy || sampleBusy) return; setPreviewFailure(''); try { await onPreviewSample(); } catch { setPreviewFailure('模拟示例暂时没能打开，请稍后再试。'); } }}>{sampleBusy ? <><span className="ui-spinner" /> 正在打开模拟示例…</> : '先看收卷后的模拟示例'}</button><p className="circle-sample-disclosure">合成示例，仅用于了解汇总形式。</p>{(sampleError || previewFailure) && <p role="alert" className="circle-error">{sampleError || previewFailure}</p>}</details>;
   if (account?.status === 'loading') return <section className="circle-card circle-service-loading"><p role="status"><span className="ui-spinner" /> 正在连接账号服务…</p><p>不用等待连接，也可以先体验个人测评或查看模拟结果。</p>{onSkip && <button type="button" disabled={sampleBusy} onClick={onSkip}>先体验个人测评</button>}{previewSample}</section>;
-  if (!account || account.status === 'offline') return <section className="circle-card circle-offline"><p className="circle-eyebrow">圈子连接状态</p><h1>{account?.serviceError?.kind === 'unavailable' ? '这个地址暂不提供在线圈子' : '暂时无法确认圈子连接'}</h1><p role="alert">{account?.serviceError?.message || '暂时无法连接账号服务，可能是网络或服务异常。请重新连接，或向网站管理员确认可用网址。'}</p><p>个人测评和模拟示例仍可尝试。真实填报需要可用的账号服务，模拟示例不会代替真实收卷。</p><div className="circle-actions"><button disabled={sampleBusy || !account?.refresh} onClick={account?.refresh}>重新连接</button>{onSkip && <button disabled={sampleBusy} onClick={onSkip}>先体验个人测评</button>}</div>{previewSample}</section>;
+  if (!account || account.status === 'offline') return <section className="circle-card circle-offline"><p className="circle-eyebrow">账号连接状态</p><h1>{account?.serviceError?.kind === 'configuration' ? '账号服务暂未就绪' : account?.serviceError?.kind === 'unavailable' ? '这个地址暂不提供在线圈子' : '暂时无法连接账号服务'}</h1><p role="alert">{account?.serviceError?.message || '请检查网络，或向网站管理员确认可用网址。'}</p><div className="circle-actions"><button className="circle-primary" disabled={sampleBusy || !account?.refresh} onClick={account?.refresh}>重新连接</button>{onSkip && <button disabled={sampleBusy} onClick={onSkip}>先体验个人测评</button>}</div>{previewSample}</section>;
   return <div className="circle-auth-grid">
     <section className="circle-intro">
-      <p className="circle-eyebrow"><span className="circle-dot" /> CAMPUS CIRCLES / 校园里的我们</p>
-      <h1>每一种日常，<br />都值得被<span>看见。</span></h1>
-      <p className="auth-lead">从一个人的校园档案，<br className="auth-desktop-break" />到一群人的生活切面。</p>
+      <p className="circle-eyebrow"><span className="circle-dot" /> 班级与社团</p>
+      <h1>一起填写，<br />一起<span>记录。</span></h1>
+      <p className="auth-lead">加入班级、社团，或创建自己的圈子。</p>
+      {onSkip && <button type="button" className="auth-intro-skip" disabled={busy || sampleBusy} onClick={onSkip}>只想看个人档案？暂不登录 →</button>}
       <ArchiveIllustration />
-      <ol className="auth-steps"><li><b>01</b><span><strong>自己建圈，或受邀加入</strong><small>每个人都能成为自己圈子的管理员。</small></span></li><li><b>02</b><span><strong>十道选择，留下一份日常</strong><small>没有标准答案，提交前由你确认。</small></span></li><li><b>03</b><span><strong>汇成画像，理解彼此的不同</strong><small>管理员直接查看答卷与汇总，无需收文件。</small></span></li></ol>
     </section>
     <section className="circle-card auth-panel" aria-labelledby="auth-title">
-      <div className="auth-panel-top"><span className="auth-mark" aria-hidden="true">◎</span><span>校园生活档案<small>CAMPUS INSIGHT · 你的大学平行宇宙</small></span></div>
       <div className="auth-tabs" role="group" aria-label="账号入口"><button type="button" aria-pressed={mode === 'login'} disabled={busy || sampleBusy} onClick={() => changeMode('login')}>登录</button><button type="button" aria-pressed={mode === 'register'} disabled={busy || sampleBusy} onClick={() => changeMode('register')}>注册</button></div>
-      <p className="circle-eyebrow">{registering ? 'CREATE ACCOUNT / 欢迎加入' : 'WELCOME BACK / 好久不见'}</p>
       <h2 id="auth-title">{registering ? '注册账号' : '账号登录'}</h2>
-      <p className="auth-caption">{registering ? '自己设置账号和密码。每个人都可以创建圈子，管理自己收集的答卷。' : '已有账号直接登录。第一次来？切到“注册”，就能创建自己的圈子。'}</p>
+      <p className="auth-caption">{registering ? '设置账号和6～12位密码，再选择创建或加入圈子。' : '输入账号和密码。第一次来？点击上方“注册”。'}</p>
       {registering && <fieldset className="auth-register-choice"><legend>你想怎样开始？</legend><label><input type="radio" name="registration-choice" checked={registrationMode === 'create'} disabled={busy} onChange={() => { setRegistrationMode('create'); setError(''); setFieldError(null); onInviteHandled?.(); }} /><span>创建圈子，我当管理员</span></label><label><input type="radio" name="registration-choice" checked={registrationMode === 'join'} disabled={busy} onChange={() => { setRegistrationMode('join'); setError(''); setFieldError(null); }} /><span>使用邀请，加入已有圈子</span></label></fieldset>}
       {pendingInvite && <p className="circle-notice">邀请已带入。{registering ? '已有账号？切到「登录」即可，无需重新注册。' : '登录后确认加入，无需重新粘贴。'}</p>}
       <form key={actualMode} onSubmit={submit} onInput={() => { if (fieldError) setFieldError(null); if (error) setError(''); }} className="circle-form" aria-labelledby="auth-title" aria-busy={busy} noValidate>

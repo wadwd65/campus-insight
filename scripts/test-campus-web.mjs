@@ -198,9 +198,9 @@ test('近远裁剪面随取景距离分配深度精度，选中建筑不被近�
 test('手机竖屏、横屏及窄触屏均不启用3D，桌面正常启用',()=>{
   assert.equal(shouldUse3D({width:390,coarse:true}),false);assert.equal(shouldUse3D({width:844,coarse:true}),false);assert.equal(shouldUse3D({width:760}),false);assert.equal(shouldUse3D({width:1280}),true);
 });
-test('页面先加载轻量分流入口，3D引擎仅由桌面分支动态导入',()=>{
+test('保留旧模块分流单测；当前发布入口使用自包含桌面分流',()=>{
   const html=read('map-src/web/index.html'),boot=read('map-src/web/campus-boot.js');
-  assert.ok(html.includes('src="./campus-boot.js"'));assert.ok(!html.includes('src="./campus-app.js"'));assert.ok(!/import\s+['"].*three/.test(boot));assert.ok(boot.includes("await import('./campus-app.js')"));assert.ok(boot.indexOf('if(!desktop)')<boot.indexOf("await import('./campus-app.js')"));
+  assert.ok(!/<script[^>]*src=/i.test(html));assert.ok(html.includes('const desktop=eligible()'));assert.ok(html.includes('if(!desktop){revision++;cleanup?.()'));assert.ok(!/import\s+['"].*three/.test(boot));assert.ok(boot.includes("await import('./campus-app.js')"));assert.ok(boot.indexOf('if(!desktop)')<boot.indexOf("await import('./campus-app.js')"));
 });
 test('相机缩放、俯仰与平移均有边界；竖屏扩大取景距离',()=>{
   const v=constrainView({distance:-10,elevation:20,x:10000,z:-10000});assert.equal(v.distance,95);assert.ok(v.elevation<Math.PI/2);assert.equal(v.x,260);assert.equal(v.z,-260);assert.ok(fitDistance(.5)>fitDistance(1.5));

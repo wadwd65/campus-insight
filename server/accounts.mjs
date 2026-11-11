@@ -5,11 +5,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { QUESTIONS, MATRIX_VERSION, isKnownOption } from '../src/lib/surveySchema.js';
 import { privateDataDir } from './data-path.mjs';
+import { createClientAddressResolver } from './client-address.mjs';
 
 const scrypt = promisify(scryptCallback);
 const hash = value => createHash('sha256').update(value).digest('hex');
 const secret = () => randomBytes(32).toString('base64url');
-const fail = (status, message) => { throw Object.assign(new Error(message), { status }); };
+const fail = (status, message, code) => { throw Object.assign(new Error(message), { status, code }); };
 const safeEqual = (a, b) => typeof a === 'string' && typeof b === 'string' && Buffer.byteLength(a) === Buffer.byteLength(b) && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 const iso = value => value ? new Date(value).toISOString() : null;
 const publicUser = row => ({ id: row.id, username: row.username, displayName: row.display_name });
@@ -20,7 +21,8 @@ const passwordOf = value => typeof value === 'string' && value.length >= 6 && va
 const loginPasswordOf = value => typeof value === 'string' && value.length >= 1 && value.length <= 128 ? value : fail(400, '请输入密码');
 
 /** A single-server store; keep its directory on a persistent private disk when deployed. */
-export function createAccountHandler({ root = process.cwd(), dataDir = process.env.CAMPUS_DATA_DIR || path.join(root, '.campus-data'), setupToken = process.env.CAMPUS_SETUP_TOKEN, origin = process.env.APP_ORIGIN || '' } = {}) {
+export function createAccountHandler({ root = process.cwd(), dataDir = process.env.CAMPUS_DATA_DIR || path.join(root, '.campus-data'), setupToken = process.env.CAMPUS_SETUP_TOKEN, origin = process.env.APP_ORIGIN || '', trustedProxies = process.env.CAMPUS_TRUSTED_PROXIES || '' } = {}) {
+  const clientAddressOf = createClientAddressResolver(trustedProxies);
   dataDir = privateDataDir(root, dataDir);
   if (origin) {
     const url = new URL(origin);
@@ -136,20 +138,21 @@ export function createAccountHandler({ root = process.cwd(), dataDir = process.e
     let expectedOrigin = origin;
     if (!expectedOrigin) {
       const local = new URL(`http://${req.headers.host}`);
-      if (!['localhost', '127.0.0.1', '[::1]'].includes(local.hostname)) fail(503, '上线前请配置 APP_ORIGIN 为网站的 HTTPS 地址');
+      if (!['localhost', '127.0.0.1', '[::1]'].includes(local.hostname)) fail(503, '上线前请配置 APP_ORIGIN 为网站的 HTTPS 地址', 'ACCOUNT_ORIGIN_REQUIRED');
       expectedOrigin = local.origin;
     }
     if (req.headers.origin && req.headers.origin !== expectedOrigin) fail(403, '请求来源不匹配，请从本站操作');
     if (req.headers['sec-fetch-site'] === 'cross-site') fail(403, '请从本站操作');
     if (!['GET', 'POST', 'DELETE'].includes(method)) fail(405, '不支持此操作');
     if (method !== 'GET' && req.headers.origin !== expectedOrigin) fail(403, '请从本站操作');
-    rate(`all:${req.socket.remoteAddress}`, 240, 60000);
     const session = sessionFor(req);
+    const clientAddress = clientAddressOf(req);
+    rate(`all:${session ? `user:${session.id}` : `ip:${clientAddress}`}`, 240, 60000);
     if (pathname === '/api/campus/session' && method === 'GET') return { user: session ? publicUser(session) : null, csrf: session?.csrf || null, setupRequired: false };
     if (['/api/campus/setup', '/api/campus/login', '/api/campus/register'].includes(pathname) && method === 'POST') {
       // Shared school networks and reverse proxies may put many legitimate members on one IP.
-      rate(`auth:${req.socket.remoteAddress}`, 300, 15 * 60000);
-      if (pathname.endsWith('/setup')) rate(`setup:${req.socket.remoteAddress}`, 6, 15 * 60000);
+      rate(`auth:${clientAddress}`, 300, 15 * 60000);
+      if (pathname.endsWith('/setup')) rate(`setup:${clientAddress}`, 6, 15 * 60000);
       const b = await body(req);
       const username = usernameOf(b.username), password = pathname.endsWith('/login') ? loginPasswordOf(b.password) : passwordOf(b.password);
       rate(`name:${hash(username)}`, 8, 15 * 60000);
@@ -162,7 +165,7 @@ export function createAccountHandler({ root = process.cwd(), dataDir = process.e
       const displayName = nameOf(typeof rawName === 'string' ? rawName.trim() || username : rawName);
       const registrationMode = b.registrationMode ?? (b.invite ? 'join' : 'create');
       if (!['create', 'join'].includes(registrationMode)) fail(400, '请选择创建自己的圈子，或通过邀请加入已有圈子');
-      if (pathname.endsWith('/register') && registrationMode === 'create') rate(`create-account:${req.socket.remoteAddress}`, 20, 3600000);
+      if (pathname.endsWith('/register') && registrationMode === 'create') rate(`create-account:${clientAddress}`, 20, 3600000);
       if (pathname.endsWith('/setup')) {
         if (db.prepare('SELECT 1 FROM users LIMIT 1').get()) fail(409, '网站已初始化，请登录或使用邀请码注册');
         if (!setupHash) fail(410, '请直接选择注册并创建圈子，无需初始化口令');
@@ -255,7 +258,7 @@ export function createAccountHandler({ root = process.cwd(), dataDir = process.e
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     route(req, res).then(value => { if (!res.destroyed) { res.statusCode = 200; res.end(JSON.stringify(value)); } }).catch(error => {
-      if (!res.destroyed) { res.statusCode = error.status || 500; res.end(JSON.stringify({ error: error.status ? error.message : '服务器暂时无法处理，请稍后重试' })); }
+      if (!res.destroyed) { res.statusCode = error.status || 500; res.end(JSON.stringify({ error: error.status ? error.message : '服务器暂时无法处理，请稍后重试', ...(error.code === 'ACCOUNT_ORIGIN_REQUIRED' ? { code: error.code } : {}) })); }
     });
   };
   handler.close = () => db.close();

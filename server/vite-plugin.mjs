@@ -9,7 +9,7 @@ export function campusAi() {
   const attach = (server) => {
     const env = loadEnvironment({ root });
     server.middlewares.use(createDeploymentHandler({ root, env }));
-    const accounts = createAccountHandler({ root, dataDir: env.CAMPUS_DATA_DIR ? path.resolve(root, env.CAMPUS_DATA_DIR) : undefined, setupToken: env.CAMPUS_SETUP_TOKEN, origin: env.APP_ORIGIN });
+    const accounts = createAccountHandler({ root, dataDir: env.CAMPUS_DATA_DIR ? path.resolve(root, env.CAMPUS_DATA_DIR) : undefined, setupToken: env.CAMPUS_SETUP_TOKEN, origin: env.APP_ORIGIN, trustedProxies: env.CAMPUS_TRUSTED_PROXIES });
     server.middlewares.use(accounts);
     server.middlewares.use(createAiHandler(loadServerConfig({ root })));
     server.httpServer?.once('close', accounts.close);

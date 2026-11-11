@@ -1,9 +1,92 @@
 {
   "edition": "B",
-  "version": "v50",
+  "version": "v53.1",
   "theme": "校园行迹",
   "matrixVersion": 1,
-  "date": "2026-11-04",
-  "change": "问卷地图细节、地图缩放定位、校园一天时段天气与问卷衔接",
-  "base": "v49 + 20261102 flow fixes"
+  "date": "2026-11-11",
+  "change": "新手主线复查：桌面小人默认展开并保留手动状态，推荐问卷、可选校园一天与独立3D参观明确区分",
+  "base": "v53",
+  "build": {
+    "sourceCommit": "9391b0fcb60481a70d1ff7bf35489b33328d680d",
+    "sourceDirty": true,
+    "sourceSha256": "362ac0dce9774119fb47aee4e4f68f609ac7ee06abec45c7d16f4e05fb8aaaf4",
+    "builtAt": "2026-11-11T07:47:50.308Z",
+    "artifacts": [
+      {
+        "path": "/assets/CampusDay-BJHbO9E4.js",
+        "sha256": "3f5339ad9c556136dcb31fa669c28340849080e3c897bcf01513e070b6cc23ed",
+        "bytes": 17484
+      },
+      {
+        "path": "/assets/CampusDay-_9Mtr7ln.css",
+        "sha256": "2b0e443f0a658ae615629bb3ede4a616c68963a3745560980b116f646091b3a3",
+        "bytes": 16288
+      },
+      {
+        "path": "/assets/CampusStory-DInZUJfk.js",
+        "sha256": "8ef38853fbd8cc61a30a015d51bf2056e117b2f1f51844375262e67e2195bb90",
+        "bytes": 11344
+      },
+      {
+        "path": "/assets/CircleWorkspace-JqD_B_tz.js",
+        "sha256": "b689cdf59786ea8e089e10d64483453c202b93c50f0f011b2916a6bd9dfffea8",
+        "bytes": 41969
+      },
+      {
+        "path": "/assets/CohortPage-CV_q2YaA.js",
+        "sha256": "eb9304763fac1bec62d137d76199f8331de2df3e32b35e1b8aa174f2255deaad",
+        "bytes": 18721
+      },
+      {
+        "path": "/assets/CohortPage-M1VdDIrH.css",
+        "sha256": "ac0beadbc39ecc120de27949a50dc062ba532eb32ee5dea65b51636b09993c4f",
+        "bytes": 1277
+      },
+      {
+        "path": "/assets/DeploymentHelp-C9Dyh0mq.js",
+        "sha256": "5bca43aec98d860d2fa7b2d947c221cefc6ea3dd2326d315a164406df23ceb60",
+        "bytes": 6721
+      },
+      {
+        "path": "/assets/ReportView-DRLN-U7C.js",
+        "sha256": "50ec934a666f0fddde1e26b29ff76fb84659816e334eb1e95f600056382608e2",
+        "bytes": 48773
+      },
+      {
+        "path": "/assets/ReportView-DvGBZMCt.css",
+        "sha256": "b743534c50bfdec6a9b5c484a88a95e0948ae80aff72ae1c077a583e8f67c10f",
+        "bytes": 4746
+      },
+      {
+        "path": "/assets/index-Bb5VxaJN.css",
+        "sha256": "703837b3c6f0d40effba2aff13f9bf59cdd3960c9a7d834287a75774d9849823",
+        "bytes": 240085
+      },
+      {
+        "path": "/assets/index-ChFjMeYx.js",
+        "sha256": "ca6c2e1eb094de2c7bbd5b523ac339980f72ba42c52f581ce05728954ea2f49c",
+        "bytes": 522457
+      },
+      {
+        "path": "/assets/llm-DvL3C3mn.js",
+        "sha256": "7a271b2e237b2a252f4d154e07a694b91bc45f87985d2a6d068bd25ce1d5a433",
+        "bytes": 592338
+      },
+      {
+        "path": "/assets/surveySchema-dMlNZj-3.js",
+        "sha256": "cb6dac29093340d8381c63b0991033dacdec70f9cba42d881e1e5bc4e0e014b3",
+        "bytes": 7869
+      },
+      {
+        "path": "/index.html",
+        "sha256": "50f1d4b0d380ab61bc9aa22c89e8002e19011b5858b60a1df137153a06089941",
+        "bytes": 1687
+      },
+      {
+        "path": "/map/校园地图-3D实景.html",
+        "sha256": "5d7eb1621bc23987835e831a0780baea2564d51d999b49a293dd849028eaeb8b",
+        "bytes": 2808231
+      }
+    ]
+  }
 }

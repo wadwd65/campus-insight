@@ -58,8 +58,8 @@
       <div class="sidebar-heading"><span class="eyebrow">QINGCHUAN / A LITTLE CLOSER</span><h2>把校园，<br>慢慢逛一遍。</h2><p>枝叶间的阳光、浅色楼宇，和连廊旁可以停留的屋顶花园。</p></div>
       <nav class="presets" aria-label="校园取景"><button data-preset="overview" aria-pressed="true"><span>01</span>校园全景 <b>↗</b></button><button data-preset="lake" aria-pressed="false"><span>02</span>书香湖畔 <b>↗</b></button><button data-preset="teaching" aria-pressed="false"><span>03</span>教学街区 <b>↗</b></button><button data-preset="dorm" aria-pressed="false"><span>04</span>生活院落 <b>↗</b></button><button data-preset="sport" aria-pressed="false"><span>05</span>运动日常 <b>↗</b></button><button data-preset="plan" aria-pressed="false"><span>06</span>俯瞰核对 <b>↗</b></button></nav>
       <label class="place-picker">寻找一个地点<select id="place-picker" aria-label="选择校园建筑或地点"><option value="">选择地点…</option></select></label>
-      <section class="play-shortcuts" aria-label="可以进入的建筑"><span class="eyebrow">进去坐一会儿</span><div><button data-enter="lib">图书馆 ↗</button><button data-enter="teach-1">自习室 ↗</button><button data-enter="canteen">食堂 ↗</button><button id="roof-start">练二段跳 ↗</button></div><p>室内可走动；可练习跳上低屋顶。V切换视角看人物。</p></section>
-      <details class="settings"><summary>画面与操作 <span>＋</span></summary><div class="settings-body"><label>画面质量<select id="quality" aria-label="画面质量"><option value="low">省电</option><option value="balanced">标准</option><option value="high">清晰</option></select></label><label>天气 / 光照<select id="lighting" aria-label="天气与光照"><option value="daylight">晴朗 · 蓝天</option><option value="partly">薄云 · 柔光</option><option value="overcast">阴天 · 漫射</option><option value="golden">杏金 · 傍晚</option><option value="dusk">暮色 · 蓝调</option></select></label><button id="shade" aria-pressed="true">静态阴影 <span>开启</span></button><button id="shaders" aria-pressed="true">光影 <span>开启</span></button><label>日光方向<input id="sun" aria-label="日光方向" type="range" min="0" max="360" value="220"></label><button id="water-motion" aria-pressed="true">轻微水纹 <span>开启</span></button><button id="auto" aria-pressed="false">自动环绕 <span>关闭</span></button><button id="measure-fps">测量流畅度 · 6 秒</button><p id="fps-result">移动时显示实测帧率，静止时按需绘制。</p><p>鼠标拖拽旋转；右键或按住 Shift 拖拽平移；滚轮缩放。方向键转动，＋ / －缩放，Home 复位。第一人称中 WASD 行走、空格二段跳、V切换人物视角、E 查看建筑、Shift 快走、Esc 返回。小车默认车内第一人称，拖动看四周，V切换跟车视角；W/S前进倒车、A/D转弯、空格刹停、E下车。左侧可直接进入图书馆、自习室、食堂。三维场景仅在电脑端提供。</p><p>拖动时轻量绘制，停下后增强清晰度。标准和清晰档呈现细致枝叶、草坪与建筑层次，省电档简化几何。阴影固定显示，仅调整日光方向后更新。水纹轻缓变化，省电档或减少动态效果下保持静止。</p><p class="diagnostic" id="runtime" data-frames="0">正在准备场景…</p></div></details>
+      <section class="play-shortcuts" aria-label="可以进入的建筑"><span class="eyebrow">进去坐一会儿</span><div><button data-enter="lib">图书馆 ↗</button><button data-enter="teach-1">自习室 ↗</button><button data-enter="canteen">食堂 ↗</button><button id="roof-start">练二段跳 ↗</button></div><p>室内可走动；可练习跳上低屋顶。V切换观察视角。</p></section>
+      <details class="settings"><summary>画面与操作 <span>＋</span></summary><div class="settings-body"><label>画面质量<select id="quality" aria-label="画面质量"><option value="balanced">标准</option><option value="high">清晰</option></select></label><label>天气 / 光照<select id="lighting" aria-label="天气与光照"><option value="daylight">晴朗 · 蓝天</option><option value="partly">薄云 · 柔光</option><option value="overcast">阴天 · 漫射</option><option value="golden">杏金 · 傍晚</option><option value="dusk">暮色 · 蓝调</option></select></label><button id="shade" aria-pressed="true">静态阴影 <span>开启</span></button><button id="shaders" aria-pressed="true">光影 <span>开启</span></button><label>日光方向<input id="sun" aria-label="日光方向" type="range" min="0" max="360" value="220"></label><button id="water-motion" aria-pressed="true">轻微水纹 <span>开启</span></button><button id="auto" aria-pressed="false">自动环绕 <span>关闭</span></button><button id="measure-fps">测量流畅度 · 6 秒</button><p id="fps-result">移动时显示实测帧率，静止时按需绘制。</p><p>鼠标拖拽旋转；右键或按住 Shift 拖拽平移；滚轮缩放。方向键转动，＋ / －缩放，Home 复位。第一人称中 WASD 行走、空格二段跳、V切换人物视角、E 查看建筑、Shift 快走、Esc 返回。小车默认车内第一人称，拖动看四周，V切换跟车视角；W/S前进倒车、A/D转弯、空格刹停、E下车。左侧可直接进入图书馆、自习室、食堂。三维场景仅在电脑端提供。</p><p>拖动时轻量绘制，停下后增强清晰度。标准和清晰档呈现细致枝叶、草坪与建筑层次，省电档简化几何。阴影固定显示，仅调整日光方向后更新。水纹轻缓变化，省电档或减少动态效果下保持静止。</p><p class="diagnostic" id="runtime" data-frames="0">正在准备场景…</p></div></details>
       <p class="source-note">布局参考你提供的校园导览图。<br>建筑按功能重新设计，非实景复刻。位置人工标定，不用于导航。<br><a href="https://www.qcuwh.cn/info/1007/5212.htm" target="_blank" rel="noopener noreferrer">查看学校命名说明 ↗</a></p>
     </aside>
     <section class="viewport" aria-label="交互式三维校园">
@@ -141,8 +141,20 @@ function clipPlanes(distance){
   distance=clamp(Number.isFinite(distance)?distance:650,95,1550);
   return {near:distance*.1,far:Math.max(1200,distance+750)};
 }
-function initialQuality({ coarse=false, memory=8, reduced=false }={}) {
-  return coarse || memory<=4 || reduced ? 'low' : memory>=8 ? 'high' : 'balanced';
+function initialQuality({ coarse=false, memory=8, reduced=false, software=false }={}) {
+  /* 11-10 晚：软件光栅（预览面板常走 SwiftShader / 基本渲染器）直接进省电档。
+     这类环境没有硬件 WebGL，按 60fps 跑 350 万像素 + 4×MSAA 必卡死。 */
+  /* 11-11：省电档已取消，最低只到标准档（实心低模树冠=方块，用户不接受）。 */
+  return (!software && !coarse && !reduced && memory>=8) ? 'high' : 'balanced';
+}
+/* 读出真实的 WebGL 渲染器名，判断是不是软件光栅。 */
+function gpuIsSoftware(renderer) {
+  try {
+    const gl=renderer.getContext();
+    const ext=gl.getExtension('WEBGL_debug_renderer_info');
+    const name=String((ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER))||'');
+    return /swiftshader|llvmpipe|basic render|software|offscreen/i.test(name);
+  } catch { return false; }
 }
 function constrainView(view) {
   return { ...view, elevation:clamp(view.elevation,.28,1.45), distance:clamp(view.distance,95,1550),
@@ -238,13 +250,14 @@ function waterMotionAllowed({enabled=true,quality='balanced',memory=8,reduced=fa
 
 // One wakeup at a time. A full camera render resets the deadline, so water never
 // adds another animation loop while the user is moving around the campus.
-function createWaterClock({isAllowed,render,schedule=setTimeout,cancel=clearTimeout}){
+function createWaterClock({isAllowed,render,interval=WATER_INTERVAL_MS,schedule=setTimeout,cancel=clearTimeout}){
   let timer=null,revision=0,disposed=false;
   function stop(){revision++;if(timer!==null)cancel(timer);timer=null;}
   function sync(){
     stop();if(disposed||!isAllowed())return;
     const token=revision;
-    timer=schedule(()=>{if(disposed||token!==revision)return;timer=null;if(isAllowed())render();},WATER_INTERVAL_MS);
+    const delay=typeof interval==='function'?interval():interval;
+    timer=schedule(()=>{if(disposed||token!==revision)return;timer=null;if(isAllowed())render();},delay);
   }
   return {sync,stop,get active(){return timer!==null;},dispose(){disposed=true;stop();}};
 }
@@ -253,7 +266,9 @@ function createWaterClock({isAllowed,render,schedule=setTimeout,cancel=clearTime
 // changes very slightly; no reflection target, extra mesh or texture upload.
 function createWaterMaterial(T,map=null){
   const time={value:0};
-  const material=new T.MeshPhongMaterial({color:0xffffff,map,shininess:48,specular:0x44483c});
+  /* 11-10：半透明清水。透明度交给 opacity，湖底由独立的 lakebed 层承担，
+       清澈感来自真实的下层颜色，而不是把贴图调白。 */
+  const material=new T.MeshPhongMaterial({color:0xffffff,map,shininess:34,specular:0x0a0f0c,transparent:true,opacity:.78,depthWrite:false});
   material.userData.rippleTime=time;
   material.onBeforeCompile=shader=>{
     shader.uniforms.campusWaterTime=time;
@@ -339,7 +354,17 @@ function createVegetationGeometries(T){
     const l=base.clone().addScaledVector(across,w),r0=base.clone().addScaledVector(across,-w),ml=mid.clone().addScaledVector(across,w*.65),mr=mid.clone().addScaledVector(across,-w*.65),color=[.66+grassRand()*.19,.8+grassRand()*.2,.53+grassRand()*.14];
     grass.triangle(l,r0,mr,color);grass.triangle(l,mr,ml,color);grass.triangle(ml,mr,tip,color,[.92,1,.72]);
   }
-  return {treeSoft:crown(0),treeRound:crown(2),treeColumn:crown(1),treeSoftLow:crown(0,false),treeRoundLow:crown(2,false),treeColumnLow:crown(1,false),trunk:wood.finish(),trunkLow:new T.CylinderGeometry(.055,.15,1,7),tree:shrub.finish(),treeLow:new T.IcosahedronGeometry(1,1),grass:grass.finish()};
+  /* 11-10：低模几何必须自带 color 属性。
+     trunkLow / treeLow 是裸的 Cylinder/Icosahedron，而 trunk、foliage 材质开了
+     vertexColors —— 缺 color 时 WebGL 取默认 (0,0,0)，省电档整棵树会渲染成纯黑。
+     这里补一层中性顶点色，实例色与材质色照常相乘。 */
+  const tint=(geometry,r=.94,g=1,b=.84)=>{
+    const count=geometry.attributes.position.count,values=new Float32Array(count*3);
+    for(let i=0;i<count;i++){values[i*3]=r;values[i*3+1]=g;values[i*3+2]=b;}
+    geometry.setAttribute('color',new T.BufferAttribute(values,3));
+    return geometry;
+  };
+  return {treeSoft:crown(0),treeRound:crown(2),treeColumn:crown(1),treeSoftLow:crown(0,false),treeRoundLow:crown(2,false),treeColumnLow:crown(1,false),trunk:wood.finish(),trunkLow:tint(new T.CylinderGeometry(.055,.15,1,7)),tree:shrub.finish(),treeLow:tint(new T.IcosahedronGeometry(1,1)),grass:grass.finish()};
 }
 
 // Add actual reveals and sills to the existing atlas geometry. These are shared
@@ -557,12 +582,28 @@ function libraryGlassTexture(c,w,h){
   for(let y=0;y<h;y+=ch){c.fillStyle='#d8d1b9';c.fillRect(0,y,w,3);c.fillStyle='#777e6e55';c.fillRect(0,y+3,w,2);}
 }
 function waterTexture(c,w,h){
-  const g=c.createRadialGradient(w*.52,h*.45,15,w*.52,h*.45,w*.7);g.addColorStop(0,'#497869');g.addColorStop(.55,'#698d7a');g.addColorStop(1,'#a5b59a');c.fillStyle=g;c.fillRect(0,0,w,h);
+  const g=c.createRadialGradient(w*.52,h*.45,15,w*.52,h*.45,w*.7);g.addColorStop(0,'#1d5058');g.addColorStop(.55,'#2b6b6b');g.addColorStop(1,'#44897f');c.fillStyle=g;c.fillRect(0,0,w,h);
   for(let i=0;i<70;i++){
     const x=(Math.sin(i*9.73)*.5+.5)*w,y=(Math.sin(i*4.81+2)*.5+.5)*h,length=12+(i*19%65);
     c.strokeStyle=`rgba(234,232,195,${.025+i%4*.012})`;c.lineWidth=1+i%2*.4;c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x+length*.5,y-2,x+length,y);c.stroke();
   }
   const reflection=c.createRadialGradient(w*.35,h*.25,0,w*.35,h*.25,w*.55);reflection.addColorStop(0,'#dfe6c929');reflection.addColorStop(1,'#dfe6c900');c.fillStyle=reflection;c.fillRect(0,0,w,h);
+}
+/* 11-10：湖底。水体改成半透明后需要一层真实的湖床，否则会直接透出草地。 */
+function lakebedTexture(c,w,h){
+  c.fillStyle='#7a8268';c.fillRect(0,0,w,h);
+  for(let i=0;i<26;i++){
+    const x=(Math.sin(i*7.7)*.5+.5)*w,y=(Math.sin(i*3.3+1.1)*.5+.5)*h,r=w*(.08+(i%4)*.05);
+    const g=c.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,i%3?'rgba(150,160,120,.22)':'rgba(88,82,56,.20)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2);
+  }
+  for(let i=0;i<150;i++){
+    const x=(Math.sin(i*5.13)*.5+.5)*w,y=(Math.sin(i*8.41+2.2)*.5+.5)*h,r=1.2+(i%5)*.9;
+    c.fillStyle=i%3?'rgba(126,120,96,.30)':'rgba(160,154,124,.28)';
+    c.beginPath();c.ellipse(x,y,r,r*.72,i*.7,0,Math.PI*2);c.fill();
+  }
 }
 function timberTexture(c,w,h){c.fillStyle='#b89870';c.fillRect(0,0,w,h);for(let y=0;y<h;y+=16){c.fillStyle=y%32?'#d3b68b':'#c4a47c';c.fillRect(0,y,w,14);c.fillStyle='#796548';c.fillRect(0,y+14,w,2);for(let n=0;n<5;n++){c.strokeStyle='#856b4826';c.beginPath();c.moveTo(0,y+2+n*2);c.bezierCurveTo(w*.3,y+n*2,w*.65,y+7+n,w,y+2+n*2);c.stroke();}}}
 function contactTexture(c,w,h){c.clearRect(0,0,w,h);const g=c.createRadialGradient(w/2,h/2,0,w/2,h/2,w/2);g.addColorStop(0,'rgba(255,255,255,.85)');g.addColorStop(.5,'rgba(255,255,255,.45)');g.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=g;c.fillRect(0,0,w,h);}
@@ -1005,6 +1046,7 @@ function buildCampusScene(T,data,textures={}) {
     gap:new T.MeshLambertMaterial({color:0x6d7066}),
     shoreOuter:new T.MeshLambertMaterial({color:0x7f9265}),
     shoreWet:new T.MeshLambertMaterial({color:0x55654f}),
+    lakebed:new T.MeshLambertMaterial({color:0xffffff,map:textures.lakebed||null}),
     brickLife:new T.MeshLambertMaterial({color:0xffdfae,map:textures.dorm||null,normalMap:textures.dormNormal||null,normalScale:new T.Vector2(.85,.85)}),
     brickPublic:new T.MeshLambertMaterial({color:0xcfe2f2,map:textures.teaching||null,normalMap:textures.teachingNormal||null,normalScale:new T.Vector2(.85,.85)}),
     roofLife:new T.MeshLambertMaterial({color:0xdcc9ac,map:textures.roofMetal||null}),
@@ -1044,6 +1086,22 @@ function buildCampusScene(T,data,textures={}) {
     basketball:new T.MeshLambertMaterial({color:0xffffff,map:textures.basketball||null}),
     badminton:new T.MeshLambertMaterial({color:0xffffff,map:textures.badminton||null}),
   };
+  /* 11-11：叶片透光补光（只给高画质的裁切叶片树冠）。
+     Lambert 只算直接光，叶背与树冠内部只剩半球环境光；树冠一密，远看就是一团近黑。
+     真实叶片是半透的 —— 这里按材质自身反照率补一层透射项，颜色仍随实例色、顶点色
+     与贴图走，所以金黄/枫红的树不会被染成灰绿，受光面的明暗层次也还在。
+     省电档的 canopyLow 是实心低模、面朝外且完整受光，不存在"叶背"问题，
+     因此不给它加这道程序 —— 少一个 shader program、少一条逐像素加法。 */
+  {
+    const material=materials.canopy;
+    material.onBeforeCompile=shader=>{
+      shader.fragmentShader=shader.fragmentShader.replace(
+        '#include <output_fragment>',
+        'outgoingLight += diffuseColor.rgb * 0.40;\n#include <output_fragment>'
+      );
+    };
+    material.customProgramCacheKey=()=>'campus-foliage-translucency-v2';
+  }
   const dummy=new T.Object3D();
   let frame=null;
   const coord=(px,py)=>[(px-data.transform.ox)*data.transform.k,(py-data.transform.oz)*data.transform.k];
@@ -1119,6 +1177,7 @@ function buildCampusScene(T,data,textures={}) {
   flatShape(data.lake,.34,'shoreOuter',1.062);
   flatShape(data.lake,.42,'shoreWet',1.028);
   flatShape(data.lake,.46,'curb',1.008);
+  flatShape(data.lake,.50,'lakebed');
   const water=flatShape(data.lake,.55,'water');
   water.geometry.computeBoundingBox();
   const wb=water.geometry.boundingBox,wp=water.geometry.attributes.position,wu=water.geometry.attributes.uv;
@@ -3462,7 +3521,7 @@ async function startCampus() {
 const T=globalThis.THREE,$=id=>document.getElementById(id),host=$('scene'),loading=$('loading');
 T.ColorManagement.legacyMode=false;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)'),coarse=matchMedia('(pointer: coarse)');
-const state={disposed:false,contextLost:false,frame:0,frames:0,auto:false,flight:null,lastTime:0,selected:null,labels:true,slowFrames:0,dragging:false,interactionUntil:0,settleTimer:0,raster:null,waterEnabled:true,waterVisible:false,waterTick:false,waterFrames:0,waterPhase:0,lastWaterTime:0,waterSlowFrames:0,waterBudgetPaused:false,benchmark:null,moveScale:1,fastWindows:0};
+const state={disposed:false,contextLost:false,frame:0,frames:0,auto:false,flight:null,lastTime:0,selected:null,labels:true,slowFrames:0,dragging:false,interactionUntil:0,settleTimer:0,raster:null,waterEnabled:true,waterVisible:false,waterTick:false,waterFrames:0,waterPhase:0,lastWaterTime:0,waterSlowFrames:0,waterBudgetPaused:false,waterInterval:250,lastWaterFrameAt:0,benchmark:null,moveScale:1,fastWindows:0};
 let renderer,campus,scene,camera,sun,fillLight,ambientLight,post=null,wantPost=null,staticShadow,waterClock,atmosphere,resizeObserver,view,defaultView,qualityName,layout,selectionOutline,walkWorld,walkControls,walking=null,walkReturn=null,landmarks=[];
 const frameMeter=createFrameMeter();let walkFocus=null,walkCardPlace=null,lastFocusCheck=-Infinity;
 let car=null,carModel=null,driving=false,interior=null,pedestrianWorld=null;
@@ -3487,7 +3546,13 @@ function lakeInView(){
   }
   return left<1&&right>-1&&bottom<1&&top>-1;
 }
-function canMoveWater(){return waterMotionAllowed({enabled:state.waterEnabled,quality:qualityName,memory:deviceMemory,reduced:reduced.matches,hidden:document.hidden,visible:state.waterVisible,disposed:state.disposed,contextLost:state.contextLost,budgetPaused:state.waterBudgetPaused});}
+/* 11-10 晚：水面只在「本来就在出帧」的时候动。
+   旧逻辑是相机静止也每 250ms 主动重绘整帧 —— 在弱 GPU 上这就是持续占满、页面卡死。
+   现在没有任何定时出帧：拖动/环绕/漫游/飞行时水照常流动，一停手就定格，GPU 立刻归零。 */
+function sceneProducingFrames(){
+  return !!(state.dragging||state.auto||state.flight||state.benchmark||walkNeedsFrame()||(walking&&performance.now()<state.interactionUntil));
+}
+function canMoveWater(){return sceneProducingFrames()&&waterMotionAllowed({enabled:state.waterEnabled,quality:qualityName,memory:deviceMemory,reduced:reduced.matches,hidden:document.hidden,visible:state.waterVisible,disposed:state.disposed,contextLost:state.contextLost,budgetPaused:state.waterBudgetPaused});}
 function updateWaterControl(){
   const forced=qualityName==='low'||deviceMemory<=4||reduced.matches||state.waterBudgetPaused;
   $('water-motion').disabled=forced;$('water-motion').setAttribute('aria-pressed',String(state.waterEnabled&&!forced));
@@ -3514,9 +3579,9 @@ function walkNeedsFrame(){return !!walking&&((!!walkControls&&hasWalkInput(walkC
 function setGuideOpen(open){$('toggle-guide').setAttribute('aria-expanded',String(open));$('toggle-guide').textContent=open?'收起导览 −':'展开导览 ＋';$('campus-guide').hidden=!open;document.querySelector('.explorer').classList.toggle('guide-collapsed',!open);}
 function updateWalkHint(){
   const locked=!!walkControls?.locked;$('walk-lock').setAttribute('aria-pressed',String(locked));$('walk-lock').textContent=locked?'释放鼠标':'自由转向';
-  $('walk-hint').textContent=driving?'W/S 前进倒车 · A/D 转弯 · 空格刹停 · E 下车 · V 切换视角':interior?'WASD 行走 · 空格二段跳 · V 看人物 · 门边 E 返回校园':locked?'WASD 行走 · 空格二段跳 · V 切换视角 · E 交互 · Esc 释放鼠标':'WASD 行走 · 拖动转向 · 空格二段跳 · V 切换视角 · Shift 快走';
+  $('walk-hint').textContent=driving?'W/S 前进倒车 · A/D 转弯 · 空格刹停 · E 下车 · V 切换视角':interior?'WASD 行走 · 空格二段跳 · V 切换视角 · 门边 E 返回校园':locked?'WASD 行走 · 空格二段跳 · V 切换视角 · E 交互 · Esc 释放鼠标':'WASD 行走 · 拖动转向 · 空格二段跳 · V 切换视角 · Shift 快走';
   $('drive-toggle').textContent=driving?'下车 E':'开小车';$('drive-toggle').setAttribute('aria-pressed',String(driving));$('drive-toggle').disabled=!!interior;
-  $('interior-exit').hidden=!interior;$('walk-jump').textContent=driving?'刹停 Space':'二段跳 Space';$('walk-mode').textContent=driving?(carView==='first'?'车内驾驶':'跟车驾驶'):interior?'室内参观':walkView==='third'?'人物漫游':'地面漫游';
+  $('interior-exit').hidden=!interior;$('walk-jump').textContent=driving?'刹停 Space':'二段跳 Space';$('walk-jump').title=driving?'按空格刹停小车':'按空格起跳，接近最高点再按一次';$('walk-mode').textContent=driving?(carView==='first'?'车内驾驶':'跟车驾驶'):interior?'室内参观':walkView==='third'?'第三人称漫游':'地面漫游';
   $('walk-lock').disabled=driving&&carView==='third';$('walk-crosshair').hidden=!walking||driving;
   $('view-toggle').textContent=driving?(carView==='first'?'跟车视角 V':'车内视角 V'):walkView==='first'?'第三人称 V':'第一人称 V';
   if(walking)renderer.domElement.setAttribute('aria-label','校园漫游。'+$('walk-hint').textContent+'。回到湖畔可返回地面。');
@@ -3569,7 +3634,7 @@ function escapeWalk(){if(walkCardPlace)closeWalkCard();else if(interior)exitInte
 function exitDrive(){
   if(!driving)return true;car.speed=0;const pose=vehicleExit(walkWorld,car);
   if(!pose){$('announce').textContent='车旁暂时没有空位，请开到宽一点的地方，或点击回到湖畔。';requestRender();return false;}
-  driving=false;walking=pose;walkControls.clear();walkControls.releaseLock();lastFocusCheck=-Infinity;updateWalkHint();renderer.domElement.focus({preventScroll:true});requestRender();return true;
+  driving=false;walking=pose;$('announce').textContent='已停好小车，现在可以继续步行。';walkControls.clear();walkControls.releaseLock();lastFocusCheck=-Infinity;updateWalkHint();renderer.domElement.focus({preventScroll:true});requestRender();return true;
 }
 function enterDrive(){
   if(interior){$('announce').textContent='先返回校园，再开小车。';return;}
@@ -3610,7 +3675,7 @@ function enterWalk(place=null){
   $('walk-toggle').setAttribute('aria-pressed','true');$('walk-toggle').textContent='退出漫游';$('walk-toolbar').hidden=false;$('walk-crosshair').hidden=false;$('orbit-hint').hidden=true;$('walk-hint').hidden=false;$('labels').hidden=true;
   document.querySelectorAll('[data-preset]').forEach(b=>b.setAttribute('aria-pressed','false'));setGuideOpen(false);updateWalkHint();
   renderer.domElement.setAttribute('role','application');renderer.domElement.focus({preventScroll:true});
-  $('announce').textContent='已进入第一人称。WASD 行走，空格二段跳，V切换第三人称看人物，E查看建筑，Escape返回。';requestRender();
+  $('announce').textContent='已进入第一人称。WASD 行走，空格二段跳，V切换第三人称视角，E查看建筑，Escape返回。';requestRender();
 }
 function leaveWalk({focus=true}={}){
   if(interior)exitInterior();driving=false;if(car)car.speed=0;
@@ -3679,6 +3744,16 @@ function render(time){
   /* 2026-11-04 性能补丁：只有水面在动时，按 14fps 出帧，且用移动档分辨率 */
   {const busy=state.auto||state.flight||state.benchmark||walkNeedsFrame()||state.dragging||time<state.interactionUntil;
    if(!busy&&state.waterTick){if(time-(state.lastWaterPaint||0)<70){state.waterTick=false;requestRender();return;}state.lastWaterPaint=time;}}
+  /* 11-10：水面是唯一会「相机不动也持续出整帧」的东西。弱 GPU 上一帧要几百毫秒，
+     固定 250ms 出帧就等于一直把 GPU 占满。这里按真实出帧间隔自适应降频：
+     一帧越慢，下次间隔越长（最多 1.5s）；恢复流畅后自动回到 250ms。 */
+  {const waterOnly=!!state.waterTick&&!state.dragging&&!state.auto&&!state.flight&&!state.benchmark&&!walkNeedsFrame();
+   if(waterOnly){const previous=state.lastWaterFrameAt;state.lastWaterFrameAt=time;
+     if(previous){const gap=time-previous;
+       if(gap>420)state.waterInterval=Math.min(1500,Math.max(420,Math.round(gap*1.6)));
+       else if(gap<330)state.waterInterval=Math.max(250,Math.round(state.waterInterval*.85));}}
+   else {state.lastWaterFrameAt=0;
+     if(state.dragging||state.auto||state.flight||state.benchmark||time<state.interactionUntil)state.waterInterval=250;}}
   /* 11-08：只有「相机真的在动」才降采样；水面动画(waterTick)属于画面动、
       相机不动，不该把静止帧长期压在 moveDpr。静止回到 high 的 dpr=2。 */
    const cameraMoving=!!(state.auto||state.flight||state.benchmark||walkNeedsFrame()||state.dragging||time<state.interactionUntil);
@@ -3728,7 +3803,7 @@ function render(time){
    wd.last=tNow;
    if(!wd.done&&!PIN_Q&&wd.n>=WD_N){
      const avg=wd.sum/wd.n;wd.sum=0;wd.n=0;
-     if(avg>WD_T&&qualityName!=='low'){setQuality(qualityName==='high'?'balanced':'low');}
+     if(avg>WD_T&&qualityName!=='balanced'){setQuality('balanced');}
      else if(avg<=42){wd.done=true;}
    }}
   const before=performance.now();/* 11-08：此前只传两参 ⇒ sunWorld=undefined ⇒ sunVis=0 ⇒ 光轴恒为 0。
@@ -3739,7 +3814,7 @@ function render(time){
   waterClock?.sync();
   const foreground=document.hasFocus()&&!document.hidden,continuous=!!(state.auto||state.flight||state.benchmark||walkNeedsFrame()||(walking&&time<state.interactionUntil)),stats=frameMeter.frame(time,continuous&&foreground);
   if(state.benchmark)state.benchmark.foreground&&=foreground;
-  if(stats){
+  if(stats&&!state.dragging){
     $('frame-meter').textContent=stats.suspectedThrottle?'疑似后台节流 · 请激活预览':stats.fps.toFixed(0)+' FPS';$('runtime').dataset.fps=stats.fps.toFixed(1);$('runtime').dataset.frameP95=stats.p95.toFixed(1);
     if(state.benchmark&&stats.suspectedThrottle)state.benchmark.suspectedThrottle=true;
     if(!stats.suspectedThrottle&&qualityName!=='low'&&(!state.benchmark||time-state.benchmark.start>=2000)){if(stats.fps<48&&stats.frames>=8){state.moveScale=Math.max(.85,state.moveScale*.9);state.fastWindows=0;}else if(stats.fps>57&&++state.fastWindows>=3){state.moveScale=Math.min(1,state.moveScale+.05);state.fastWindows=0;}}
@@ -3748,10 +3823,10 @@ function render(time){
   const info=renderer.info;
   Object.assign($('runtime').dataset,{playMode:interior?'interior':driving?'drive':walking?'walk':'orbit',interior:interior?.place.key||'',vehicleSpeed:car?car.speed.toFixed(2):'0',personView:driving?carView:walkView,jumpsUsed:String(walking?.jumpsUsed||0),onRoof:String(!!walking?.onRoof),roofKey:walking?.roofKey||''});
   $('jump-status').hidden=!walking||driving;$('jump-status').textContent=walking?.onRoof?'屋顶已站稳 · 空格可继续跳':'跳跃 '+Math.max(0,2-(walking?.jumpsUsed||0))+'/2 · 接近最高点再跳一次';
-  Object.assign($('runtime').dataset,{frames:String(state.frames),calls:String(info.render.calls),triangles:String(info.render.triangles),geometries:String(info.memory.geometries),textures:String(info.memory.textures),quality:qualityName,cameraMode:walking?'walk':'orbit',walkX:walking?walking.x.toFixed(2):'',walkZ:walking?walking.z.toFixed(2):'',walkY:walking?walking.y.toFixed(3):'',airborne:String(!!walking?.airborne),walkTarget:walkFocus?.key||'',visibleInstances:String(campus.metrics.visibleInstances),moveScale:state.moveScale.toFixed(2),pageFocused:String(foreground),pointerLocked:String(!!walkControls?.locked),continuous:String(!!(state.auto||state.flight||state.benchmark||walkNeedsFrame()||waterClock?.active)),waterMode:canMoveWater()?'gentle':'still',waterVisible:String(state.waterVisible),waterFrames:String(state.waterFrames),waterPhase:state.waterPhase.toFixed(3),waterIntervalMs:'250',waterPending:String(!!waterClock?.active),shadowMode:'static-atlas',shadowY:String(staticShadow?.layer.position.y),shadowOpacity:String(staticShadow?.material.opacity),shadowOn:String(!!staticShadow?.layer.visible),groundY:String(campus.ground.position.y),detail:campus.metrics.detail,grassTufts:String(campus.metrics.grassTufts),skyBakes:String(atmosphere?.revision||0),shadowBakes:String(staticShadow?.bakes||0),renderMs:elapsed.toFixed(1),rasterMode:state.raster.mode,dpr:String(state.raster.dpr),bufferWidth:String(state.raster.pixelWidth),bufferHeight:String(state.raster.pixelHeight)});
+  Object.assign($('runtime').dataset,{frames:String(state.frames),calls:String(info.render.calls),triangles:String(info.render.triangles),geometries:String(info.memory.geometries),textures:String(info.memory.textures),quality:qualityName,cameraMode:walking?'walk':'orbit',walkX:walking?walking.x.toFixed(2):'',walkZ:walking?walking.z.toFixed(2):'',walkY:walking?walking.y.toFixed(3):'',airborne:String(!!walking?.airborne),walkTarget:walkFocus?.key||'',visibleInstances:String(campus.metrics.visibleInstances),moveScale:state.moveScale.toFixed(2),pageFocused:String(foreground),pointerLocked:String(!!walkControls?.locked),continuous:String(!!(state.auto||state.flight||state.benchmark||walkNeedsFrame()||waterClock?.active)),waterMode:canMoveWater()?'gentle':'still',waterVisible:String(state.waterVisible),waterFrames:String(state.waterFrames),waterPhase:state.waterPhase.toFixed(3),waterIntervalMs:String(state.waterInterval),waterPending:String(!!waterClock?.active),shadowMode:'static-atlas',shadowY:String(staticShadow?.layer.position.y),shadowOpacity:String(staticShadow?.material.opacity),shadowOn:String(!!staticShadow?.layer.visible),groundY:String(campus.ground.position.y),detail:campus.metrics.detail,grassTufts:String(campus.metrics.grassTufts),skyBakes:String(atmosphere?.revision||0),shadowBakes:String(staticShadow?.bakes||0),renderMs:elapsed.toFixed(1),rasterMode:state.raster.mode,dpr:String(state.raster.dpr),bufferWidth:String(state.raster.pixelWidth),bufferHeight:String(state.raster.pixelHeight)});
   $('runtime').textContent=`${walking?'第一人称 · ':''}${state.raster.mode==='moving'?'轻量交互':'静止清晰'} · ${state.raster.pixelWidth} × ${state.raster.pixelHeight} · ${campus.metrics.placeGroups} 处地点`;
   if(elapsed>45)state.slowFrames++;else state.slowFrames=Math.max(0,state.slowFrames-1);
-  if(state.slowFrames>=12&&qualityName!=='low'){setQuality(qualityName==='high'?'balanced':'low');$('announce').textContent='已降低画面质量，以减少设备负担。';state.slowFrames=0;}
+  if(state.slowFrames>=12&&qualityName!=='balanced'){setQuality('balanced');$('announce').textContent='已降低画面质量，以减少设备负担。';state.slowFrames=0;}
   if(state.auto||state.flight||state.benchmark||walkNeedsFrame()||(fishing&&fishing.needsFrame()))requestRender();
 }
 function stopMotion(){if(state.benchmark)finishBenchmark(false);state.auto=false;state.flight=null;$('auto').setAttribute('aria-pressed','false');$('auto').querySelector('span').textContent='关闭';}
@@ -3784,14 +3859,17 @@ function setPreset(name){
 /* __DEV_LOW 10-31 低端设备自动降档：内存/核心数/网络类型任一命中就走省电档。
    桌面默认仍是"标准/清晰"，不影响正常体验。?q=high 可强制锁定档位（调试用）。 */
 const PIN_Q=new URLSearchParams(location.search).get('q');
-const _USP=new URLSearchParams(location.search);const WD_N=Number(_USP.get('wdn'))||90;const WD_T=Number(_USP.get('wdt'))||42;
+const _USP=new URLSearchParams(location.search);const WD_N=Number(_USP.get('wdn'))||60;const WD_T=Number(_USP.get('wdt'))||42;
 const DEV_LOW=(()=>{try{
   const m=navigator.deviceMemory||8, c=navigator.hardwareConcurrency||8;
   const et=(navigator.connection&&navigator.connection.effectiveType)||'4g';
   return m<=4||c<=4||/(^|-)2g|(^|-)3g/.test(et);
 }catch(e){return false;}})();
 function setQuality(name){
-  qualityName=QUALITY[name]?name:'low';$('quality').value=qualityName;state.moveScale=1;state.fastWindows=0;frameMeter.reset();
+  /* 11-11 用户要求：取消省电档。任何入口传 low 一律提升为标准档，
+     否则会切到实心低模树冠（看起来像方块）。 */
+  if(name==='low')name='balanced';
+  qualityName=QUALITY[name]?name:'balanced';$('quality').value=qualityName;state.moveScale=1;state.fastWindows=0;frameMeter.reset();
   const rtShadow=new URLSearchParams(location.search).get("shadow")==="1";renderer.shadowMap.enabled=rtShadow;renderer.shadowMap.type=T.PCFSoftShadowMap;sun.castShadow=rtShadow;if(staticShadow&&staticShadow.layer)staticShadow.layer.visible=!rtShadow;campus.setDetail(qualityName);updateWaterControl();waterClock?.sync();requestRender();
 }
 let currentMood=LIGHTING.daylight, moodRaf=0;
@@ -3878,7 +3956,7 @@ function interactions(){
     addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-','='].includes(e.key))busy();});
   }
   /* 10-29：可见的版本角标 —— 用来确认你打开的是不是最新构建。 */
-  {const el=document.createElement("div");el.id="build-stamp";el.textContent="BUILD 2026-11-08 16:34";el.style.cssText="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.5 ui-monospace,Menlo,monospace;color:#2f3d36;background:rgba(255,255,255,.86);border:1px solid rgba(0,0,0,.10);border-radius:7px;padding:3px 9px;pointer-events:none;letter-spacing:.02em";document.body.appendChild(el);}
+  {const el=document.createElement("div");el.id="build-stamp";el.textContent="BUILD 2026-11-10 v30.2";el.style.cssText="position:fixed;right:14px;bottom:12px;z-index:99999;font:12px/1.5 ui-monospace,Menlo,monospace;color:#2f3d36;background:rgba(255,255,255,.86);border:1px solid rgba(0,0,0,.10);border-radius:7px;padding:3px 9px;pointer-events:none;letter-spacing:.02em";document.body.appendChild(el);}
   /* 10-29：内嵌预览（iframe）里第一人称会白屏 —— 指针锁定/焦点在 iframe 内被限制。
      检测到被内嵌时，顶栏右侧给一个"在新窗口打开"的入口，一键跳到独立标签页。 */
   if(window.self!==window.top){
@@ -3995,9 +4073,9 @@ try{
   /* 10-28：补光。主光只从一侧来，背光面会压成死灰；补一盏冷色平行光从反方向
      低强度打过去（不投影），暗面才有层次 —— 这盏灯和室内那盏补光是同一套逻辑。 */
   fillLight=new T.DirectionalLight(0xa9c6e2,.2);fillLight.castShadow=false;scene.add(fillLight);
-  qualityName=initialQuality({coarse:coarse.matches,memory:navigator.deviceMemory||8,reduced:reduced.matches});
+  qualityName=initialQuality({coarse:coarse.matches,memory:navigator.deviceMemory||8,reduced:reduced.matches,software:gpuIsSoftware(renderer)});
   const facadeScale=qualityName==='low'?1:2;
-  const textures={windowBand:texture(windowBandTexture,512,256,{anisotropy:8,scale:1}),foliage:texture(drawFoliageSprite,512,512,{anisotropy:8}),teaching:texture(teachingTexture,1024,512,{scale:facadeScale,anisotropy:8}),dorm:texture(dormTexture,1024,512,{scale:facadeScale,anisotropy:8}),ground:texture(groundTexture,1024,1024,{scale:facadeScale,anisotropy:8}),grassDetail:texture(drawGrassDetail,512,512,{anisotropy:8}),road:texture(roadTexture,128,1024),basketball:texture(basketballTexture,256,512),badminton:texture(badmintonTexture,256,512),track:texture(trackTexture,512,768),court:texture(courtTexture,256,512),libraryStone:texture(libraryStoneTexture,1024,512,{scale:facadeScale,anisotropy:8}),libraryGlass:texture(libraryGlassTexture,512,1024,{scale:facadeScale,anisotropy:8}),water:texture(waterTexture,1024,512),timber:texture(timberTexture,256,256),librarySign:texture(librarySignTexture,512,96,{scale:facadeScale}),roofMetal:texture(roofMetalTexture,512,512,{anisotropy:8}),paving:texture(pavingTexture,512,128)};
+  const textures={windowBand:texture(windowBandTexture,512,256,{anisotropy:8,scale:1}),foliage:texture(drawFoliageSprite,512,512,{anisotropy:8}),teaching:texture(teachingTexture,1024,512,{scale:facadeScale,anisotropy:8}),dorm:texture(dormTexture,1024,512,{scale:facadeScale,anisotropy:8}),ground:texture(groundTexture,1024,1024,{scale:facadeScale,anisotropy:8}),grassDetail:texture(drawGrassDetail,512,512,{anisotropy:8}),road:texture(roadTexture,128,1024),basketball:texture(basketballTexture,256,512),badminton:texture(badmintonTexture,256,512),track:texture(trackTexture,512,768),court:texture(courtTexture,256,512),libraryStone:texture(libraryStoneTexture,1024,512,{scale:facadeScale,anisotropy:8}),libraryGlass:texture(libraryGlassTexture,512,1024,{scale:facadeScale,anisotropy:8}),lakebed:texture(lakebedTexture,512,512,{anisotropy:4}),water:texture(waterTexture,1024,512),timber:texture(timberTexture,256,256),librarySign:texture(librarySignTexture,512,96,{scale:facadeScale}),roofMetal:texture(roofMetalTexture,512,512,{anisotropy:8}),paving:texture(pavingTexture,512,128)};
   /* 10-29 材质替换：程序化纯色 → 生成式实拍级材质（含法线）
      这些图由绘世/生成模型产出，经去水印、方形裁切、512 压缩、Sobel 法线转换。 */
   {
@@ -4049,14 +4127,14 @@ try{
     campus.root.traverse(o=>{if(o.isMesh){o.receiveShadow=true;}});
   }catch(err){console.warn("shadow setup failed",err);}
   /* 10-31 初始档位：低端设备直接省电档；?q= 可强制指定 */
-  if(PIN_Q&&QUALITY[PIN_Q])setQuality(PIN_Q);else if(DEV_LOW)setQuality("low");walkWorld=createWalkWorld(data,campus.navigation);
+  if(PIN_Q&&QUALITY[PIN_Q])setQuality(PIN_Q);else if(DEV_LOW)setQuality("balanced");walkWorld=createWalkWorld(data,campus.navigation);
   car=vehicleSpawn(walkWorld,campus.targets.find(p=>p.id==='lib'));if(car){carModel=createCampusCar(T,car);scene.add(carModel.root);}else $('drive-toggle').disabled=true;
   pedestrianWorld={...walkWorld,canStand:(x,z)=>walkWorld.canStand(x,z)&&(!car||canWalkPastVehicle(car,x,z))};
   pedestrianWorld.canOccupy=(x,z,feet)=>walkWorld.canOccupy(x,z,feet)&&(!car||feet>car.y+2.15||canWalkPastVehicle(car,x,z));
   /* 10-29 用户要求移除人物建模：不再创建、不再加入场景（变量保留以便随时回退）。 */
   character=null;lastCharacterPose=walkWorld.spawn(campus.targets.find(p=>p.id==='lib'));
   const shadowCanvas=document.createElement('canvas');shadowCanvas.width=1024;shadowCanvas.height=1024;
-  staticShadow=createStaticShadowLayer(T,campus,shadowCanvas);cleanups.push(()=>staticShadow.dispose());waterClock=createWaterClock({isAllowed:canMoveWater,render:()=>{state.waterTick=true;requestRender();}});setLighting('daylight');
+  staticShadow=createStaticShadowLayer(T,campus,shadowCanvas);cleanups.push(()=>staticShadow.dispose());waterClock=createWaterClock({isAllowed:canMoveWater,interval:()=>state.waterInterval,render:()=>{state.waterTick=true;requestRender();}});setLighting('daylight');
   const groups=new Map();campus.targets.forEach(p=>{const label=TYPE_LABELS[p.type];if(!groups.has(label))groups.set(label,[]);groups.get(label).push(p);});
   for(const[label,places]of groups){const group=document.createElement('optgroup');group.label=label;const seen=new Map();places.forEach(p=>{const n=(seen.get(p.name)||0)+1;seen.set(p.name,n);const option=document.createElement('option');option.value=p.key;option.textContent=p.name+(n>1?` · ${n}`:'');group.appendChild(option);});$('place-picker').appendChild(group);}
   const names=['lib','lake','track','canteen','apt-10','teach-1','gym','lib-north','plaza-east'];

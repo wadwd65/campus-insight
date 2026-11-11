@@ -26,7 +26,7 @@ import AnswerLens from './AnswerLens.jsx';
 import { THRESHOLDS } from '../lib/thresholds.js';
 import './cohort-reading.css';
 
-export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, onRestart, onUpload, source = 'csv' }) {
+export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, onOpenReport, onRestart, onUpload, source = 'csv' }) {
   const [downloaded, setDownloaded] = useState(false);
   const cohort = useMemo(
     () => buildCohort(records, baseline, ownAnswers),
@@ -171,9 +171,10 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
         </Section>
 
 
-        {source !== 'circle' && <Section n={6} title="班里和你最像的人" hint="按八项基础属性算距离，派生维度不重复计权。需要一份你的作答做参照。">
+        {source !== 'circle' && <Section n={6} title={source === 'sample' ? '示例里，哪些答卷与你接近' : '这些答卷与你有多接近'} hint="按八项基础属性算距离，派生维度不重复计权。需要一份你的作答做参照。">
           {cohort.similar ? (
-            <div className="space-y-2">
+            <div className="space-y-2" data-testid="cohort-personal-comparison">
+              {source === 'sample' && <p className="text-xs text-[var(--ink-soft)] leading-5">下面用你的真实作答与合成示例对照，只用于体验比较功能；这些编号不代表真实同学。</p>}
               {cohort.similar.top.map((s, i) => (
                 <TermPanel key={s.id} hoverable style={{ padding: '12px 16px' }}>
                   <div className="flex items-center gap-3">
@@ -193,6 +194,7 @@ export default function CohortPage({ records, baseline, ownAnswers, onGoQuiz, on
                 按最突出的那一维归类，你落在「{cohort.similar.mineGroup}」——
                 这只是一种便于对照的规则分组，不是给你下定义。
               </p>
+              {onOpenReport && <button type="button" className="px-4 py-2 text-sm text-white transition hover:opacity-90" style={{ background: 'var(--grad-ark)', boxShadow: 'var(--shadow-ark)' }} onClick={onOpenReport}>查看我的完整档案 →</button>}
             </div>
           ) : (
             <TermPanel style={{ padding: '18px 20px' }}>

@@ -114,11 +114,12 @@ const reportHtml = render('结果页', h(ReportView, { answers: myAnswers, basel
 const reportText = plain(reportHtml);
 
 check('行迹作为标题，规则趣味称号保留为次级信息', reportText.includes('你的校园，有迹可循。') && reportText.includes('规则趣味称号'));
+check('个人报告明确告知十题已完成与档案已生成', reportText.includes('十题已完成 · 个人档案已生成'));
 check('报告优先保留实际答卷的十个切面', reportText.includes('10 个生活切面') && reportText.includes('原样保留你的选择') && QUESTIONS.every(q=>reportText.includes(myAnswers[q.field])));
 const submissionAccount = { user: { id: 'render-admin', displayName: '演示管理员' }, request: async () => ({ circles: [] }) };
 const submissionContext = { id: 'render-circle', name: '演示圈子', userId: 'render-admin' };
 const directReport = render('档案直接提交入口', h(ReportView, { answers: myAnswers, baseline, submissionPanel: h(ReportCircleSubmission, { account: submissionAccount, context: submissionContext, answers: myAnswers, onBack() {} }) }));
-check('档案页直接展示圈子提交按钮，位于行迹标题与图表之前', directReport.includes('提交到我的圈子') && directReport.indexOf('提交到我的圈子') < directReport.indexOf('CAMPUS FIELD NOTES'));
+check('档案先显示个人结果，再提供直接提交入口与确认面板，均在图表之前', directReport.indexOf('archive-title') < directReport.indexOf('report-personal-reading') && directReport.includes('class="report-submit-shortcut" href="#report-submission"') && directReport.indexOf('report-personal-reading') < directReport.indexOf('id="report-submission"') && directReport.indexOf('id="report-submission"') < directReport.indexOf('class="archive-sec'));
 const confirmSubmission = render('提交前共享确认', h(CircleSubmission, { account: submissionAccount, context: submissionContext, answers: myAnswers, onBack() {} }));
 check('提交表单展示目标圈子、完整答案核对和共享范围', ['演示圈子', '展开核对十题答案', '完整十题原始答案和提交时间'].every(text => confirmSubmission.includes(text)));
 check('未同意时确认提交按钮保持禁用', /<button[^>]*disabled[^>]*>③ 确认提交到圈子/.test(confirmSubmission) && !/<input[^>]*type="checkbox"[^>]*checked/.test(confirmSubmission));
@@ -145,7 +146,7 @@ const cohortHtml = render(
 const cohortText = plain(cohortHtml);
 check('写出当前有效答卷数与统计范围', cohortText.includes(`${cohortCleaned.records.length} 份答卷`) && cohortText.includes('导入文件 · 当前有效答卷'));
 check('五个类型名都出现了', ['学术型', '社交型', '运动型', '生活型', '佛系型'].every((t) => cohortText.includes(t)));
-check('标题与三块内容都在', ['这个班的位置', '这个班分成几类', '班里和你最像的人'].every((t) => cohortText.includes(t)));
+check('标题与三块内容都在', ['这个班的位置', '这个班分成几类', '这些答卷与你有多接近'].every((t) => cohortText.includes(t)));
 check('给出了「最像的人」', /非常像|挺像|有点像/.test(cohortText));
 check('写明了示例数据是模拟的', cohortText.includes('模拟生成'));
 check('逐题统计真正接入群体页，并保留与模拟百分位不同的分母说明',
@@ -418,16 +419,17 @@ console.log('\n4.9 · 入场页（第一屏）');
   check('进入按钮不受文字分镜延迟影响', !/class="cinematic-enter"[^>]*animation-delay/.test(introHtml));
   check('入场只有一个一级标题', (introHtml.match(/<h1[ >]/g) || []).length === 1);
   const entryHtml = render('主页', h(EntryScene, { baseline, onPreviewSample: () => {}, onGoCircles: () => {} }));
-  check('主页保留直接问卷、情境问卷与独立的3D参观入口', ['示例回答计算所得', '填写校园问卷，生成我的档案', '先在地图里选择，再带入问卷', '3D 校园，自由参观', '不改变答卷'].every(t => entryHtml.includes(t)));
+  const entryCopy = plain(entryHtml).replace(/<[^>]*>/g, '');
+  check('主页推荐问卷，并明确校园一天可选、3D用于自由参观', ['示例回答计算所得', '填写校园问卷，生成我的档案', '推荐从十题问卷开始', '可选：先玩校园一天', '玩后核对十题，生成同一份档案', '3D 校园漫游', '自由参观 · 电脑端'].every(t => entryCopy.includes(t)) && entryHtml.includes('不改变答卷'));
   check('3D 参观另开标签页，保留当前画像会话', /href="[^"]*3D[^\"]*" target="_blank" rel="noopener noreferrer"/.test(entryHtml));
   check('首页标题区包含问卷主按钮，可选探索保留四段剧场', entryHtml.includes('可接续的校园小剧场') && entryHtml.includes('晚风放映计划') && ['17号失物柜','旧物复活夜','今晚的空白电台','选一段，走进去'].every(title=>entryHtml.includes(title)) && entryHtml.indexOf('landing-action-primary') > entryHtml.indexOf('landing-hero') && entryHtml.indexOf('landing-action-primary') < entryHtml.indexOf('profile-preview') && entryHtml.indexOf('landing-action-primary') < entryHtml.indexOf('landing-explore'));
   const storyHtml=render('校园小剧场',h(CampusStory,{onBack:()=>{},onGoQuiz:()=>{}}));
   check('剧情首幕具备三个真实目的地、独立计分说明与退出入口',storyHtml.includes('data-choice="equipment"')&&storyHtml.includes('data-choice="venue"')&&storyHtml.includes('data-choice="friends"')&&storyHtml.includes('不改变答卷和圈子填报')&&storyHtml.includes('返回主页'));
-  check('个人主入口在圈子收卷前，组织者和CSV入口仍保留', entryHtml.indexOf('填写校园问卷，生成我的档案') < entryHtml.indexOf('进入圈子，填写或收集答卷') && entryHtml.includes('导入已有 CSV'));
+  check('个人主入口在圈子收卷前，组织者和CSV入口仍保留', entryCopy.indexOf('填写校园问卷，生成我的档案') >= 0 && entryCopy.indexOf('填写校园问卷，生成我的档案') < entryCopy.indexOf('进入圈子，填写或收集答卷') && entryHtml.includes('导入已有 CSV'));
   check('主页没有重复的一级标题', (entryHtml.match(/<h1[ >]/g) || []).length === 1);
   check('主页能体验合成班级并说明示例不会创建真实圈子', entryHtml.includes('先看 48 人模拟班级') && entryHtml.includes('合成示例，不创建真实圈子'));
   check('圈子按可选班级工具说明明确同意，探索入口默认折叠', entryHtml.includes('成员明确同意后才提交') && entryHtml.includes('班级 / 社团工具（可选）') && entryHtml.includes('进入圈子，填写或收集答卷') && /<details class="landing-explore">/.test(entryHtml));
-  check('首页按个人档案、地图联动和圈子收卷分层，主要展示位于可选探索前', ['home-report', 'home-campus', 'home-circles'].every(id => entryHtml.includes(`id="${id}"`) && entryHtml.indexOf(`id="${id}"`) < entryHtml.indexOf('<details class="landing-explore">')));
+  check('首页个人档案与地图联动在前，班级与社团完整介绍置于可选探索之后', ['home-report', 'home-campus'].every(id => entryHtml.includes(`id="${id}"`) && entryHtml.indexOf(`id="${id}"`) < entryHtml.indexOf('<details class="landing-explore">')) && entryHtml.indexOf('id="home-circles"') > entryHtml.indexOf('<details class="landing-explore">'));
   check('首页示例明确标注规则估算与独立预览，问卷答案仍须确认', entryHtml.includes('id="home-night-answer"') && entryHtml.includes('本区示例独立预览') && entryHtml.includes('确认的回答才计入个人档案'));
   const busyEntry = renderToString(h(EntryScene, { baseline, onPreviewSample: () => {}, sampleBusy: true }));
   check('班级示例加载时按钮禁用并显示状态', /disabled=""[^>]*>[\s\S]*?正在打开示例/.test(busyEntry));

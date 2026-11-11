@@ -16,6 +16,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
@@ -36,21 +37,6 @@ ok(fs.existsSync(DIST), 'dist/ 目录存在', DIST);
 const REQUIRED = [
   'index.html',                                        // 入口 HTML
   'map/校园地图-3D实景.html',                          // 3D 附加展示页（外链目标）
-  'map/three-r149.min.js',
-  'map/campus-app.js',
-  'map/campus-boot.js',
-  'map/campus-scene.js',
-  'map/campus-model.js',
-  'map/campus-lighting.js',
-  'map/campus-water.js',
-  'map/campus-walk.js', 'map/campus-visibility.js', 'map/campus-performance.js',
-  'map/campus-play.js',
-  'map/campus-character.js',
-  'map/campus-detail.js',
-  'map/campus-atmosphere.js',
-  'map/campus-textures.js',
-  'map/campus.css',
-  'map/campus-data.json',
   'data/示例-班级问卷.csv',                            // 示例数据（评委一键试）
   'data/问卷基准数据.csv',                             // 2000 人基准
 ];
@@ -95,8 +81,29 @@ ok(audioBytes / 1048576 < 20, '九首按需本地曲库 < 20MB（一次仅加载
 
 const mapDir = path.join(DIST, 'map');
 if (fs.existsSync(mapDir)) {
+  // Same combined ceiling as before (1MB code + 2MB textures). v30 embeds both.
   const mapMB = dirSize(mapDir) / 1048576;
-  ok(mapMB < 2, 'dist/map < 2MB（只应有 3D 附加展示页）', mapMB.toFixed(2) + ' MB');
+  ok(mapMB < 3, '自包含3D总量 < 3MB（原代码与纹理合并预算）', mapMB.toFixed(2) + ' MB');
+  const entry = fs.readFileSync(path.join(mapDir, '校园地图-3D实景.html'));
+  ok(entry.equals(fs.readFileSync(path.join(ROOT, 'map-src/web/index.html'))), '实际发布3D与当前源码逐字节一致');
+  ok(!fs.existsSync(path.join(mapDir, 'campus-boot.js')) && !fs.existsSync(path.join(mapDir, 'three-r149.min.js')) && !fs.existsSync(path.join(mapDir, 'tex/tex-data.js')), '不发布未引用的旧地图程序与纹理副本');
+}
+
+try {
+  const edition = JSON.parse(fs.readFileSync(path.join(DIST, 'build-edition.json'), 'utf8'));
+  ok(/^[a-f0-9]{64}$/.test(edition.build?.sourceSha256 || '') && Number.isFinite(Date.parse(edition.build?.builtAt)), '构建带源码摘要与构建时间');
+  const artifacts = edition.build?.artifacts;
+  ok(Array.isArray(artifacts) && artifacts.some(file => file.path === '/index.html') && artifacts.some(file => file.path === '/map/校园地图-3D实景.html') && artifacts.some(file => /\/ReportView-.*\.js$/.test(file.path)), '构建清单包含首页、报告模块与实际3D入口');
+  const intact = Array.isArray(artifacts) && artifacts.length > 0 && artifacts.every(artifact => {
+    const file = path.resolve(DIST, '.' + artifact.path);
+    const rel = path.relative(DIST, file);
+    if (rel.startsWith('..') || path.isAbsolute(rel) || !fs.existsSync(file)) return false;
+    const content = fs.readFileSync(file);
+    return content.length === artifact.bytes && createHash('sha256').update(content).digest('hex') === artifact.sha256;
+  });
+  ok(intact, '首页与JS/CSS内容符合本次构建清单');
+} catch {
+  ok(false, '构建标识可读取（请先运行npm run build）');
 }
 
 console.log(`\n${fail === 0 ? '✓' : '✗'} 构建产物校验：${pass} 项通过${fail ? '，' + fail + ' 项失败' : ''}`);

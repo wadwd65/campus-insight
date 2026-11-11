@@ -20,7 +20,7 @@ import MapScene from './scenes/MapScene.jsx';
 import EntryScene from './scenes/EntryScene.jsx';
 import { AccountProvider, useAccount } from './lib/accounts.jsx';
 import ReportCircleSubmission from './components/ReportCircleSubmission.jsx';
-import { clearAccountDrafts, clearSurveyDraft } from './lib/surveyDraft.js';
+import { clearAccountDrafts, clearSurveyDraft, readSurveyDraft, saveSurveyDraft } from './lib/surveyDraft.js';
 import { readSiteRoute } from './lib/siteNavigation.js';
 import GettingStartedGuide from './components/GettingStartedGuide.jsx';
 import { buildReport } from './lib/results.js';
@@ -203,7 +203,17 @@ function CampusApp() {
   }
 
   function startQuiz(context) {
-    setSurveyDayContext(cleanDaySurveyContext(context?.dayProgress));
+    const scope = account.user?.id || '';
+    const draft = readSurveyDraft(undefined, scope);
+    const nextDayContext = cleanDaySurveyContext(context?.dayProgress) || cleanDaySurveyContext(draft?.dayContext);
+    const completedAnswers = validSurveyAnswers(answers);
+    const suggestionOnlyDraft = Array.isArray(draft?.confirmedFields) && draft.confirmedFields.length === 0 && Object.keys(draft.answers).length > 0;
+    // A completed questionnaire clears its draft. Re-entering from the map must
+    // carry those deliberate answers forward, without replacing a newer draft.
+    if (nextDayContext && completedAnswers && (!draft || suggestionOnlyDraft)) {
+      saveSurveyDraft(0, completedAnswers, undefined, scope, null, nextDayContext, Object.keys(completedAnswers));
+    }
+    setSurveyDayContext(nextDayContext);
     setStoryContext(cleanStoryReflection(context));
     setCircleContext(null);
     setFromCohort(false);
@@ -295,7 +305,7 @@ function CampusApp() {
             onOpenReport={answers ? () => { setMapRun(false); setStage('report'); } : undefined}
             onStartDay={startDay}
             onGoCircles={() => setStage('circles')}
-            accountLabel={account.user ? `${account.user.displayName} · 我的圈子` : '登录 / 我的圈子'}
+            accountLabel={account.user ? `${account.user.displayName} · 我的圈子` : '登录 / 注册'}
             onGoUpload={() => setStage('upload')}
             onPreviewSample={previewSample}
             sampleBusy={sampleBusy}
@@ -314,14 +324,14 @@ function CampusApp() {
   }
 
   if (['day','day-report'].includes(stage)) {
-    return <div className="min-h-full flex flex-col term-enter stage-day"><IndustrialBackdrop/><HubHud compact statusLabel="可选探索 · 地图一天" onGoEntry={goEntry} onGoCircles={()=>setStage('circles')} accountLabel={account.user?`${account.user.displayName} · 我的圈子`:'登录 / 我的圈子'}/><main className="day-page-main"><Suspense fallback={<Hint text="正在展开今天的地图…"/>}>{stage==='day-report'&&dayRun?<CampusDayResult progress={dayRun} onBack={startDay} onGoQuiz={()=>startQuiz({dayProgress:dayRun})}/>:<CampusDay key={account.user?.id||'guest'} scope={account.user?.id||'guest'} onExit={goEntry} onGoQuiz={progress=>startQuiz({dayProgress:progress})} onComplete={finishDay}/>}</Suspense></main><ProductFooter/></div>;
+    return <div className="min-h-full flex flex-col term-enter stage-day"><IndustrialBackdrop/><HubHud compact statusLabel="可选探索 · 地图一天" onGoEntry={goEntry} onGoCircles={()=>setStage('circles')} accountLabel={account.user?`${account.user.displayName} · 我的圈子`:'登录 / 注册'}/><main className="day-page-main"><Suspense fallback={<Hint text="正在展开今天的地图…"/>}>{stage==='day-report'&&dayRun?<CampusDayResult progress={dayRun} onBack={startDay} onGoQuiz={()=>startQuiz({dayProgress:dayRun})}/>:<CampusDay key={account.user?.id||'guest'} scope={account.user?.id||'guest'} onExit={goEntry} onGoQuiz={progress=>startQuiz({dayProgress:progress})} onComplete={finishDay}/>}</Suspense></main><ProductFooter/></div>;
   }
 
   if (stage === 'map') {
     return (
       <div className="min-h-full flex flex-col term-enter">
         <IndustrialBackdrop />
-        <HubHud onRestart={restart} onGoEntry={goEntry} onGoCircles={() => setStage('circles')} accountLabel={account.user ? `${account.user.displayName} · 我的圈子` : '登录 / 我的圈子'} help={<GettingStartedGuide onStartPersonal={startQuiz} onOpenCircles={() => setStage('circles')} />} compact statusLabel="行动地图" />
+        <HubHud onRestart={restart} onGoEntry={goEntry} onGoCircles={() => setStage('circles')} accountLabel={account.user ? `${account.user.displayName} · 我的圈子` : '登录 / 注册'} help={<GettingStartedGuide onStartPersonal={startQuiz} onOpenCircles={() => setStage('circles')} />} compact statusLabel="行动地图" />
         <main className="flex-1 w-full">
           <MapScene storyContext={storyContext} onGoStory={episodeId=>openStory('map',episodeId)}
             guide={null}
@@ -341,7 +351,7 @@ function CampusApp() {
   return (
     <div className={`min-h-full flex flex-col term-enter stage-${stage}`}>
       <IndustrialBackdrop />
-      <HubHud compact statusLabel={{ circles: '我的圈子', quiz: '问卷测评', gate: '准备作答', upload: '数据导入', cohort: '群体分析', report: '档案已生成', story: '校园小剧场' }[stage]} onRestart={restart} onGoEntry={goEntry} onGoCircles={() => setStage('circles')} accountLabel={account.user ? `${account.user.displayName} · 我的圈子` : '登录 / 我的圈子'} help={stage !== 'circles' ? <GettingStartedGuide context={circleContext ? 'circles' : 'home'} onStartPersonal={startQuiz} onOpenCircles={() => setStage('circles')} /> : null} />
+      <HubHud compact statusLabel={{ circles: '我的圈子', quiz: '问卷测评', gate: '准备作答', upload: '数据导入', cohort: '群体分析', report: '档案已生成', story: '校园小剧场' }[stage]} onRestart={restart} onGoEntry={goEntry} onGoCircles={() => setStage('circles')} accountLabel={account.user ? `${account.user.displayName} · 我的圈子` : '登录 / 注册'} help={stage !== 'circles' ? <GettingStartedGuide context={circleContext ? 'circles' : 'home'} onStartPersonal={startQuiz} onOpenCircles={() => setStage('circles')} /> : null} />
       <div className="term-seam" aria-hidden="true" />
 
       <main
@@ -364,7 +374,7 @@ function CampusApp() {
           </section>
         )}
         {stage === 'story' ? <Suspense fallback={<Hint text="正在接上这段故事…" />}><CampusStory onStartDay={startDay} initialEpisode={storyEpisodeId} key={account.user?.id||'guest'} scope={account.user?.id||'guest'} onBack={()=>setStage(storyOrigin.current==='report'&&(answers||mapRun)?'report':storyOrigin.current==='map'?'map':'entry')} onGoQuiz={startQuiz}/></Suspense> : stage === 'circles' ? (
-          <Suspense fallback={<Hint text="正在打开圈子…" />}><div className="circle-workspace"><div className="novice-help-strip"><span>不确定下一步？可以先看指引，也可以直接操作。</span><GettingStartedGuide autoShow context="circles" onStartPersonal={startQuiz} onOpenCircles={() => setStage('circles')} /></div><CircleWorkspace key={account.user?.id || 'guest'} pendingInvite={pendingInvite} onInviteHandled={() => setPendingInvite('')} baseline={baseline} onSkip={startQuiz} onPreviewSample={previewSample} sampleBusy={sampleBusy} sampleError={sampleError} onStartQuiz={context => { setCircleContext(context); setAnswers(null); setFromCohort(false); setMapRun(false); setStage('quiz'); }} /><DeploymentHelp /></div></Suspense>
+          <Suspense fallback={<Hint text="正在打开圈子…" />}><div className="circle-workspace"><div className={account.user ? "novice-help-strip" : "circle-auth-help"}>{account.user && <span>不确定下一步？可以先看指引，也可以直接操作。</span>}<GettingStartedGuide autoShow={Boolean(account.user)} context="circles" onStartPersonal={startQuiz} onOpenCircles={() => setStage('circles')} /></div><CircleWorkspace key={account.user?.id || 'guest'} pendingInvite={pendingInvite} onInviteHandled={() => setPendingInvite('')} baseline={baseline} onSkip={startQuiz} onPreviewSample={previewSample} sampleBusy={sampleBusy} sampleError={sampleError} onStartQuiz={context => { setCircleContext(context); setAnswers(null); setFromCohort(false); setMapRun(false); setStage('quiz'); }} /><DeploymentHelp /></div></Suspense>
         ) : error ? (
           <ErrorBlock message={error} onRetry={loadBaselineData} onBack={goEntry} />
         ) : !baseline ? (
@@ -408,7 +418,8 @@ function CampusApp() {
             <CohortPage
               records={cohort}
               baseline={baseline}
-              ownAnswers={cohortSource === 'sample' ? undefined : answers}
+              ownAnswers={answers}
+              onOpenReport={answers ? () => { setMapRun(false); setStage('report'); } : undefined}
               source={cohortSource}
               onUpload={() => setStage('upload')}
               onGoQuiz={() => {

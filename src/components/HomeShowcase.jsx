@@ -40,15 +40,10 @@ export default function HomeShowcase({ baseline, onGoQuiz, onStartDay }) {
       <div className="home-feature-copy">
         <p className="home-section-kicker"><span>01 / 个人档案</span> 把日常看得更清楚</p>
         <h2 id="home-report-title">你选的每一项，<br />都在留下自己的形状。</h2>
-        <p className="home-feature-lead">常去的地方、恢复心情的办法、最舍不得的回忆。十个回答放在一起，看看这些日常怎样互相呼应。</p>
-        <ul className="home-result-list">
-          <li><b>看见生活的侧面</b><span>五维雷达与个人解读，回看自己的校园节奏。</span></li>
-          <li><b>追得回每个回答</b><span>报告中可查看回答依据，修改后重新计算。</span></li>
-          <li><b>留下一份记录</b><span>导出档案卡或答卷，分享前由你确认。</span></li>
-        </ul>
+        <p className="home-feature-lead">填完后会得到个人解读与五维图表。你可以回看每个答案的影响，也可以改答后重新计算。</p>
         <button type="button" className="home-text-action" onClick={onGoQuiz}>用自己的回答，写一份档案 <span aria-hidden="true">↗</span></button>
       </div>
-      <div className="home-answer-lab" role="group" aria-label="修改一个示例回答，查看报告变化">
+      <details className="home-demo-details"><summary>先试改一个示例回答 <span aria-hidden="true">＋</span></summary><div className="home-answer-lab" role="group" aria-label="修改一个示例回答，查看报告变化">
         <div className="home-lab-top"><span>试改一个回答</span><small>交互示例</small></div>
         <label htmlFor="home-night-answer">{NIGHT_QUESTION.text}</label>
         <select id="home-night-answer" value={night} onChange={event => setNight(event.target.value)}>
@@ -63,7 +58,7 @@ export default function HomeShowcase({ baseline, onGoQuiz, onStartDay }) {
           </div>)}</div>
         </div>
         <p className="home-demo-note">占比由答卷规则估算，合计100%，非真实时间记录。本区示例独立预览，你的答卷由问卷填写。</p>
-      </div>
+      </div></details>
     </section>
 
     <section className="home-feature home-campus" id="home-campus" tabIndex={-1} aria-labelledby="home-campus-title">
@@ -78,15 +73,15 @@ export default function HomeShowcase({ baseline, onGoQuiz, onStartDay }) {
       <div className="home-feature-copy">
         <p className="home-section-kicker"><span>02 / 校园情境</span> 让选择有一个发生的地方</p>
         <h2 id="home-campus-title">先走进校园，<br />再回头认识自己。</h2>
-        <p className="home-feature-lead">空堂、饭点、忽然落下的雨。你的去向会改变路线、精力和后续机会，也会为问卷留下一条待核对的线索。</p>
-        <fieldset className="home-route-choices"><legend>还有十分钟，你想先去哪儿？</legend>
+        <p className="home-feature-lead">这是与问卷联动的情境地图。每次选择带来答题建议，回到问卷后由你核对。右上方的3D校园则用于自由参观。</p>
+        <details className="home-demo-details"><summary>先试玩一次情境选择 <span aria-hidden="true">＋</span></summary><fieldset className="home-route-choices"><legend>还有十分钟，你想先去哪儿？</legend>
           {DAY_OPENING.task.choices.map(choice => <button key={choice.id} type="button" aria-pressed={opening === choice.id} onClick={() => setOpening(choice.id)}>{choice.label}<span aria-hidden="true">{opening === choice.id ? '✓' : '→'}</span></button>)}
         </fieldset>
         <div className="home-bridge-preview" aria-live="polite" aria-atomic="true">
           <small>这一步，怎样连到问卷</small>
           <p>{suggestion.value ? <>带出「{suggestion.field}」的建议<br /><b>{suggestion.value}</b></> : <>「{suggestion.field}」仍由你自己填写<br /><b>这次行动没有对应的答案建议</b></>}</p>
           <span>进入正式问卷后逐题核对，确认的回答才计入个人档案。</span>
-        </div>
+        </div></details>
         <button type="button" className="home-text-action" onClick={onStartDay}>开始我的地图一天 <span aria-hidden="true">↗</span></button>
         <p className="home-demo-note">这里试玩第一步。完整行程会保存进度，可在问卷中继续核对。</p>
       </div>

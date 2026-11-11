@@ -15,7 +15,7 @@ const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 const ai = createAiHandler(config);
 const environment = loadEnvironment({ root });
 const deployment = createDeploymentHandler({ root, env: environment });
-const accounts = createAccountHandler({ root, dataDir: environment.CAMPUS_DATA_DIR ? path.resolve(root, environment.CAMPUS_DATA_DIR) : undefined, setupToken: environment.CAMPUS_SETUP_TOKEN, origin: environment.APP_ORIGIN });
+const accounts = createAccountHandler({ root, dataDir: environment.CAMPUS_DATA_DIR ? path.resolve(root, environment.CAMPUS_DATA_DIR) : undefined, setupToken: environment.CAMPUS_SETUP_TOKEN, origin: environment.APP_ORIGIN, trustedProxies: environment.CAMPUS_TRUSTED_PROXIES });
 const server = http.createServer((request, response) => deployment(request, response, () => accounts(request, response, () => ai(request, response, async () => {
   if (!['GET', 'HEAD'].includes(request.method)) { response.writeHead(405); response.end(); return; }
   try {
