@@ -1,0 +1,1541 @@
+{
+  "algorithm": "campus-source-v1",
+  "sourceSha256": "39c16782cb69b1c5eab70afb5e2b84a52c30d00a262446b4a4b7c3c900a616bc",
+  "files": [
+    {
+      "path": "index.html",
+      "bytes": 1485,
+      "sha256": "69c84b7c27f9e1a1bf5fee1f2650bfc63a4f543d163e6821c22e094abb613369"
+    },
+    {
+      "path": "map-src/building-reference.json",
+      "bytes": 6032,
+      "sha256": "fb98e2e43f77071505b201939e304bb19cbe545dd51a5e18c5914a0fbdc0b1d0"
+    },
+    {
+      "path": "map-src/campus-layout.json",
+      "bytes": 12131,
+      "sha256": "341ba65a58afc19c598d6f4e1fe44d81a765f8ba280919ddc7ee8c6f2d7fc180"
+    },
+    {
+      "path": "map-src/three-packed.js",
+      "bytes": 608081,
+      "sha256": "8a5f7249903b54d30f79f708699d2fed2d6a1d0741a4cd41377d1f01bb5a2271"
+    },
+    {
+      "path": "map-src/web/campus-app.js",
+      "bytes": 51606,
+      "sha256": "1ad12468f1b5b6fb1b1c47ed3d729899ade7b82b61602e357f25a570ffd98132"
+    },
+    {
+      "path": "map-src/web/campus-atmosphere.js",
+      "bytes": 3688,
+      "sha256": "31b5f47a76c016367e027708424eadcc6e42b89d9301ede01a31788b41baca1d"
+    },
+    {
+      "path": "map-src/web/campus-boot.js",
+      "bytes": 1242,
+      "sha256": "55733fda4e04bf856d694595e3cfb1eced6a5038ba611f5fd14f64cdd95c15e6"
+    },
+    {
+      "path": "map-src/web/campus-character.js",
+      "bytes": 2866,
+      "sha256": "606338d8fd9e88a77ef0b023145f715b2ed6156a6201c5be11067383080443a5"
+    },
+    {
+      "path": "map-src/web/campus-detail.js",
+      "bytes": 15391,
+      "sha256": "4c3b9df93d458693dee333465456cc77d38d6f98efe1b60cc4068e3257c518a4"
+    },
+    {
+      "path": "map-src/web/campus-lighting.js",
+      "bytes": 6543,
+      "sha256": "4d7118980700351b0d86b5498ef38e749662cc4dca1d1654d993c30493029ea7"
+    },
+    {
+      "path": "map-src/web/campus-model.js",
+      "bytes": 6252,
+      "sha256": "655b70e0949f924475b98543f8ca616c6215a8bb16f278c4868021060e928464"
+    },
+    {
+      "path": "map-src/web/campus-performance.js",
+      "bytes": 888,
+      "sha256": "37a2eddaa59edd966d73cc97c7a7ea6e0945b78fa79a4dafbaaf109df18cc2e8"
+    },
+    {
+      "path": "map-src/web/campus-play.js",
+      "bytes": 9028,
+      "sha256": "b24c9f6b8ee2859abc9d4a0a989ce88f6c1b6b79c9fc373a412684c1eab60674"
+    },
+    {
+      "path": "map-src/web/campus-scene.js",
+      "bytes": 41541,
+      "sha256": "32ffe4e13030e38a2c20d9ed604be6c73b1a8f0ffdb23fadd0ec99e07bc8e368"
+    },
+    {
+      "path": "map-src/web/campus-textures.js",
+      "bytes": 6446,
+      "sha256": "034036ed283918c9de0680151e563aa61a9d0727ca6540c03dd044b9cb4de158"
+    },
+    {
+      "path": "map-src/web/campus-visibility.js",
+      "bytes": 2388,
+      "sha256": "4349948affebc037305936b0006620ec2241003ba3f8c4df4c21c37686b252bb"
+    },
+    {
+      "path": "map-src/web/campus-walk.js",
+      "bytes": 17488,
+      "sha256": "634effa30fd515711af49231481d026e9ef6a9aa39c8e7bb2e2ad693e819eb21"
+    },
+    {
+      "path": "map-src/web/campus-water.js",
+      "bytes": 2180,
+      "sha256": "fd523d0df253ea19bed578bea1cdb3c3715d90e0859effafed86ba56a9b9b332"
+    },
+    {
+      "path": "map-src/web/campus.css",
+      "bytes": 18185,
+      "sha256": "251f0603e338625fb6cdf3485c921bfd5a280d60c7b569e6d649de87c2df0b9c"
+    },
+    {
+      "path": "map-src/web/index.html",
+      "bytes": 2808231,
+      "sha256": "5d7eb1621bc23987835e831a0780baea2564d51d999b49a293dd849028eaeb8b"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 96122,
+      "sha256": "475568d0c246896a576aaa2001d35666a2fdfd483dd6e144f0be97a0edfab67a"
+    },
+    {
+      "path": "package.json",
+      "bytes": 5381,
+      "sha256": "7ef792afefcbd0a8f076a9a688f171cd6e9fddb8389d6bcf17c80b91fdecd148"
+    },
+    {
+      "path": "public/art/ark/crest.webp",
+      "bytes": 70274,
+      "sha256": "86a5455510e4ec375d154fd66c47c21efe1370a649abf1b020b9a2ef5c28a271"
+    },
+    {
+      "path": "public/art/ark/sec-closing.webp",
+      "bytes": 22722,
+      "sha256": "573ea5a9ceecacc22134274914f23fa782eedd409eae79ed822d56687ce69367"
+    },
+    {
+      "path": "public/art/ark/sec-facts.webp",
+      "bytes": 31676,
+      "sha256": "6962669439c177a28a797e4b9d28eda53c67e600631ff0bbb6bfb8ffeac9f217"
+    },
+    {
+      "path": "public/art/ark/sec-mood.webp",
+      "bytes": 30958,
+      "sha256": "bccadc4cb13d4917ec177f9223f75ca7fdd95ecef131ecf8396734b98a667375"
+    },
+    {
+      "path": "public/art/ark/sec-profile.webp",
+      "bytes": 23786,
+      "sha256": "c0a32f091b81715c402533a9ad1b1f19aac56c6f8e545cf337880f3598e13cad"
+    },
+    {
+      "path": "public/art/ark/sec-time.webp",
+      "bytes": 22280,
+      "sha256": "5ac9f4fccb1d55b01e0b9ba70e1d00d10cea470d35907df8ce72d537a60150cc"
+    },
+    {
+      "path": "public/art/ark/sec-trail.webp",
+      "bytes": 20402,
+      "sha256": "4c724910564315b9914c9b6314ca7cb09df8e31d1dbe00361026de70919204b3"
+    },
+    {
+      "path": "public/art/ark/sky.webp",
+      "bytes": 282674,
+      "sha256": "7bb0d868a11b61153797024f5c60a372e4ff28c2971dcaea0877001db5d94b17"
+    },
+    {
+      "path": "public/art/ark/upload-bg.webp",
+      "bytes": 39894,
+      "sha256": "887dee3ec45c1c653533c9e0df9e2feb2eace23b5d3de756e8c115ab3d9c26ad"
+    },
+    {
+      "path": "public/art/ark/zone-east.webp",
+      "bytes": 44808,
+      "sha256": "6cf6c48d09c55aeedb0b24dd1c65eaf516e0342ef1540d2c341d370a45ba0a2d"
+    },
+    {
+      "path": "public/art/ark/zone-north.webp",
+      "bytes": 104102,
+      "sha256": "5be382bf99f5ec829804d7461a4e6d0475fa1fa8136f4715a88a1bc2c50c047b"
+    },
+    {
+      "path": "public/art/ark/zone-south.webp",
+      "bytes": 45930,
+      "sha256": "8cd5bcc9cce473c57502d161656f598ddd118a0c9dfa31f9dc8bafaf481cd14f"
+    },
+    {
+      "path": "public/art/ark/zone-west.webp",
+      "bytes": 20186,
+      "sha256": "455a30ca33331e55badf2e7f6bd599db16f53680bfa1ec461d504217d710704a"
+    },
+    {
+      "path": "public/art/mascot.webp",
+      "bytes": 25632,
+      "sha256": "5eda6eedff06a8c3b94a5363970675637d89ff6d0cf9354d8a613652e6ef8d35"
+    },
+    {
+      "path": "public/art/scene-arch.webp",
+      "bytes": 39328,
+      "sha256": "1894477cafb2752a35c8cb4d3b4541fdfe0d38b92718f2f86f6a650de79779d9"
+    },
+    {
+      "path": "public/art/scene-front.webp",
+      "bytes": 147088,
+      "sha256": "58165593cec8dafe738bdde6e708861a3d68c796535fd637b58952ad329b10fa"
+    },
+    {
+      "path": "public/art/scene-sky.webp",
+      "bytes": 10006,
+      "sha256": "d8bd0314eca5b409873c0e65690c3f955c1dc4302be540830e94c916ccf35476"
+    },
+    {
+      "path": "public/audio/README-配乐说明.md",
+      "bytes": 308,
+      "sha256": "7cc80be44d5540897060e9961f94779335a83e192a6795800ad680ca94c3e483"
+    },
+    {
+      "path": "public/audio/cc0-happy-beat.mp3",
+      "bytes": 679728,
+      "sha256": "45dfef6ba7b492708062b9830f99fa9609eee4e399dce2c102adad0a7954d517"
+    },
+    {
+      "path": "public/audio/cc0-happy-moments.mp3",
+      "bytes": 1152906,
+      "sha256": "77c8f4e45a90d100756cbc16637cfca8b24d84d216ef0aa12cc71664092ef604"
+    },
+    {
+      "path": "public/audio/cc0-lofi-jam.mp3",
+      "bytes": 2863378,
+      "sha256": "e3a0f1e92b0224df583c14b1e4a6cba59a96109fdb50010b78c851a64392345f"
+    },
+    {
+      "path": "public/audio/cc0-synthwave-4k.mp3",
+      "bytes": 2516989,
+      "sha256": "92a3e855f628232fad117a74d63dbb63e2e3922b71436f984df8c2f6cc8f3a77"
+    },
+    {
+      "path": "public/audio/cc0-vaporware.mp3",
+      "bytes": 2448611,
+      "sha256": "7182f3751ad6d307d25d85022cc999dc4f36ed725cc3c7bf9d296dc1b486b77e"
+    },
+    {
+      "path": "public/audio/heiyao-bamboo.mp3",
+      "bytes": 2464896,
+      "sha256": "31bd3510402fa1092ae800df04cc63ac9eb55ace685c4ce9bbe6b70d8f6cbb7d"
+    },
+    {
+      "path": "public/audio/heiyao-comedy.mp3",
+      "bytes": 2134254,
+      "sha256": "e727b61e46ded500df5e9c7eeea3ff4541df6d44e78bf127b8e065f347eecadd"
+    },
+    {
+      "path": "public/audio/heiyao-dawn.mp3",
+      "bytes": 2873050,
+      "sha256": "5c6ccbab6d235df3b62e5f742fc64e1e0a7fdc2167c29be1ffd33a465653d136"
+    },
+    {
+      "path": "public/audio/heiyao-sunlight.mp3",
+      "bytes": 2860625,
+      "sha256": "175eb6d0f19138716c3730b0fd819950cabb6d420dbbabcefae4dfec35ea41a4"
+    },
+    {
+      "path": "public/audio/music-credits.json",
+      "bytes": 10417,
+      "sha256": "f7f968a68d48b70fc1a8280b160f784af4809eb0f4e0ae6c856c26d4e2e92b6f"
+    },
+    {
+      "path": "public/build-edition.json",
+      "bytes": 297,
+      "sha256": "c35674c2d337593be9784681a327f0c9e108f836b4fa9260a920ff715974b046"
+    },
+    {
+      "path": "public/data/README.md",
+      "bytes": 3481,
+      "sha256": "a6202d2849fcf9b5066c759684e54bf6a8f54f108778786a7005f4c77142c1c7"
+    },
+    {
+      "path": "public/data/基准属性范围.json",
+      "bytes": 312,
+      "sha256": "6ccd7965e6c1acea783bb097ccdc48395fc2960f04221c5854bf44cf25fe3b2d"
+    },
+    {
+      "path": "public/data/示例-班级问卷.csv",
+      "bytes": 11570,
+      "sha256": "1299dc5fac2f0c0bf2baebfa0be8ea288d7d1abe3e6469811e1ec45cbed140ec"
+    },
+    {
+      "path": "public/data/问卷基准数据.csv",
+      "bytes": 476466,
+      "sha256": "04888b8e7b6fe310338b1c96f39f979c7fa70809296420370b21e8a658e94a58"
+    },
+    {
+      "path": "public/favicon.ico",
+      "bytes": 1650,
+      "sha256": "b83c049cb9f6ec79c34e74a14bcd1ef770f3b51d2ec0c28f962d60e97362391b"
+    },
+    {
+      "path": "public/map/campus-app.js",
+      "bytes": 51606,
+      "sha256": "1ad12468f1b5b6fb1b1c47ed3d729899ade7b82b61602e357f25a570ffd98132"
+    },
+    {
+      "path": "public/map/campus-atmosphere.js",
+      "bytes": 3688,
+      "sha256": "31b5f47a76c016367e027708424eadcc6e42b89d9301ede01a31788b41baca1d"
+    },
+    {
+      "path": "public/map/campus-boot.js",
+      "bytes": 1242,
+      "sha256": "55733fda4e04bf856d694595e3cfb1eced6a5038ba611f5fd14f64cdd95c15e6"
+    },
+    {
+      "path": "public/map/campus-character.js",
+      "bytes": 2866,
+      "sha256": "606338d8fd9e88a77ef0b023145f715b2ed6156a6201c5be11067383080443a5"
+    },
+    {
+      "path": "public/map/campus-data.json",
+      "bytes": 17507,
+      "sha256": "21e8dbeb62b6b80ade472cdcdd7f6fed1952ad4a4001e20f843a71228072e947"
+    },
+    {
+      "path": "public/map/campus-detail.js",
+      "bytes": 15391,
+      "sha256": "4c3b9df93d458693dee333465456cc77d38d6f98efe1b60cc4068e3257c518a4"
+    },
+    {
+      "path": "public/map/campus-lighting.js",
+      "bytes": 6543,
+      "sha256": "4d7118980700351b0d86b5498ef38e749662cc4dca1d1654d993c30493029ea7"
+    },
+    {
+      "path": "public/map/campus-model.js",
+      "bytes": 6252,
+      "sha256": "655b70e0949f924475b98543f8ca616c6215a8bb16f278c4868021060e928464"
+    },
+    {
+      "path": "public/map/campus-performance.js",
+      "bytes": 888,
+      "sha256": "37a2eddaa59edd966d73cc97c7a7ea6e0945b78fa79a4dafbaaf109df18cc2e8"
+    },
+    {
+      "path": "public/map/campus-play.js",
+      "bytes": 9028,
+      "sha256": "b24c9f6b8ee2859abc9d4a0a989ce88f6c1b6b79c9fc373a412684c1eab60674"
+    },
+    {
+      "path": "public/map/campus-scene.js",
+      "bytes": 41541,
+      "sha256": "32ffe4e13030e38a2c20d9ed604be6c73b1a8f0ffdb23fadd0ec99e07bc8e368"
+    },
+    {
+      "path": "public/map/campus-textures.js",
+      "bytes": 6446,
+      "sha256": "034036ed283918c9de0680151e563aa61a9d0727ca6540c03dd044b9cb4de158"
+    },
+    {
+      "path": "public/map/campus-visibility.js",
+      "bytes": 2388,
+      "sha256": "4349948affebc037305936b0006620ec2241003ba3f8c4df4c21c37686b252bb"
+    },
+    {
+      "path": "public/map/campus-walk.js",
+      "bytes": 17488,
+      "sha256": "634effa30fd515711af49231481d026e9ef6a9aa39c8e7bb2e2ad693e819eb21"
+    },
+    {
+      "path": "public/map/campus-water.js",
+      "bytes": 2180,
+      "sha256": "fd523d0df253ea19bed578bea1cdb3c3715d90e0859effafed86ba56a9b9b332"
+    },
+    {
+      "path": "public/map/campus.css",
+      "bytes": 18185,
+      "sha256": "251f0603e338625fb6cdf3485c921bfd5a280d60c7b569e6d649de87c2df0b9c"
+    },
+    {
+      "path": "public/map/three-r149.min.js",
+      "bytes": 608081,
+      "sha256": "8a5f7249903b54d30f79f708699d2fed2d6a1d0741a4cd41377d1f01bb5a2271"
+    },
+    {
+      "path": "public/map/校园地图-3D实景.html",
+      "bytes": 2808231,
+      "sha256": "5d7eb1621bc23987835e831a0780baea2564d51d999b49a293dd849028eaeb8b"
+    },
+    {
+      "path": "scripts/_drop-low.mjs",
+      "bytes": 1481,
+      "sha256": "6c30183b6cd644a20d80dbec463486181f6e9693b93f78c60499855222e7463b"
+    },
+    {
+      "path": "scripts/backup-accounts.mjs",
+      "bytes": 1703,
+      "sha256": "862d806e470518a675334e5ec46bef9cccf258e63869d4d687c668813fded988"
+    },
+    {
+      "path": "scripts/build-campus-web.mjs",
+      "bytes": 2195,
+      "sha256": "cc556f4018f3405882ee9b886e18e873ffa0ed257ba78e80207d4fe454e33cdf"
+    },
+    {
+      "path": "scripts/build-inputs.mjs",
+      "bytes": 2894,
+      "sha256": "b197d49ecf503d4a591eae10c601e83000a90e872abbfb4bbe124a34955245fe"
+    },
+    {
+      "path": "scripts/build-submission-materials.py",
+      "bytes": 30051,
+      "sha256": "fae3099e3cf67a55e495488eacafc4253764697a92c38783146df0b016085172"
+    },
+    {
+      "path": "scripts/check-live-ai.mjs",
+      "bytes": 2282,
+      "sha256": "3b4d6d2da84d2e0bc5cd717ffa5a7b09c813ffba02a000585507f9b55b600b0f"
+    },
+    {
+      "path": "scripts/clean-dist.mjs",
+      "bytes": 3673,
+      "sha256": "87e8fa90dba95fea6d5aaac81f95e50e4501556e08438ff2d5dcc86cdfdf1416"
+    },
+    {
+      "path": "scripts/cohort-flow-chart-stub.jsx",
+      "bytes": 269,
+      "sha256": "b69205ab7ef283a3cb00eab9055e824867586d0fb9a33bfbe6075afdcf6157bc"
+    },
+    {
+      "path": "scripts/cohort-flow-fixture.jsx",
+      "bytes": 219,
+      "sha256": "d4f74f2981c8d122bc3dda4c3da08eaa8a37911dfadeee3bc08e010e3b0133b4"
+    },
+    {
+      "path": "scripts/compare-build-inputs.mjs",
+      "bytes": 1712,
+      "sha256": "5f03ef545fe4cbb8b590b26c0555d8c8b494357ef1823516146d7f0395906541"
+    },
+    {
+      "path": "scripts/compose-campus-ambient.py",
+      "bytes": 3308,
+      "sha256": "08586e706693e52d33c20adfca077767151452090daba1fd995d6b44c385b1c1"
+    },
+    {
+      "path": "scripts/compose-campus-playlist.py",
+      "bytes": 6408,
+      "sha256": "05bc8d6d3ae241f0efccf8a9e89f036c06906e772f82f68ced00f43c02a6c07f"
+    },
+    {
+      "path": "scripts/configure-deployment.mjs",
+      "bytes": 3929,
+      "sha256": "0e5dce1cdfd5be17f55cf1239f5e08cdfeb81c78f638e5b804e04bb65c65f536"
+    },
+    {
+      "path": "scripts/generate-survey-data.py",
+      "bytes": 18921,
+      "sha256": "905b5562fa0257deac579e40948d11ebee3633134fa50f955e4edd1c95c68082"
+    },
+    {
+      "path": "scripts/node-required.txt",
+      "bytes": 354,
+      "sha256": "5b3e15b6d8ff9daed89b10816bb97c854274ea29a04f376e96ba78085fe4d698"
+    },
+    {
+      "path": "scripts/package-delivery.py",
+      "bytes": 2003,
+      "sha256": "a57ed261fb196f213b0d956c29e554391b798ed65891d06b3e030b9b5eac5b03"
+    },
+    {
+      "path": "scripts/package-node-release.mjs",
+      "bytes": 7874,
+      "sha256": "04daa97c624b11178e5c3755d58b12c35d0e26e0884703de81c13af767f6eafe"
+    },
+    {
+      "path": "scripts/participation-ui-fixture.jsx",
+      "bytes": 1924,
+      "sha256": "6abb0a66f643520a2c696c8043eefaf97507fb35e1ac45630dd937f94a1a3e22"
+    },
+    {
+      "path": "scripts/prune-campus-release.mjs",
+      "bytes": 1747,
+      "sha256": "941e91537a5a8e205570fa465325cbc83923891d0e1768a274a2cff10bcf31b3"
+    },
+    {
+      "path": "scripts/restore-accounts.mjs",
+      "bytes": 2495,
+      "sha256": "f9aef7aa7154992508e28a1d4fabbe8b4dfb260b3ba5ca40908cde6c5a47b00a"
+    },
+    {
+      "path": "scripts/selftest-intro.mjs",
+      "bytes": 20306,
+      "sha256": "0071bd7ceddbae9f8f2ee0329abf520dd6c866b30753cf099c38d2a6f12d1828"
+    },
+    {
+      "path": "scripts/selftest-map.mjs",
+      "bytes": 10418,
+      "sha256": "71fb72ac01c1f312e0570fe62dea13f853cb4809adab035de6b852a285fb3354"
+    },
+    {
+      "path": "scripts/selftest-matrix.mjs",
+      "bytes": 41109,
+      "sha256": "c587e818f16e4a8133d427cf742a1c21eba9ca5d31da72f51870a8a5465ee867"
+    },
+    {
+      "path": "scripts/selftest-store.mjs",
+      "bytes": 10207,
+      "sha256": "e16db71db1c910f773cbe17342a1ada7195096eda0b92d564bb059d96adf6cfe"
+    },
+    {
+      "path": "scripts/smoke-csv.mjs",
+      "bytes": 6093,
+      "sha256": "b925561c6652a07de20a9d6250c47f086436d1b40df94cca4b1d9ac3ae22e9b7"
+    },
+    {
+      "path": "scripts/smoke-render.jsx",
+      "bytes": 33570,
+      "sha256": "4d200ec3a6fc2a87daf3db9b76d3e947c73f1902f76017273a5564f6188cbed5"
+    },
+    {
+      "path": "scripts/stamp-build.mjs",
+      "bytes": 2409,
+      "sha256": "6e1fd39e2c6f4d8c080dbde3b008e534f882bf327ff66149a1c23ae5f1ca65d2"
+    },
+    {
+      "path": "scripts/start-local.mjs",
+      "bytes": 3856,
+      "sha256": "92cf53d83a4eb6c8caef4802aac51ca86bb79c4c35280de8a7b73826c44065ba"
+    },
+    {
+      "path": "scripts/test-accounts.mjs",
+      "bytes": 18706,
+      "sha256": "f2e7a74f5ab417d7e7203768a8bb2bb341d9f3e82fdaa963482f32f7e49df355"
+    },
+    {
+      "path": "scripts/test-ai-grounding.mjs",
+      "bytes": 7631,
+      "sha256": "e49f1e51a8acad4523486115fec76210e989aefcd5d6b09f8889656082f9acdb"
+    },
+    {
+      "path": "scripts/test-ai-relay.mjs",
+      "bytes": 13057,
+      "sha256": "be397c1a2fef4519f4c0eb7c20a3d90c5f63843b68d15ca7bb1c8eab61e310c3"
+    },
+    {
+      "path": "scripts/test-answer-lens.mjs",
+      "bytes": 4470,
+      "sha256": "1d4af39cc3721756c4cf44fcd280f9f78260b782119a560c634ed6823be0be38"
+    },
+    {
+      "path": "scripts/test-baseline-retry.mjs",
+      "bytes": 2824,
+      "sha256": "4586321b13ee4ddcc900fe4c85e5c34633e99636f7e4cbb3083af7f41fdae78a"
+    },
+    {
+      "path": "scripts/test-beginner-package.mjs",
+      "bytes": 5914,
+      "sha256": "a4dead3864703357c8206250ae4b44c6d949dea649669e7cb98d934b399ca83b"
+    },
+    {
+      "path": "scripts/test-build-inputs.mjs",
+      "bytes": 3532,
+      "sha256": "ea1511e1a1cd1a4396a80dc504518e712b0e45b4fea37fa5e94323761841580f"
+    },
+    {
+      "path": "scripts/test-campus-day.mjs",
+      "bytes": 5466,
+      "sha256": "0e86aa034e5a24c1e23751602962d9d436334e61270da0f00a9ff3043c308cf0"
+    },
+    {
+      "path": "scripts/test-campus-journey.mjs",
+      "bytes": 2963,
+      "sha256": "42c5632f3270ff7ade485caf6643bdc2ff2d6c9f0b575e8482ba15489e5721bd"
+    },
+    {
+      "path": "scripts/test-campus-parkour.mjs",
+      "bytes": 7346,
+      "sha256": "cea7283add34c1abfb1378eea6f859fcfa9d8cbacd17019581487479ed21d401"
+    },
+    {
+      "path": "scripts/test-campus-participation.mjs",
+      "bytes": 2961,
+      "sha256": "fa9c99cacea1cdd135ea6c513fa851f4036d15393060cd6774e4db6092ffe2e9"
+    },
+    {
+      "path": "scripts/test-campus-paths.mjs",
+      "bytes": 3901,
+      "sha256": "d8fb4205876c7a38b3021e68a94ecba94610093167e614425c12f1761070e6b4"
+    },
+    {
+      "path": "scripts/test-campus-play.mjs",
+      "bytes": 5291,
+      "sha256": "ac6ab5985e688c4ff22fbd037adbaa3bc332b9f131ddcb1a728550b36f9a26ae"
+    },
+    {
+      "path": "scripts/test-campus-release.mjs",
+      "bytes": 2603,
+      "sha256": "6b8a5f19abe5f9436162335c72198e7ecc15218285946ab5e6781ba3a66661c9"
+    },
+    {
+      "path": "scripts/test-campus-runtime.mjs",
+      "bytes": 7376,
+      "sha256": "585d9e7978dcbecd77cd80aa98f0a47e05e1cbacd4b3b055d638e21512e799d6"
+    },
+    {
+      "path": "scripts/test-campus-story.mjs",
+      "bytes": 4649,
+      "sha256": "5f4b0fdb4d1fafb636d3615ebc3071327bbb76fa1423ad0c3058d12a7bb71668"
+    },
+    {
+      "path": "scripts/test-campus-walk.mjs",
+      "bytes": 7934,
+      "sha256": "14cb4ccfc341e2fc5cfe2d292405cc16cd05203a37c126a3260cd8648a1783d6"
+    },
+    {
+      "path": "scripts/test-campus-web.mjs",
+      "bytes": 32543,
+      "sha256": "a10d745e4ce83a937d8ee06d56bd592bbd3210bdb1f6ba787d569c0548d1d608"
+    },
+    {
+      "path": "scripts/test-cohort-flow.mjs",
+      "bytes": 10860,
+      "sha256": "4df390e05464a5869c5109a491d0e0b348e6652eba2a7b579aa8ac0f5da61b63"
+    },
+    {
+      "path": "scripts/test-companion-position.mjs",
+      "bytes": 5586,
+      "sha256": "7942b425e8fd53a61f9471052135967d5deda7ca85ce686e8dd676bec89a579b"
+    },
+    {
+      "path": "scripts/test-csv-quality.mjs",
+      "bytes": 8772,
+      "sha256": "cbe5fb07e937e742d6c4640f803fc85aff8529ab14ddf514d6ad0c6dc8e1b3bc"
+    },
+    {
+      "path": "scripts/test-day-survey-bridge.mjs",
+      "bytes": 4324,
+      "sha256": "2ad41ff5a4073e85e81b5d143eef62f2daed0dff6a395fc7c0e77e230e942aec"
+    },
+    {
+      "path": "scripts/test-deployment.mjs",
+      "bytes": 11004,
+      "sha256": "8e2b83a298757178b60f1830164e7bad376ce2a5f100ba9ec77a739690643c5a"
+    },
+    {
+      "path": "scripts/test-export-profile.mjs",
+      "bytes": 7703,
+      "sha256": "ab3af9d4c83a87014bfa9cdcffd3d2008e4c32794462ab8563076a98984a6092"
+    },
+    {
+      "path": "scripts/test-industrial-journey.mjs",
+      "bytes": 6823,
+      "sha256": "c8514462226d43e8de675c9fc2eaf06861f2d52f09fcb8c9e55d2bd4d74610f7"
+    },
+    {
+      "path": "scripts/test-live-verifier.mjs",
+      "bytes": 4043,
+      "sha256": "3182841516c53f725c38e1251e5793a4b520204d2e53bd1ad57a07ca35ff15d4"
+    },
+    {
+      "path": "scripts/test-privacy-build.mjs",
+      "bytes": 5796,
+      "sha256": "63ca2ae4b0347b449cb9ade98d939ec3db523f0c067954edbdcdbfba5f81eb95"
+    },
+    {
+      "path": "scripts/test-production-server.mjs",
+      "bytes": 3121,
+      "sha256": "6e7111dce56bfc1bbc309b6106449120430738c65ddd23e408e04d0691ee2bd5"
+    },
+    {
+      "path": "scripts/test-profile-explanation.mjs",
+      "bytes": 3964,
+      "sha256": "c70a93c587faea5d996ba67aa5624dd3eadae7b4b65382de22f722531f0bf25c"
+    },
+    {
+      "path": "scripts/test-proxy-limits.mjs",
+      "bytes": 5354,
+      "sha256": "9d7814ca65681f40c5233b85d68bee8463e479816a9f7e0168494fad3fe3cffc"
+    },
+    {
+      "path": "scripts/test-scene-pointer.mjs",
+      "bytes": 3940,
+      "sha256": "d307ba247a2a0a3bf09e41cbc4eaa09579ca259348f0fc1ab59b092679d59814"
+    },
+    {
+      "path": "scripts/test-self-registration.mjs",
+      "bytes": 5839,
+      "sha256": "19a4afc498346fc2cd6cc0ca77ca152cfba1946c18ba419358c492403c4c8926"
+    },
+    {
+      "path": "scripts/test-site-navigation.mjs",
+      "bytes": 2045,
+      "sha256": "2eb6faa58651921196c34d77f77e7388eedfe91de28ed36004727cbc21dff8cf"
+    },
+    {
+      "path": "scripts/test-static-delivery.mjs",
+      "bytes": 3787,
+      "sha256": "2ed6b34bec90a5eeac173df4337a638774a904027a14a67ca998edf8b07c1f64"
+    },
+    {
+      "path": "scripts/test-statistical-validity.mjs",
+      "bytes": 10287,
+      "sha256": "d31a5ad567981cb9c37d16951599f18a101ff7de4022dcb177b27f3bef8d75ce"
+    },
+    {
+      "path": "scripts/test-story-atmosphere.mjs",
+      "bytes": 2881,
+      "sha256": "c0e00c8144b3a1a97ec120a88fdd33d7383abfc699b1689e0d6d535d68fa46ac"
+    },
+    {
+      "path": "scripts/test-story-library.mjs",
+      "bytes": 7506,
+      "sha256": "062e903839f7f1dc305d649f1cf90de1ad1f4ea24d8b36e20a3a28421469f227"
+    },
+    {
+      "path": "scripts/test-survey-experience.mjs",
+      "bytes": 7017,
+      "sha256": "4399d4cba93344bf8b8931ee9960ca6f60faab204b503e95d9b0d3d79eeeaedb"
+    },
+    {
+      "path": "scripts/test-survey-report-core.mjs",
+      "bytes": 5056,
+      "sha256": "4205de31eecc39b23a452a549e26883bb134206fd199036c65172110c2f34ac2"
+    },
+    {
+      "path": "scripts/test-tailwind-sources.mjs",
+      "bytes": 3004,
+      "sha256": "97074e5ab1fc47cef58b50e022d6be5c9839d715d1b67191fe4884eac54b66f7"
+    },
+    {
+      "path": "scripts/test-windows-entry.mjs",
+      "bytes": 4104,
+      "sha256": "242dd40e19386b80fc71e94f97c8b3ef7ac92f3986f6fa479b68ee111705eccc"
+    },
+    {
+      "path": "scripts/verify-dist.mjs",
+      "bytes": 7090,
+      "sha256": "5102164a60dfada190e54e111cc78226f682f1e471f88c942b9aa336d58f0caa"
+    },
+    {
+      "path": "scripts/verify-live.mjs",
+      "bytes": 3762,
+      "sha256": "738807b8c0fffab9953ae90d2501abdaeb8e01b777186b4984cad30582c630e0"
+    },
+    {
+      "path": "server/accounts.mjs",
+      "bytes": 21792,
+      "sha256": "ff8007426c009de16a615081e7ced2eec899ce06a7feebe8f1150fb12c42155d"
+    },
+    {
+      "path": "server/ai.mjs",
+      "bytes": 5087,
+      "sha256": "53f24d01cc7a272922a7069652bcb45987cdc2a7368e55a60927eafd8265abd2"
+    },
+    {
+      "path": "server/client-address.mjs",
+      "bytes": 1748,
+      "sha256": "1cf4f9146dffe7e38e0a2df83b5f6b7f4c062cea1080529fa0723b9116bcd4fb"
+    },
+    {
+      "path": "server/config.mjs",
+      "bytes": 1715,
+      "sha256": "2b85a025bd3fd38f18ef1c6401e4499eed6fc603e0a8c41d50f0f119da3008b9"
+    },
+    {
+      "path": "server/data-path.mjs",
+      "bytes": 1066,
+      "sha256": "425de1dafd41af28c9e23b8a2452a31a59c7431e2cf18456bbcae120b0619ff1"
+    },
+    {
+      "path": "server/deployment-config.mjs",
+      "bytes": 2935,
+      "sha256": "0b908e0c27802232b20ca78101f0c568f2a97917dfb58d1eba1c02cb745fc6c0"
+    },
+    {
+      "path": "server/deployment.mjs",
+      "bytes": 1668,
+      "sha256": "d277c87711342bb05cd403ffc14d25d974739ca1123dc544254ecf502d884620"
+    },
+    {
+      "path": "server/index.mjs",
+      "bytes": 3446,
+      "sha256": "7a679ab277949e3627cae86232c39f883987a062597afd5ceebc5ebacceb2c32"
+    },
+    {
+      "path": "server/static-delivery.mjs",
+      "bytes": 2428,
+      "sha256": "f502021b977a3b71fa27a364f18edc5c73e2802c8c0b7d82f673579ff51d1433"
+    },
+    {
+      "path": "server/vite-plugin.mjs",
+      "bytes": 1465,
+      "sha256": "6d0155d85cc6b3d6fec4445a6d4c301e9b3f3c89b9b82cb95c9e84b8d5f98124"
+    },
+    {
+      "path": "src/App.jsx",
+      "bytes": 25134,
+      "sha256": "956ae51175aa6981befca22b41e880118ce5ec6bcba39d157a63389ec64e7933"
+    },
+    {
+      "path": "src/answer-lens.css",
+      "bytes": 3942,
+      "sha256": "a22bb3848d7e0493da76b98038171c74c1f68f5acc80e664687078acc222a518"
+    },
+    {
+      "path": "src/campus-map.css",
+      "bytes": 11746,
+      "sha256": "0b40ff311b65590e151cecf36cccd6be9342928fcc33587f40ff27d3bb3b6943"
+    },
+    {
+      "path": "src/companion-position.css",
+      "bytes": 5643,
+      "sha256": "04a63025f109129d970b716606650bc9beda818ceb701a7232a2dec660553af1"
+    },
+    {
+      "path": "src/components/AccountButton.jsx",
+      "bytes": 772,
+      "sha256": "fe2289b7810281d98c592f07e1885824e07bc156b98952877096a7ab59a62257"
+    },
+    {
+      "path": "src/components/AiSummary.jsx",
+      "bytes": 6414,
+      "sha256": "5e53e99082cf509506dd5e030056839d46293821144edb20a0ccab1ce61a8d04"
+    },
+    {
+      "path": "src/components/AnswerLens.jsx",
+      "bytes": 3009,
+      "sha256": "c313053ee48c223e4e84941e06b62cfddc61f89681a881fcb2dbb508375fb2c8"
+    },
+    {
+      "path": "src/components/ArkOption.jsx",
+      "bytes": 8154,
+      "sha256": "49aa36ac80a6b0232fb1f642f05cdf556efc20105d6ab89a31d2f37f37df15f8"
+    },
+    {
+      "path": "src/components/Atmosphere.jsx",
+      "bytes": 7204,
+      "sha256": "4e25e284b3203179601d1894afda9a02d720385c4337d71caf5b7d1fb020f3fd"
+    },
+    {
+      "path": "src/components/CampusCompanion.jsx",
+      "bytes": 10338,
+      "sha256": "eb0ce7aa38b86c20577699eac0281cb9145d5eed8d894a874fd0d036014a7776"
+    },
+    {
+      "path": "src/components/CampusDay.jsx",
+      "bytes": 13492,
+      "sha256": "8d4d7ed4c4cacbeced9bbd3cf4553e48fd4c808ab3c08f8d9557bd9b746c75d1"
+    },
+    {
+      "path": "src/components/CampusDayEntry.jsx",
+      "bytes": 1542,
+      "sha256": "340e78d0619e1b766cbaa7dd6955814daee89d4fa8aeb50dbc2baeaaf2934992"
+    },
+    {
+      "path": "src/components/CampusDayMap.jsx",
+      "bytes": 4076,
+      "sha256": "0081ba5c4edfc670f422b670da36c270f4405120d658a0bc959d300b9589b91d"
+    },
+    {
+      "path": "src/components/CampusDayTimeline.jsx",
+      "bytes": 1031,
+      "sha256": "4625c26dc99fc5218546d02b706ad2182204c99e7210c0141c72d2a22ef05bfe"
+    },
+    {
+      "path": "src/components/CampusFieldLog.jsx",
+      "bytes": 1143,
+      "sha256": "4b5f25ac51721fc34a4f60589002757b4e61b668eef75feb51d9c21d0735c655"
+    },
+    {
+      "path": "src/components/CampusKeepsake.jsx",
+      "bytes": 2600,
+      "sha256": "8ad7464928354c0815664552cd7e5dd040abb8670e245a227f4d8fc502ecd688"
+    },
+    {
+      "path": "src/components/CampusMapArt.jsx",
+      "bytes": 16551,
+      "sha256": "1eac2ba3594445b22645cd4c8a8b79fa5932db8304b75371e683d2b15faef240"
+    },
+    {
+      "path": "src/components/CampusMapViewport.jsx",
+      "bytes": 1845,
+      "sha256": "e1e9208afe0069228d9f3b845f91e30a6dab7978429c3be8a70bed4efd83ef3d"
+    },
+    {
+      "path": "src/components/CampusNote.jsx",
+      "bytes": 2150,
+      "sha256": "5509d52ed21058867de014e46142c70ccf3de782f8d8c2118555159fbec2e7ba"
+    },
+    {
+      "path": "src/components/CampusRoute.jsx",
+      "bytes": 8117,
+      "sha256": "8e25fb53f5163e62170e97b2eb3637454d4525c3f2a9a0765777456d415e0797"
+    },
+    {
+      "path": "src/components/CampusStory.jsx",
+      "bytes": 8626,
+      "sha256": "9b2f5edba86fbfa023c6c2503c31245723a8a0184b08803452a8dabbf21b7d48"
+    },
+    {
+      "path": "src/components/CampusStoryEntry.jsx",
+      "bytes": 2522,
+      "sha256": "1a4ed1810542198f82240fa938272cc30c23f8f851203669e4153bb3452e6bfe"
+    },
+    {
+      "path": "src/components/CampusTheatre.jsx",
+      "bytes": 3901,
+      "sha256": "312fa8a8c5ec7ef818fce04981e4c2094860cc4576f7fd6e50a88d953e2f1fef"
+    },
+    {
+      "path": "src/components/Chart.jsx",
+      "bytes": 1794,
+      "sha256": "1fddf934a185f8f32cdadf829ddf0e09396d5f6bec0c709816232b100b23b830"
+    },
+    {
+      "path": "src/components/CircleAnswers.jsx",
+      "bytes": 264,
+      "sha256": "7e1ef87e8abe2e4d61723cfc6613bbb38fc208e9e8629c52dc86c0268eef8217"
+    },
+    {
+      "path": "src/components/CircleAuth.jsx",
+      "bytes": 11912,
+      "sha256": "f48f0361c42a0c9474b511e043aa1194de2f0ce2b40cc22f8f82bb5396a53c55"
+    },
+    {
+      "path": "src/components/CircleSubmission.jsx",
+      "bytes": 5558,
+      "sha256": "4ba67eb71a8ca0af4cb2b6ff3e1c86954980f1dc2c83abb0c451c10cde7bd1b4"
+    },
+    {
+      "path": "src/components/CircleWorkspace.jsx",
+      "bytes": 32468,
+      "sha256": "9027b228b85aeb3c32e2c3f74cb05d201e8f9724da02f94a8007d6583421945b"
+    },
+    {
+      "path": "src/components/CohortAi.jsx",
+      "bytes": 5439,
+      "sha256": "a5e6b3d5e2fb9e79bd2de047ecb00c1ff1d144cfb914e6306445efa0d3fe3a2d"
+    },
+    {
+      "path": "src/components/CohortPage.jsx",
+      "bytes": 20101,
+      "sha256": "f7d6cce739c8c91a500c437cb70d3ea322935451bf597aaf965ec7f2ed68c1a6"
+    },
+    {
+      "path": "src/components/DaySurveyConnection.jsx",
+      "bytes": 1655,
+      "sha256": "d06d09065d5d7fa70634e5b02a52c0f7160036886ab91b059ca6f29a14133719"
+    },
+    {
+      "path": "src/components/DeploymentHelp.jsx",
+      "bytes": 7323,
+      "sha256": "0953cb542b01e6dd6148162db5bdcaaea4cbfae01996b7598e67b0af3abf31a2"
+    },
+    {
+      "path": "src/components/EntryDock.jsx",
+      "bytes": 6152,
+      "sha256": "8780116ad050d64627af001d9fd98275b8fc6fc781ab3821c3765eb93cbd26c5"
+    },
+    {
+      "path": "src/components/ExperienceSettings.jsx",
+      "bytes": 8878,
+      "sha256": "a6232d1e964a0d2b059142337e933eafd36db0b4559ce672ae88b1cff54b3111"
+    },
+    {
+      "path": "src/components/FactsCard.jsx",
+      "bytes": 2235,
+      "sha256": "8d7a5de67259fbb878b8c78a7e8d89efbdcd3eb3c32bf9dcb075e9f8de07d99a"
+    },
+    {
+      "path": "src/components/GeometricBackdrop.jsx",
+      "bytes": 7954,
+      "sha256": "52fbe9510fedbea53df20b4f6b2f3aa0d3202b6aef7d2e5a7d26da55dfe0d85b"
+    },
+    {
+      "path": "src/components/GettingStartedGuide.css",
+      "bytes": 10083,
+      "sha256": "36540fd9e00ed84eb62944eb14805c47b2bbb5b2937e41f296c50fa4647cdccb"
+    },
+    {
+      "path": "src/components/GettingStartedGuide.jsx",
+      "bytes": 10098,
+      "sha256": "d3b271a3e56ff6d6027fe5ccb0289acde831f679611cd8a96a0330372e28a514"
+    },
+    {
+      "path": "src/components/HomeShowcase.jsx",
+      "bytes": 6796,
+      "sha256": "afc32b21002da8fd0f6cc22d43a9c3bd55710958f1490d99efee6f9fdab696af"
+    },
+    {
+      "path": "src/components/HubHud.jsx",
+      "bytes": 10408,
+      "sha256": "75a22399405fbf64336ad849619be7770a70eb310be52cdb30e2fe391154465d"
+    },
+    {
+      "path": "src/components/IndustrialBackdrop.jsx",
+      "bytes": 2626,
+      "sha256": "5ae377da983b0f08ddebc8ccbbf712bcb064f0763f3564448978000198c55f4f"
+    },
+    {
+      "path": "src/components/JourneyContinuity.jsx",
+      "bytes": 2076,
+      "sha256": "6eab0341508849c733c3bf3f82a29b7f9806a7c35e05c52cdf213fc1163409ef"
+    },
+    {
+      "path": "src/components/LandingContent.jsx",
+      "bytes": 9060,
+      "sha256": "d611c136ae76152ac557bc2aeaf577ee6cfe0843d818c3ec0421706971b56062"
+    },
+    {
+      "path": "src/components/Mascot.jsx",
+      "bytes": 6883,
+      "sha256": "cf75791567b4aa5d3c157dda6e95ae776e1ab7ee63331019c88c5e4965403e4b"
+    },
+    {
+      "path": "src/components/MoodCurve.jsx",
+      "bytes": 2289,
+      "sha256": "e103855b7ba923febc506bab97ae35634483ec81f3f481ceaf9cf92901fde2f7"
+    },
+    {
+      "path": "src/components/NavButton.jsx",
+      "bytes": 3291,
+      "sha256": "5dc6460eb88ea1751320f36497d5357f38529052849672e81e21067391469108"
+    },
+    {
+      "path": "src/components/ProductFooter.jsx",
+      "bytes": 1638,
+      "sha256": "5d806c4aa05641e2141aa31c38e7c9d4430589f6738af2e4e072ade71ac8988f"
+    },
+    {
+      "path": "src/components/ProfileExplanation.jsx",
+      "bytes": 7324,
+      "sha256": "695e45549d0a6fd71815f1489d5d326efb4c32c529210120d981537bdc8ea61d"
+    },
+    {
+      "path": "src/components/ProfilePreview.jsx",
+      "bytes": 4266,
+      "sha256": "b73a9d2ab552c9215a60aa9e81a10e5197b9110ea1f81a96fa4b6b74bc746e90"
+    },
+    {
+      "path": "src/components/QuizGate.jsx",
+      "bytes": 3339,
+      "sha256": "5880e61dad592b061482391a52426090665e93ee8714cdb55bd9418074cf745b"
+    },
+    {
+      "path": "src/components/README.md",
+      "bytes": 1422,
+      "sha256": "f5fef2f52a00f50fc410c6fc726c42f4439e147cb64d96727f56d0d4bff49b84"
+    },
+    {
+      "path": "src/components/RadarChart.jsx",
+      "bytes": 4332,
+      "sha256": "97e76eeaeb5d4f6b4c1b3a7a22420e8fc04bd0d993f9ccb3af9693ad7646a54e"
+    },
+    {
+      "path": "src/components/ReportCircleSubmission.jsx",
+      "bytes": 4868,
+      "sha256": "98c49fa614b0c7f0a4244011e85907c27a746cac668d1379c0c4c0147ee9568d"
+    },
+    {
+      "path": "src/components/ReportView.jsx",
+      "bytes": 34038,
+      "sha256": "0ed5b3f796621b3f58627827cdae630fdd5eccfd9175c6375be335b57b7f2d14"
+    },
+    {
+      "path": "src/components/SceneOrnaments.jsx",
+      "bytes": 1963,
+      "sha256": "83ad259e4d223280f19de3846fd9f54d42dac0a0d4af76da2783ee0a4ec7408c"
+    },
+    {
+      "path": "src/components/SkyBackdrop.jsx",
+      "bytes": 3357,
+      "sha256": "b5c49304bc95f849b2864e2c3c5067946bf107f1c9d806479a0ce9ac014abba0"
+    },
+    {
+      "path": "src/components/StoryAtmosphere.jsx",
+      "bytes": 7107,
+      "sha256": "da797d2eb1611b65524bdcec4b7cd3b661ff524e01fdc4a10225d3fb124327a2"
+    },
+    {
+      "path": "src/components/StoryShelf.jsx",
+      "bytes": 1622,
+      "sha256": "ec2a36b0ff0b0028c3dec5a1652a4ad126b7c47ea4e844aa27722f6326ec522e"
+    },
+    {
+      "path": "src/components/SurveyForm.jsx",
+      "bytes": 13766,
+      "sha256": "77008ff8f9259b0c5b2e65ab4bf22d6d9109e196572b093acd0520b14d30b353"
+    },
+    {
+      "path": "src/components/TermHead.jsx",
+      "bytes": 10254,
+      "sha256": "a9e41650e907cd7b1ed306adb0763724c130bb6db2be19d5f1bc558849beee36"
+    },
+    {
+      "path": "src/components/TermPanel.jsx",
+      "bytes": 6452,
+      "sha256": "278d58c5385cf6593f28c39c27635ea02d1200a8ed517a325b3765983eadcfa1"
+    },
+    {
+      "path": "src/components/TimeDonut.jsx",
+      "bytes": 2309,
+      "sha256": "e23aa3e42d30187e8cc6bf88b1afa2736a97c3be726c7ef020fb983c8bbe95ed"
+    },
+    {
+      "path": "src/components/UploadPanel.jsx",
+      "bytes": 22363,
+      "sha256": "e4b480ff56f9d6b829fd871165d577e746be1f5070aa5b96c5b8078cf5157ed8"
+    },
+    {
+      "path": "src/components/campus-day.css",
+      "bytes": 16879,
+      "sha256": "f08f133eaf12be6e28615e6705f6ff96589fbff7e6c79dd25bd613ea2d1612a8"
+    },
+    {
+      "path": "src/components/campus-story.css",
+      "bytes": 9420,
+      "sha256": "fd8dd71ec666e65c21904e99c0e1eacc1b20ab0feed050fcd17a2752c2c027a1"
+    },
+    {
+      "path": "src/components/circle-guidance.css",
+      "bytes": 9001,
+      "sha256": "55678e39d40e5ec50682c8d38ba89dd1479a276e08bd2b34cc63b1904c27c6f7"
+    },
+    {
+      "path": "src/components/circles.css",
+      "bytes": 17635,
+      "sha256": "3ba743bd340a8a38663ca5194468c3cb66eb455d22e636eb01a5e8ec85482f81"
+    },
+    {
+      "path": "src/components/cohort-reading.css",
+      "bytes": 1446,
+      "sha256": "4fd119b9f3877f954b88cef5079ae8e7a2906db1192c1cbad82d827932b05037"
+    },
+    {
+      "path": "src/components/participation.css",
+      "bytes": 8989,
+      "sha256": "9330334fd1396ea6697839fdba7c5368e83959ed9e06bdece53f9e64fc412cee"
+    },
+    {
+      "path": "src/components/story-atmosphere.css",
+      "bytes": 6714,
+      "sha256": "8b52fb403a28e8eb6ae43e64dc397d04cc4f4fd02fc595561ec20b649880640c"
+    },
+    {
+      "path": "src/components/story-continuity.css",
+      "bytes": 5626,
+      "sha256": "f4c522d2028eb07e87d489a1baba96eda62996d06bfae4f60ba15eca1ab8cab6"
+    },
+    {
+      "path": "src/components/survey-guidance.css",
+      "bytes": 12370,
+      "sha256": "83dea86ff49bc7b736da9db1c12d153d194e0df9ef18fa878c4b04b1de894220"
+    },
+    {
+      "path": "src/data/README.md",
+      "bytes": 1365,
+      "sha256": "9108a6bd1b7ab15f57869f27fee4a9123c111f2a5bc2830d9844d3639ea182e6"
+    },
+    {
+      "path": "src/data/fetchBaselineText.js",
+      "bytes": 1210,
+      "sha256": "1427a3fe2be05bd04a0151a877b89035a7c81467246258c34bf5b25dee3ebe3b"
+    },
+    {
+      "path": "src/data/loadSample.js",
+      "bytes": 3082,
+      "sha256": "ae6a4463c1eee33f32a38d6a844d927196df4624e26afb65d323789533795ff9"
+    },
+    {
+      "path": "src/data/mapPlaces.js",
+      "bytes": 5857,
+      "sha256": "efd81477b264090a0fbbead5eb593637055075b04669e46ee3907231f7cb11e8"
+    },
+    {
+      "path": "src/data/matrix.json",
+      "bytes": 9855,
+      "sha256": "8f55bf6b467910cb158a5c8816aed45e1cb8b3c24f81f378bc0a1355ba142347"
+    },
+    {
+      "path": "src/data/musicCatalog.json",
+      "bytes": 10417,
+      "sha256": "f7f968a68d48b70fc1a8280b160f784af4809eb0f4e0ae6c856c26d4e2e92b6f"
+    },
+    {
+      "path": "src/experience.css",
+      "bytes": 8459,
+      "sha256": "e7e70bd53776520a2a01d4927f1f2d11ea25ccc087eec91fe788e5e0281cc5f1"
+    },
+    {
+      "path": "src/index.css",
+      "bytes": 72242,
+      "sha256": "fcc243c39d89aa64a66caf98e90b9cec8230f42138defae9e788b0a670862874"
+    },
+    {
+      "path": "src/industrial-edition.css",
+      "bytes": 14136,
+      "sha256": "e65493eb8f703e74317b7ca6c6447595a7e7574892d4f7cb2471244a07fd1eca"
+    },
+    {
+      "path": "src/interaction.css",
+      "bytes": 2647,
+      "sha256": "a09677394ffb1678c00e795976c03c165a80e3806b4c191cd35695eed7a88daf"
+    },
+    {
+      "path": "src/landing.css",
+      "bytes": 20431,
+      "sha256": "684f033d7d1c8e7359ed360e835216da8182d306135fd18b95e340627229cacc"
+    },
+    {
+      "path": "src/lib/README.md",
+      "bytes": 2643,
+      "sha256": "14e68932b913c2147544319e9f82203925fabfc6c7f7b2a1204776d52dec70c1"
+    },
+    {
+      "path": "src/lib/accounts.jsx",
+      "bytes": 4749,
+      "sha256": "da700e1ad53b5f28f79ce113e94662f6c758a6d795fffa8d5807ba4047cf5cb9"
+    },
+    {
+      "path": "src/lib/ambience.js",
+      "bytes": 2817,
+      "sha256": "97b52d36a6cfcff0979c741a2b9842c78d3bd26d5b8cb5485529440dfe8c74ab"
+    },
+    {
+      "path": "src/lib/answerDistribution.js",
+      "bytes": 1407,
+      "sha256": "204eae0744ef412208e8e0713b8a30e4042cb0680fe52d4d58896832368117ec"
+    },
+    {
+      "path": "src/lib/buildSummary.js",
+      "bytes": 11416,
+      "sha256": "05982871ac0cbd278cd6c4740e57634f17e60e0f62eff2cc31dd49d13a884e2f"
+    },
+    {
+      "path": "src/lib/campusDay.js",
+      "bytes": 16698,
+      "sha256": "1a4734aa54fb3798963604d21b3c22e319ae84db41753a3d36a2b56107bf7d8e"
+    },
+    {
+      "path": "src/lib/campusJourney.js",
+      "bytes": 3263,
+      "sha256": "e7a821fdba805683a4996129485f091c26cb8931494b68bb84e7a9513b8d56bd"
+    },
+    {
+      "path": "src/lib/campusMoments.js",
+      "bytes": 6784,
+      "sha256": "0db33ab9546a774082bdfcc24b31550a8b1a15d1b39711561ee8f033fa24267c"
+    },
+    {
+      "path": "src/lib/campusPaths.js",
+      "bytes": 3813,
+      "sha256": "fb6e78531249a73a958a6aeadfc5902e1e3bf3917ae734c1fd92c6deb93c7f43"
+    },
+    {
+      "path": "src/lib/campusStory.js",
+      "bytes": 13836,
+      "sha256": "664fc1b26e815a64bdeee47fc78e24c4abb12cb4f3fdec8c496cb6d0a470d42f"
+    },
+    {
+      "path": "src/lib/chartLabels.js",
+      "bytes": 845,
+      "sha256": "2aec0fcc2b57468425192e1102b4433165a809f2005c72ef62e18b80e1615d81"
+    },
+    {
+      "path": "src/lib/circleExport.js",
+      "bytes": 733,
+      "sha256": "87a7c3c50bdb9ca0d437360083136af4a29f8d28bbadee033250a7e3695903de"
+    },
+    {
+      "path": "src/lib/cohort.js",
+      "bytes": 9883,
+      "sha256": "32b5a05d8533b98c2385f068683e7af8c379eaf0f9f9e3bafa8d555f16fc5487"
+    },
+    {
+      "path": "src/lib/cohortSummary.js",
+      "bytes": 9797,
+      "sha256": "5061a658f473cf0995cc1bca47ff972c38ac7a4171016f3260f55142bca95329"
+    },
+    {
+      "path": "src/lib/companionPosition.js",
+      "bytes": 2906,
+      "sha256": "f88adcbccc754ebac80d75fe644e985b85352887f9357ef2b6f9625c0a9099ad"
+    },
+    {
+      "path": "src/lib/daySurveyBridge.js",
+      "bytes": 4118,
+      "sha256": "88562fdcca41c5c5472f35bd14f367aa57f2fb5d72c35a0efec722961e38df03"
+    },
+    {
+      "path": "src/lib/decodeCsv.js",
+      "bytes": 1483,
+      "sha256": "7d8ff34f32b716e6fc170db2009dd19caa8aa0dd4d5fc8aae98c826cd1ae440d"
+    },
+    {
+      "path": "src/lib/egg.js",
+      "bytes": 3966,
+      "sha256": "494b899d9792360529c455cfda9424e5ae0dd70a671201a3dee75d180c256e32"
+    },
+    {
+      "path": "src/lib/exportProfile.js",
+      "bytes": 6509,
+      "sha256": "ad1e74109e3cd5164088295e91d97dcbba46ddd9d76f88391cf598f331794bef"
+    },
+    {
+      "path": "src/lib/fallback.js",
+      "bytes": 3592,
+      "sha256": "97f16b24f56845d7a1495015d71a3c3cddd7635412568258764622228035203a"
+    },
+    {
+      "path": "src/lib/gettingStarted.js",
+      "bytes": 1570,
+      "sha256": "9c985eb2db3c9cd63332b35fff0182f808dca7b293e9291d3c47f901ea0d31c0"
+    },
+    {
+      "path": "src/lib/gettingStarted.test.mjs",
+      "bytes": 2814,
+      "sha256": "170800dce5e707d6188b6ae24c0e30001a657b4dea091dd8caeaca19cc0739d3"
+    },
+    {
+      "path": "src/lib/hudModel.js",
+      "bytes": 3138,
+      "sha256": "b19e80cf6c46d42d1a02063d19f94257a5b9e7b22a68807b4132991c95833967"
+    },
+    {
+      "path": "src/lib/introLayers.js",
+      "bytes": 8658,
+      "sha256": "a1be21919a919312677d3d5f3a914a356817c7fddf1bdbdd7b52f24316ae0614"
+    },
+    {
+      "path": "src/lib/introPush.js",
+      "bytes": 4607,
+      "sha256": "b5e5e51755a346b5b1af1911118cbd15eae5719e6af443e7b62ff3c20b9ce6e7"
+    },
+    {
+      "path": "src/lib/keyword.js",
+      "bytes": 2456,
+      "sha256": "a1df94f779e369c054cb30f197afefc9a2e5f38b77cba4b979c4ab7e3cee1293"
+    },
+    {
+      "path": "src/lib/llm.js",
+      "bytes": 5413,
+      "sha256": "16ffa44900cf2bff873f3ee451255fb9a994539f33ea6c79d51e1b29fa7ac94e"
+    },
+    {
+      "path": "src/lib/llmPayload.js",
+      "bytes": 4423,
+      "sha256": "d0d73012628c8398eab410e144d1307e77efc02354cdb2f072a9854b5a98a1d2"
+    },
+    {
+      "path": "src/lib/mapEngine.js",
+      "bytes": 5427,
+      "sha256": "65310296f3ce441803a6ba33f96c8c3e5ef9232cc6ee40c62fcdf078895f1a8b"
+    },
+    {
+      "path": "src/lib/matrix.js",
+      "bytes": 5579,
+      "sha256": "db0d8bbf4282bbeb1c353794fa17a4a36192c0e3c29dd37bf4ef43ac5b633da6"
+    },
+    {
+      "path": "src/lib/nextStep.js",
+      "bytes": 2047,
+      "sha256": "04ed158f532c61ca96502e2acc51c03630c8abffc0b9c09ee8098375df537480"
+    },
+    {
+      "path": "src/lib/parseCsv.js",
+      "bytes": 3286,
+      "sha256": "4567936084718e8aaa3a2c51179c249c5f1f8e641db3d0cc3d7354960f305dd0"
+    },
+    {
+      "path": "src/lib/previewProfiles.js",
+      "bytes": 1010,
+      "sha256": "a254aa888cbf3c9528ec628c633edc4e3cfb397b9ab5f96f15742eceeb072b00"
+    },
+    {
+      "path": "src/lib/profileExplanation.js",
+      "bytes": 2807,
+      "sha256": "63982ce63c56e55c9eebed4fef065e6a9149eb97142a12c62367c7d1c6cbf68b"
+    },
+    {
+      "path": "src/lib/questionPresentation.js",
+      "bytes": 3686,
+      "sha256": "da0bc0c5b4971c45f52113dadd2e4c36b0f16eebcd5d2ff0bd4229d4ee5ecee0"
+    },
+    {
+      "path": "src/lib/reportCard.js",
+      "bytes": 5190,
+      "sha256": "35288d2734990985ef651e59f11f4d9cf879658287e6d285552ecc606caf5162"
+    },
+    {
+      "path": "src/lib/results.js",
+      "bytes": 14982,
+      "sha256": "6003a077003197ff2e6104ca4d021773ce5a6737f0b2aa97bf8ab61f8a7a7540"
+    },
+    {
+      "path": "src/lib/scenePointer.js",
+      "bytes": 2505,
+      "sha256": "2643e8e3f4abd892743b73c2e2399923d535773ba0ad191a45e18f38d1c6c75e"
+    },
+    {
+      "path": "src/lib/siteNavigation.js",
+      "bytes": 1439,
+      "sha256": "5ab08c654dd3f12d97744f6a6ef34067deb917022dee9e386dea0950c8639ac5"
+    },
+    {
+      "path": "src/lib/sse.js",
+      "bytes": 5527,
+      "sha256": "c5eb72e155c79fbf80c7d4a190db4125bfedbd09281292ed51b38337f5673212"
+    },
+    {
+      "path": "src/lib/storyAtmosphere.js",
+      "bytes": 3496,
+      "sha256": "f5d85fa58a49a54252cfb2b23364c5a741f60a2ddee640a21382ee0907063432"
+    },
+    {
+      "path": "src/lib/storyEpisodes.js",
+      "bytes": 18429,
+      "sha256": "6535eec0a1749bcfd5a60c9d60dd7e63b5b16e423d05b5eeec992482134e8c96"
+    },
+    {
+      "path": "src/lib/surface.js",
+      "bytes": 4578,
+      "sha256": "1cefe1af00acce830f8c3a2f7bb2a94f67c22992b182d0dc3354f3ca9d713db2"
+    },
+    {
+      "path": "src/lib/surveyClean.js",
+      "bytes": 8421,
+      "sha256": "7d30dc968eb424c10b704afaaf69f83b6bbf550406658c199471e9dd7efa7a7a"
+    },
+    {
+      "path": "src/lib/surveyDraft.js",
+      "bytes": 3685,
+      "sha256": "52cced2f82424ffd54c1e4f73c9111fc5ccd41863554b9ff0d17a9ee7091d82e"
+    },
+    {
+      "path": "src/lib/surveyJourney.js",
+      "bytes": 2079,
+      "sha256": "16c665a3f3978e00f19e020cf52d1cbe5bc28084c2f2bc309e056f3e1e92160a"
+    },
+    {
+      "path": "src/lib/surveyNarrative.js",
+      "bytes": 6670,
+      "sha256": "7dbd51d551ded13f8ac2ceab48a83c3e36887afeac484073395df3fa49666c03"
+    },
+    {
+      "path": "src/lib/surveyReportSession.js",
+      "bytes": 1763,
+      "sha256": "ca7356ad8cb86147b29debbc394e37a6a20717479df8632b1c2a1f2acc1c5054"
+    },
+    {
+      "path": "src/lib/surveySchema.js",
+      "bytes": 3872,
+      "sha256": "a2a5b0bbe68f3353a14ae6e4d110cc468e2b16f81728234334d4809e2259c47a"
+    },
+    {
+      "path": "src/lib/terminalTheme.js",
+      "bytes": 7550,
+      "sha256": "b8def58c388bb0187a67e2b7c7ef80de42d1b7e2e19e9ec637513841a989292e"
+    },
+    {
+      "path": "src/lib/text.js",
+      "bytes": 1966,
+      "sha256": "fb83606448351327c5c00cf1c2481d4796696efc0986b91f51496d13284a9dcd"
+    },
+    {
+      "path": "src/lib/theme.js",
+      "bytes": 3414,
+      "sha256": "8473d029ed03a9b4fb4f9f5726f5c40f0b87dd3657437747af9ae3adc316c930"
+    },
+    {
+      "path": "src/lib/thresholds.js",
+      "bytes": 4602,
+      "sha256": "3c87e464483bf96ffe9d8db7f58606a9406c463179525cce209fae49cdbebc4d"
+    },
+    {
+      "path": "src/lib/validateCohortSummary.js",
+      "bytes": 8636,
+      "sha256": "6197183437c2dba908d87e64df9d2c56c9e62fdee5267311d36acb0cea9e2eff"
+    },
+    {
+      "path": "src/lib/validateSummary.js",
+      "bytes": 7161,
+      "sha256": "3feeb12a3da1d5f8a5ec1a56b1236fcc4f8f90b55d9f3ab3dbf7acf433a16738"
+    },
+    {
+      "path": "src/main.jsx",
+      "bytes": 599,
+      "sha256": "bdf0d1a8a92ff426d334d7187f0cd9cb47e05c7f58bf91c37f47a8e3ab006db1"
+    },
+    {
+      "path": "src/novice-experience.css",
+      "bytes": 5492,
+      "sha256": "2542330ba6636f9b9fa722ca4a8db0f26196e7bc9e4deb15872ba94021498101"
+    },
+    {
+      "path": "src/product-polish.css",
+      "bytes": 3331,
+      "sha256": "039a53c633713f7c26267628b04b5c53a70afcb5455b645431a68a16d761df11"
+    },
+    {
+      "path": "src/product-unity.css",
+      "bytes": 10941,
+      "sha256": "bb741c018bd65b1bc25fe68ebfbbbafa7e9e39d5c4a67444143a52c639890f15"
+    },
+    {
+      "path": "src/profile-explanation.css",
+      "bytes": 5199,
+      "sha256": "61053a8b8c179eeb834f1a63328d06f0dee3041bc52431cf7d2ebf31f7acd2cc"
+    },
+    {
+      "path": "src/questionnaire-core.css",
+      "bytes": 24245,
+      "sha256": "96072a32de7c0a9e5a979387edbe8d6b19fa92114592cc62b0cff0d0908ac16d"
+    },
+    {
+      "path": "src/refinement.css",
+      "bytes": 6185,
+      "sha256": "f633107bf04310d015b97dd78693e7e913bb01005abf768164e99c63526a92c6"
+    },
+    {
+      "path": "src/scene-details.css",
+      "bytes": 6202,
+      "sha256": "69754888254d6e3911ab6fefa7026a42492adee7c1289cea9892b905f0ea3b29"
+    },
+    {
+      "path": "src/scenes/EntryScene.jsx",
+      "bytes": 365,
+      "sha256": "4c077f792662ededd721c326c2719728a604a0d3020ae02dac140e25a8225248"
+    },
+    {
+      "path": "src/scenes/IntroScene.jsx",
+      "bytes": 7242,
+      "sha256": "52a6b3d0b0112d29942c7e822a7a8d0e277cc724181d9f0a2982a90f08587c90"
+    },
+    {
+      "path": "src/scenes/MapScene.jsx",
+      "bytes": 21466,
+      "sha256": "a977793c799d4f60eddd4ce4e577cef38aad5808db72f7b5d62d7d7a942c8f37"
+    },
+    {
+      "path": "src/store/useGameStore.js",
+      "bytes": 4855,
+      "sha256": "633b5e0f86217970848d9d2c1a25af77e761a88249becf1c2c8e2f36b5804586"
+    },
+    {
+      "path": "src/ui-polish.css",
+      "bytes": 6495,
+      "sha256": "337b16b7b4170276d275dff20c1e40324e24da90df11a93213c755afb7a50618"
+    },
+    {
+      "path": "vite.config.js",
+      "bytes": 2619,
+      "sha256": "bac51911a80e4dd02941c3e95dc0598c5bd455976266382f54f83ac903b453cf"
+    }
+  ]
+}

@@ -1,36 +1,46 @@
 {
   "edition": "B",
-  "version": "v53.2",
+  "version": "v53.3",
   "theme": "校园行迹",
   "matrixVersion": 1,
   "date": "2026-11-11",
-  "change": "静态文本支持Brotli/gzip协商传输；基准数据读取增加超时与有限自动重试；补齐默认站点图标，保持3D本体不变",
-  "base": "v53.1",
+  "change": "固定Tailwind扫描业务源码与入口；构建输出逐文件输入摘要用于定位部署残留；保留严格版本校验和原账号数据",
+  "base": "v53.2",
   "build": {
-    "sourceCommit": "5d761cb2fce74bb7a6cb62ac3f6c638e8c823ab8",
+    "sourceCommit": "1b8ae0029d85bbf0b49dc5684b63832f70f5b518",
     "sourceDirty": false,
-    "sourceSha256": "2c2bfe6b70e4d7fb45f3bc9326712ee41c5404ba2284233ef497f2cd5e29ec86",
-    "builtAt": "2026-11-11T09:32:27.709Z",
+    "sourceSha256": "39c16782cb69b1c5eab70afb5e2b84a52c30d00a262446b4a4b7c3c900a616bc",
+    "builtAt": "2026-11-11T12:24:45.510Z",
+    "inputsManifest": {
+      "path": "/build-inputs.json",
+      "sha256": "6062fedcd724eba68b6264c0e03ee39c510c3f179b6f65f52d6c4a63a687e33d",
+      "files": 307
+    },
     "artifacts": [
+      {
+        "path": "/assets/CampusDay-Cacnkmr-.js",
+        "sha256": "6a9b51cc6dd414d90850571bc50e326933cfa63f1e383da0ac5c071a78a82354",
+        "bytes": 17484
+      },
       {
         "path": "/assets/CampusDay-_9Mtr7ln.css",
         "sha256": "2b0e443f0a658ae615629bb3ede4a616c68963a3745560980b116f646091b3a3",
         "bytes": 16288
       },
       {
-        "path": "/assets/CampusDay-pTQBGcxH.js",
-        "sha256": "b304e7da73104697570482e4d8be6194c39ac3d85f274f98572625e7c6e9cf36",
-        "bytes": 17484
-      },
-      {
-        "path": "/assets/CampusStory-ECDLil_u.js",
-        "sha256": "f87c7627ebfc149483f2120d34eda804e80f60af523682bc9a545f05a92d8b83",
+        "path": "/assets/CampusStory-F5vZSe_j.js",
+        "sha256": "af5292bc873915ed0839d7597fabe2a9f1ecf8c42896803fe286630a063232a0",
         "bytes": 11344
       },
       {
-        "path": "/assets/CircleWorkspace-CAZ2ncMC.js",
-        "sha256": "643f54a6fcb654604334b474c9d9fc1cae45f5e610e137d3b19a115dad2e09f9",
+        "path": "/assets/CircleWorkspace-CMsV93v1.js",
+        "sha256": "6b0b26e3cc5a5942631cbbb0d25ae5d76d5e97a0a49c3077d8ec78ee33605954",
         "bytes": 41969
+      },
+      {
+        "path": "/assets/CohortPage-DrfFBTrr.js",
+        "sha256": "913288d956289fcc5253a7d4fde9769581f3c15429a6feee8742bb3dc729fcb7",
+        "bytes": 18721
       },
       {
         "path": "/assets/CohortPage-M1VdDIrH.css",
@@ -38,18 +48,13 @@
         "bytes": 1277
       },
       {
-        "path": "/assets/CohortPage-TFoVfOqu.js",
-        "sha256": "56274c8df77ddee4e12bf7ca6c6f82ffe03ca10cb68c14d40844f789003eb202",
-        "bytes": 18721
-      },
-      {
-        "path": "/assets/DeploymentHelp-Cbp06-X9.js",
-        "sha256": "0f013b8823cddd3a1bd20187201a9a4ddba6354ff785206356e05eab629731d0",
+        "path": "/assets/DeploymentHelp-DYScSt-p.js",
+        "sha256": "04d1b7ce8e9afe32e0c5016661e49a2cfb65c76e2d86edbf26ef4eb34ad9f919",
         "bytes": 6721
       },
       {
-        "path": "/assets/ReportView-BRe4dtH2.js",
-        "sha256": "b029f5336a71db78f897253bca58653a717395922060d5da3c3c7da39a989e06",
+        "path": "/assets/ReportView-DVzzRRjs.js",
+        "sha256": "8d8806af9bd69cfc3ed0910fdd3ac4021b15446ac6021405850a37ffbc318b8b",
         "bytes": 48773
       },
       {
@@ -58,18 +63,18 @@
         "bytes": 4746
       },
       {
-        "path": "/assets/index-Bb5VxaJN.css",
-        "sha256": "703837b3c6f0d40effba2aff13f9bf59cdd3960c9a7d834287a75774d9849823",
-        "bytes": 240085
-      },
-      {
-        "path": "/assets/index-BgXLTXqq.js",
-        "sha256": "6c3899576c0af4e3c72207acd29b37bbb427d861e00ac50c26ab91d6f33c653c",
+        "path": "/assets/index-BxNZ-zIN.js",
+        "sha256": "5f65da727d1a369d10f724cc15270d614f51614aa1d2011824fd571d9d4d5d3c",
         "bytes": 523004
       },
       {
-        "path": "/assets/llm-vBu3P-9A.js",
-        "sha256": "b25cbc972afa4163f15f313e2538115b9a18c760b6c72cdddb4e359f38e61037",
+        "path": "/assets/index-C69sCLqY.css",
+        "sha256": "ac1d9e8073478c64203b1845367cf9428afeb5c4e7d73daddf2c5d0d091ba854",
+        "bytes": 239548
+      },
+      {
+        "path": "/assets/llm-BIj7844U.js",
+        "sha256": "c4fa81aacb3d1be8d81335ebb8fa0c078db48275f0a54b2501ba24f0636da4d1",
         "bytes": 592338
       },
       {
@@ -79,7 +84,7 @@
       },
       {
         "path": "/index.html",
-        "sha256": "5cf8652e40128afb1d654c471b88729b60b2e54994cc9b8d147cbc1e2edba4a9",
+        "sha256": "65285e24d5ddbdbab9c6066d178a68ac3ae251e9354daa14b81caf13a0ec949a",
         "bytes": 1687
       },
       {
