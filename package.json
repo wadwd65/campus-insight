@@ -21,6 +21,7 @@
     "verify:live": "node scripts/verify-live.mjs",
     "test:cohort-flow": "node scripts/test-cohort-flow.mjs",
     "test:proxy": "node scripts/test-proxy-limits.mjs",
+    "test:delivery": "node scripts/test-static-delivery.mjs && node scripts/test-baseline-retry.mjs",
     "test:privacy": "node scripts/test-privacy-build.mjs",
     "test:stats": "node scripts/test-statistical-validity.mjs",
     "test:ai": "node scripts/test-ai-grounding.mjs",
@@ -54,7 +55,7 @@
     "test:field": "node scripts/test-industrial-journey.mjs && node scripts/test-companion-position.mjs && node scripts/test-campus-story.mjs && node scripts/test-story-atmosphere.mjs && node scripts/test-story-library.mjs && node scripts/test-campus-day.mjs && node scripts/test-campus-paths.mjs",
     "test:report-core": "node scripts/test-survey-report-core.mjs",
     "test:day-survey": "node scripts/test-day-survey-bridge.mjs",
-    "test:release": "node scripts/test-live-verifier.mjs"
+    "test:release": "node scripts/test-live-verifier.mjs && npm run test:delivery"
   },
   "dependencies": {
     "@tsparticles/engine": "^4.4.0",

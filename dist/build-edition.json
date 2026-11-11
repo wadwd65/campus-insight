@@ -1,41 +1,36 @@
 {
   "edition": "B",
-  "version": "v53.1",
+  "version": "v53.2",
   "theme": "校园行迹",
   "matrixVersion": 1,
   "date": "2026-11-11",
-  "change": "新手主线复查：桌面小人默认展开并保留手动状态，推荐问卷、可选校园一天与独立3D参观明确区分",
-  "base": "v53",
+  "change": "静态文本支持Brotli/gzip协商传输；基准数据读取增加超时与有限自动重试；补齐默认站点图标，保持3D本体不变",
+  "base": "v53.1",
   "build": {
-    "sourceCommit": "fffd3becc7890aaa757ee4472d9a7b73c649b145",
-    "sourceDirty": false,
-    "sourceSha256": "362ac0dce9774119fb47aee4e4f68f609ac7ee06abec45c7d16f4e05fb8aaaf4",
-    "builtAt": "2026-11-11T07:51:52.537Z",
+    "sourceCommit": "f8b4de6d5c5537c708d5ca39a5e826de6603eb7f",
+    "sourceDirty": true,
+    "sourceSha256": "2c2bfe6b70e4d7fb45f3bc9326712ee41c5404ba2284233ef497f2cd5e29ec86",
+    "builtAt": "2026-11-11T09:13:43.183Z",
     "artifacts": [
-      {
-        "path": "/assets/CampusDay-BJHbO9E4.js",
-        "sha256": "3f5339ad9c556136dcb31fa669c28340849080e3c897bcf01513e070b6cc23ed",
-        "bytes": 17484
-      },
       {
         "path": "/assets/CampusDay-_9Mtr7ln.css",
         "sha256": "2b0e443f0a658ae615629bb3ede4a616c68963a3745560980b116f646091b3a3",
         "bytes": 16288
       },
       {
-        "path": "/assets/CampusStory-DInZUJfk.js",
-        "sha256": "8ef38853fbd8cc61a30a015d51bf2056e117b2f1f51844375262e67e2195bb90",
+        "path": "/assets/CampusDay-pTQBGcxH.js",
+        "sha256": "b304e7da73104697570482e4d8be6194c39ac3d85f274f98572625e7c6e9cf36",
+        "bytes": 17484
+      },
+      {
+        "path": "/assets/CampusStory-ECDLil_u.js",
+        "sha256": "f87c7627ebfc149483f2120d34eda804e80f60af523682bc9a545f05a92d8b83",
         "bytes": 11344
       },
       {
-        "path": "/assets/CircleWorkspace-JqD_B_tz.js",
-        "sha256": "b689cdf59786ea8e089e10d64483453c202b93c50f0f011b2916a6bd9dfffea8",
+        "path": "/assets/CircleWorkspace-CAZ2ncMC.js",
+        "sha256": "643f54a6fcb654604334b474c9d9fc1cae45f5e610e137d3b19a115dad2e09f9",
         "bytes": 41969
-      },
-      {
-        "path": "/assets/CohortPage-CV_q2YaA.js",
-        "sha256": "eb9304763fac1bec62d137d76199f8331de2df3e32b35e1b8aa174f2255deaad",
-        "bytes": 18721
       },
       {
         "path": "/assets/CohortPage-M1VdDIrH.css",
@@ -43,13 +38,18 @@
         "bytes": 1277
       },
       {
-        "path": "/assets/DeploymentHelp-C9Dyh0mq.js",
-        "sha256": "5bca43aec98d860d2fa7b2d947c221cefc6ea3dd2326d315a164406df23ceb60",
+        "path": "/assets/CohortPage-TFoVfOqu.js",
+        "sha256": "56274c8df77ddee4e12bf7ca6c6f82ffe03ca10cb68c14d40844f789003eb202",
+        "bytes": 18721
+      },
+      {
+        "path": "/assets/DeploymentHelp-Cbp06-X9.js",
+        "sha256": "0f013b8823cddd3a1bd20187201a9a4ddba6354ff785206356e05eab629731d0",
         "bytes": 6721
       },
       {
-        "path": "/assets/ReportView-DRLN-U7C.js",
-        "sha256": "50ec934a666f0fddde1e26b29ff76fb84659816e334eb1e95f600056382608e2",
+        "path": "/assets/ReportView-BRe4dtH2.js",
+        "sha256": "b029f5336a71db78f897253bca58653a717395922060d5da3c3c7da39a989e06",
         "bytes": 48773
       },
       {
@@ -63,13 +63,13 @@
         "bytes": 240085
       },
       {
-        "path": "/assets/index-ChFjMeYx.js",
-        "sha256": "ca6c2e1eb094de2c7bbd5b523ac339980f72ba42c52f581ce05728954ea2f49c",
-        "bytes": 522457
+        "path": "/assets/index-BgXLTXqq.js",
+        "sha256": "6c3899576c0af4e3c72207acd29b37bbb427d861e00ac50c26ab91d6f33c653c",
+        "bytes": 523004
       },
       {
-        "path": "/assets/llm-DvL3C3mn.js",
-        "sha256": "7a271b2e237b2a252f4d154e07a694b91bc45f87985d2a6d068bd25ce1d5a433",
+        "path": "/assets/llm-vBu3P-9A.js",
+        "sha256": "b25cbc972afa4163f15f313e2538115b9a18c760b6c72cdddb4e359f38e61037",
         "bytes": 592338
       },
       {
@@ -79,7 +79,7 @@
       },
       {
         "path": "/index.html",
-        "sha256": "50f1d4b0d380ab61bc9aa22c89e8002e19011b5858b60a1df137153a06089941",
+        "sha256": "5cf8652e40128afb1d654c471b88729b60b2e54994cc9b8d147cbc1e2edba4a9",
         "bytes": 1687
       },
       {

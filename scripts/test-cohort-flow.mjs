@@ -37,11 +37,14 @@ win.HTMLDialogElement.prototype.close = function () { this.removeAttribute('open
 globalThis.ResizeObserver = win.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
 win.sessionStorage.setItem('campus:intro-seen', '1');
 let sampleFailures = 1;
+let baselineFailures = 1;
+let baselineRequests = 0;
 let accountScenario = 'ready';
 globalThis.fetch = async (url, options = {}) => {
   assert.equal(options.method || 'GET', 'GET', '这项访客测试不应产生任何服务端写入');
   if (url === '/api/campus/session') return accountScenario === 'configuration' ? Response.json({error:'上线前请配置 APP_ORIGIN 为网站的 HTTPS 地址'}, {status:503}) : Response.json({ user: null, csrf: null, setupRequired: false });
   const file = path.basename(decodeURIComponent(String(url)));
+  if (file === '问卷基准数据.csv') { baselineRequests++; if (baselineFailures-- > 0) return Response.json({ error: '测试第一次基准加载失败' }, { status: 503 }); }
   if (file === '示例-班级问卷.csv' && sampleFailures-- > 0) return Response.json({ error: '测试第一次示例加载失败' }, { status: 503 });
   if (['问卷基准数据.csv', '示例-班级问卷.csv'].includes(file)) return new Response(await fs.readFile(path.join(rootPath, 'public/data', file)));
   return Response.json({ error: '此离线测试未连接可选服务' }, { status: 503 });
@@ -77,6 +80,7 @@ try {
   await waitFor(() => query('.quiz-gate'));
   await click(button('开始答题'));
   await waitFor(() => query('.quiz-options'));
+  assert.equal(baselineRequests, 2, '基准首次503后自动恢复，无需手动刷新');
   assert.equal(query('.survey-route-details').open, false, '五站路线默认收起，让题目与选项先呈现');
   assert.equal(query('.survey-question-help').open, false, '详细选项说明默认按需展开');
   assert.equal(doc.querySelectorAll('.quiz-options button').length, 5, '减负不能减少可选答案');

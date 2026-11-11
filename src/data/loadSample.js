@@ -12,6 +12,7 @@ import { parseCsvText } from '../lib/parseCsv.js';
 import { cleanSurveyRows } from '../lib/surveyClean.js';
 import { toAttributeMatrix, buildBaseline } from '../lib/matrix.js';
 import { REQUIRED_COLUMNS } from '../lib/surveySchema.js';
+import { fetchBaselineText } from './fetchBaselineText.js';
 
 const DATA_FILE = '问卷基准数据.csv';
 const COHORT_SAMPLE_FILE = '示例-班级问卷.csv';
@@ -39,11 +40,7 @@ export function loadBaseline() {
 
   pending = (async () => {
     const url = `${import.meta.env.BASE_URL}data/${DATA_FILE}`;
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(`基准数据加载失败（HTTP ${res.status}）。确认 public/data/${DATA_FILE} 存在。`);
-    }
-    const text = await res.text();
+    const text = await fetchBaselineText(url);
 
     const parsed = parseCsvText(text, REQUIRED_COLUMNS);
     if (!parsed.ok) {
