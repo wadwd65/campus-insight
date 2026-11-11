@@ -7,10 +7,10 @@
   "change": "新手主线复查：桌面小人默认展开并保留手动状态，推荐问卷、可选校园一天与独立3D参观明确区分",
   "base": "v53",
   "build": {
-    "sourceCommit": "9391b0fcb60481a70d1ff7bf35489b33328d680d",
-    "sourceDirty": true,
+    "sourceCommit": "fffd3becc7890aaa757ee4472d9a7b73c649b145",
+    "sourceDirty": false,
     "sourceSha256": "362ac0dce9774119fb47aee4e4f68f609ac7ee06abec45c7d16f4e05fb8aaaf4",
-    "builtAt": "2026-11-11T07:47:50.308Z",
+    "builtAt": "2026-11-11T07:51:52.537Z",
     "artifacts": [
       {
         "path": "/assets/CampusDay-BJHbO9E4.js",
