@@ -19,3 +19,6 @@
 *.jpg binary
 *.jpeg binary
 *.webp binary
+
+# Third-party legal texts are exact upstream bytes, including their original whitespace.
+docs/第三方许可/** -text -diff -whitespace

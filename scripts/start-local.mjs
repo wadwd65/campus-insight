@@ -38,7 +38,7 @@ if (major < 24 || major === 24 && minor < 21) {
   child.stdout.on('data', bytes => {
     if (!ready && bytes.toString().includes('Campus Insight:')) {
       ready = true;
-      console.log(`\n网站已打开：${url}\n\n第一次使用：点“登录 / 我的圈子”，再点“注册”。\n选择“创建圈子，我当管理员”，设置自己的账号和6～12位密码。\n以后使用：再次双击“开始使用”，登录原账号即可。\n\n请保留这个窗口。停止网站时按 Ctrl+C。\n本机地址只供这台电脑练习；给别人使用请看“先看这里.html”。\n`);
+      console.log(`\n网站已打开：${url}\n\n第一次使用：直接点“填写校园问卷”，不用注册。\n需要班级/社团收卷时，再点“登录 / 注册”创建圈子。\n以后使用：再次双击“开始使用”，登录原账号即可。\n\n请保留这个窗口。停止网站时按 Ctrl+C。\n本机地址只供这台电脑练习；给别人使用请看“先看这里.html”。\n`);
       open(url);
     }
   });

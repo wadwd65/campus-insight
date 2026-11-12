@@ -37,7 +37,7 @@
     "test:motion": "node scripts/test-scene-pointer.mjs",
     "test:journey": "node scripts/test-campus-journey.mjs",
     "test:3d": "node scripts/test-campus-web.mjs && node scripts/test-campus-release.mjs",
-    "check": "npm run selftest && npm run selftest:store && npm run selftest:map && npm run selftest:intro && npm run smoke && npm run smoke:csv && npm run build && npm run verify:dist && npm run test:privacy && npm run test:stats && npm run test:ai && npm run test:relay && npm run test:explanation && npm run test:csv && npm run test:export && npm run test:experience && npm run test:answers && npm run test:motion && npm run test:journey && npm run test:3d && npm run test:walk && npm run test:runtime && npm run test:accounts && npm run test:deployment && npm run test:windows && npm run test:navigation && npm run test:guidance && npm run test:registration && npm run test:play && npm run test:parkour && npm run test:participation && npm run test:field && npm run test:report-core && npm run test:day-survey && npm run test:cohort-flow && npm run test:proxy && npm run test:release",
+    "check": "npm run selftest && npm run selftest:store && npm run selftest:map && npm run selftest:intro && npm run smoke && npm run smoke:csv && npm run build && npm run verify:dist && npm run test:privacy && npm run test:stats && npm run test:ai && npm run test:relay && npm run test:explanation && npm run test:csv && npm run test:export && npm run test:experience && npm run test:answers && npm run test:motion && npm run test:journey && npm run test:3d && npm run test:walk && npm run test:runtime && npm run test:accounts && npm run test:deployment && npm run test:windows && npm run test:navigation && npm run test:guidance && npm run test:registration && npm run test:play && npm run test:parkour && npm run test:participation && npm run test:field && npm run test:report-core && npm run test:day-survey && npm run test:cohort-flow && npm run test:proxy && npm run test:release && npm run test:install",
     "gen:data": "python scripts/generate-survey-data.py",
     "gen:cohort": "python scripts/generate-survey-data.py -n 48 --seed 20261001 --out public/data/示例-班级问卷.csv",
     "test:walk": "node scripts/test-campus-walk.mjs",
@@ -57,7 +57,8 @@
     "test:field": "node scripts/test-industrial-journey.mjs && node scripts/test-companion-position.mjs && node scripts/test-campus-story.mjs && node scripts/test-story-atmosphere.mjs && node scripts/test-story-library.mjs && node scripts/test-campus-day.mjs && node scripts/test-campus-paths.mjs",
     "test:report-core": "node scripts/test-survey-report-core.mjs",
     "test:day-survey": "node scripts/test-day-survey-bridge.mjs",
-    "test:release": "node scripts/test-live-verifier.mjs && npm run test:delivery && npm run test:build-inputs"
+    "test:release": "node scripts/test-live-verifier.mjs && npm run test:delivery && npm run test:build-inputs",
+    "test:install": "node scripts/test-install-windows.mjs"
   },
   "dependencies": {
     "@tsparticles/engine": "^4.4.0",

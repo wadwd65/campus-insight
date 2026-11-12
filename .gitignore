@@ -1,5 +1,6 @@
 # 依赖
 node_modules/
+.campus-runtime/
 .vite-cache/
 
 # 构建产物
