@@ -1,6 +1,6 @@
 {
   "algorithm": "campus-source-v1",
-  "sourceSha256": "6b3cd5d21ad3ba6898cda8ced4dd45010075242e6eee29af40dcf44212f7eb0a",
+  "sourceSha256": "92f8689e56702dcd880b78e1b420d5f8107bab7b473ff3cc5dfed70e4c96fbd2",
   "files": [
     {
       "path": "index.html",
@@ -384,8 +384,8 @@
     },
     {
       "path": "scripts/bootstrap-windows.ps1",
-      "bytes": 6015,
-      "sha256": "c2ec70b8e74f5d668f827f3931562bb6bde228ab5bd4b50917084116815ae724"
+      "bytes": 7835,
+      "sha256": "00cf65695992521973a39f5fcbaac2cd6277bfe8be894595fdd3c790b3b6dff2"
     },
     {
       "path": "scripts/build-campus-web.mjs",

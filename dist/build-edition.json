@@ -8,13 +8,13 @@
   "base": "v53.2",
   "deliveryRevision": "2026-11-12",
   "build": {
-    "sourceCommit": "541a78eadd7d8361ad9b3c638af95ef6c61e2159",
+    "sourceCommit": "721f631433c195ed5c8e9632144efa4dc41eae8b",
     "sourceDirty": false,
-    "sourceSha256": "6b3cd5d21ad3ba6898cda8ced4dd45010075242e6eee29af40dcf44212f7eb0a",
-    "builtAt": "2026-11-12T23:49:22.887Z",
+    "sourceSha256": "92f8689e56702dcd880b78e1b420d5f8107bab7b473ff3cc5dfed70e4c96fbd2",
+    "builtAt": "2026-11-12T23:57:55.432Z",
     "inputsManifest": {
       "path": "/build-inputs.json",
-      "sha256": "866d5aaaeb3335167cddb54faf7298b65e4b5bbef4ab86022f5245300333edc8",
+      "sha256": "c6a3bd8393f7e693e0185aa48b6c53ca2e077576ac745b1898a427050679ca62",
       "files": 310
     },
     "artifacts": [
