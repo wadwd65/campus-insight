@@ -11,6 +11,37 @@ function Test-CampusNode([string]$Executable) {
   if(-not (Test-Path -LiteralPath $Executable -PathType Leaf)){return $false}
   try { $taskFound=(& $Executable --version 2>$null).Trim(); return ($LASTEXITCODE -eq 0 -and [version]($taskFound.TrimStart('v')) -ge [version]$taskVersion) } catch {return $false}
 }
+function Get-CampusArchiveSha256([string]$Archive) {
+  # Do not rely on Get-FileHash: Windows PowerShell can inherit a Core-only
+  # module search path when launched from an IDE or a PowerShell 7 terminal.
+  $taskStream=$null
+  $taskHasher=$null
+  try {
+    $taskStream=[IO.File]::OpenRead($Archive)
+    $taskHasher=[Security.Cryptography.SHA256]::Create()
+    return [BitConverter]::ToString($taskHasher.ComputeHash($taskStream)).Replace('-','').ToLowerInvariant()
+  } finally {
+    if($null -ne $taskHasher){$taskHasher.Dispose()}
+    if($null -ne $taskStream){$taskStream.Dispose()}
+  }
+}
+function Expand-CampusArchive([string]$Archive,[string]$Destination) {
+  # Use the Windows .NET ZIP implementation instead of optional PS modules.
+  [void][Reflection.Assembly]::LoadWithPartialName('System.IO.Compression')
+  [void][Reflection.Assembly]::LoadWithPartialName('System.IO.Compression.FileSystem')
+  [void][Reflection.Assembly]::LoadWithPartialName('System.IO.Compression.ZipFile')
+  $taskZipRoot=[IO.Path]::GetFullPath($Destination).TrimEnd([IO.Path]::DirectorySeparatorChar)+[IO.Path]::DirectorySeparatorChar
+  $taskZip=[IO.Compression.ZipFile]::OpenRead($Archive)
+  try {
+    foreach($taskEntry in $taskZip.Entries){
+      $taskEntryName=$taskEntry.FullName.Replace('/',[IO.Path]::DirectorySeparatorChar)
+      if([IO.Path]::IsPathRooted($taskEntryName)){throw '运行工具压缩包包含无效路径。'}
+      $taskEntryPath=[IO.Path]::GetFullPath([IO.Path]::Combine($Destination,$taskEntryName))
+      if(-not $taskEntryPath.StartsWith($taskZipRoot,[StringComparison]::OrdinalIgnoreCase)){throw '运行工具压缩包路径超出解压目录，已停止。'}
+    }
+  } finally {$taskZip.Dispose()}
+  [IO.Compression.ZipFile]::ExtractToDirectory($Archive,$Destination)
+}
 try {
   if(-not (Test-Path -LiteralPath (Join-Path $taskRoot 'dist\index.html'))){throw '缺少完整网页。请先全部解压；源码仓库应包含 dist 目录。'}
   $taskNode=$null
@@ -40,11 +71,11 @@ try {
       }
       if(-not $taskFetched){throw '运行工具下载失败。请使用随参赛包提供的 Windows x64 即用包，无需联网下载；也可安装 Node.js 24.21 或更新版本后重试。'}
     }
-    if((Get-FileHash -Algorithm SHA256 -LiteralPath $taskArchive).Hash.ToLowerInvariant() -ne $taskArchiveSha){throw '下载校验不通过，已停止运行。请重新下载官方运行工具或使用已验证的 Windows 即用包。'}
-    Expand-Archive -LiteralPath $taskArchive -DestinationPath $taskDownload -Force
+    if((Get-CampusArchiveSha256 $taskArchive) -ne $taskArchiveSha){throw '下载校验不通过，已停止运行。请重新下载官方运行工具或使用已验证的 Windows 即用包。'}
+    Expand-CampusArchive $taskArchive $taskDownload
     $taskExtracted=Join-Path $taskDownload 'node-v24.21.0-win-x64'
     if(-not (Test-CampusNode (Join-Path $taskExtracted 'node.exe'))){throw '运行工具解压后校验失败。'}
-    if(-not (Select-String -LiteralPath (Join-Path $taskExtracted 'LICENSE') -Pattern 'Node.js is licensed' -Quiet)){throw '运行工具缺少许可证。'}
+    if(-not [IO.File]::ReadAllText((Join-Path $taskExtracted 'LICENSE')).Contains('Node.js is licensed')){throw '运行工具缺少许可证。'}
     Copy-Item -LiteralPath (Join-Path $taskExtracted 'node.exe') -Destination (Join-Path $taskRuntime 'node.exe') -Force
     Copy-Item -LiteralPath (Join-Path $taskExtracted 'LICENSE') -Destination (Join-Path $taskRuntime 'LICENSE') -Force
     # Keep npm with the source checkout, so the rebuild route also works without system Node.
@@ -53,7 +84,8 @@ try {
     # Only our freshly created GUID directory is removed. Never delete application/user data.
     $taskResolved=[IO.Path]::GetFullPath($taskDownload)
     if((Split-Path $taskResolved -Parent) -ne $taskRuntime -or (Split-Path $taskResolved -Leaf) -notmatch '^download-[a-f0-9]{32}$'){throw '临时目录校验失败。'}
-    Remove-Item -LiteralPath $taskResolved -Recurse -Force
+    try {Remove-Item -LiteralPath $taskResolved -Recurse -Force}
+    catch {Write-Host '运行工具已准备完成；临时下载目录暂被占用，已保留，不影响启动。'}
     $taskNode=Join-Path $taskRuntime 'node.exe'
   }
   if($Action -eq 'CheckRuntime'){Write-Host "运行工具已就绪：$taskNode";exit 0}
