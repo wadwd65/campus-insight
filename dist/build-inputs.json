@@ -1,6 +1,6 @@
 {
   "algorithm": "campus-source-v1",
-  "sourceSha256": "39c16782cb69b1c5eab70afb5e2b84a52c30d00a262446b4a4b7c3c900a616bc",
+  "sourceSha256": "85ce61d7e037050dff52a02b9287f862b7cd6c3a2a52daa65002480782e2e011",
   "files": [
     {
       "path": "index.html",
@@ -109,8 +109,8 @@
     },
     {
       "path": "package.json",
-      "bytes": 5381,
-      "sha256": "7ef792afefcbd0a8f076a9a688f171cd6e9fddb8389d6bcf17c80b91fdecd148"
+      "bytes": 5466,
+      "sha256": "6931a2198dc251b61fe4d66860b803eb25a2b1e660b7ef3e7a6b0a2af56cb33d"
     },
     {
       "path": "public/art/ark/crest.webp",
@@ -254,8 +254,8 @@
     },
     {
       "path": "public/build-edition.json",
-      "bytes": 297,
-      "sha256": "c35674c2d337593be9784681a327f0c9e108f836b4fa9260a920ff715974b046"
+      "bytes": 447,
+      "sha256": "50883b9dec909fda2dd2935569be7804c8a6bc35043ce6d7d103c0fbc4a0731a"
     },
     {
       "path": "public/data/README.md",
@@ -383,6 +383,11 @@
       "sha256": "862d806e470518a675334e5ec46bef9cccf258e63869d4d687c668813fded988"
     },
     {
+      "path": "scripts/bootstrap-windows.ps1",
+      "bytes": 6015,
+      "sha256": "c2ec70b8e74f5d668f827f3931562bb6bde228ab5bd4b50917084116815ae724"
+    },
+    {
       "path": "scripts/build-campus-web.mjs",
       "bytes": 2195,
       "sha256": "cc556f4018f3405882ee9b886e18e873ffa0ed257ba78e80207d4fe454e33cdf"
@@ -443,6 +448,11 @@
       "sha256": "905b5562fa0257deac579e40948d11ebee3633134fa50f955e4edd1c95c68082"
     },
     {
+      "path": "scripts/install-windows.mjs",
+      "bytes": 13936,
+      "sha256": "57f2249e7b41a98e6240667156021f6a73ff93d5fac14f04aef7fc481aa2d214"
+    },
+    {
       "path": "scripts/node-required.txt",
       "bytes": 354,
       "sha256": "5b3e15b6d8ff9daed89b10816bb97c854274ea29a04f376e96ba78085fe4d698"
@@ -454,8 +464,8 @@
     },
     {
       "path": "scripts/package-node-release.mjs",
-      "bytes": 7874,
-      "sha256": "04daa97c624b11178e5c3755d58b12c35d0e26e0884703de81c13af767f6eafe"
+      "bytes": 6707,
+      "sha256": "a9416f3e2cc37bf6952302f8fa8d426c4c77ce5f4185cdad4b01638cecf7b118"
     },
     {
       "path": "scripts/participation-ui-fixture.jsx",
@@ -509,8 +519,8 @@
     },
     {
       "path": "scripts/start-local.mjs",
-      "bytes": 3856,
-      "sha256": "92cf53d83a4eb6c8caef4802aac51ca86bb79c4c35280de8a7b73826c44065ba"
+      "bytes": 3839,
+      "sha256": "29e774df833a80bcbf8d21d8aa25032f1d614b675361a103374bcf2834b4971f"
     },
     {
       "path": "scripts/test-accounts.mjs",
@@ -636,6 +646,11 @@
       "path": "scripts/test-industrial-journey.mjs",
       "bytes": 6823,
       "sha256": "c8514462226d43e8de675c9fc2eaf06861f2d52f09fcb8c9e55d2bd4d74610f7"
+    },
+    {
+      "path": "scripts/test-install-windows.mjs",
+      "bytes": 9963,
+      "sha256": "ca1aa0f3cf24fa9f98cac4a9a66c234ef634225f6c5657323d5b3cc635308793"
     },
     {
       "path": "scripts/test-live-verifier.mjs",

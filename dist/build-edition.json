@@ -4,17 +4,18 @@
   "theme": "校园行迹",
   "matrixVersion": 1,
   "date": "2026-11-11",
-  "change": "固定Tailwind扫描业务源码与入口；构建输出逐文件输入摘要用于定位部署残留；保留严格版本校验和原账号数据",
+  "change": "固定Tailwind扫描业务源码与入口；构建输出逐文件输入摘要用于定位部署残留；保留严格版本校验和原账号数据；交付修订：增加免管理员一键安装、校验便携运行时和源码复建入口，业务界面不变",
   "base": "v53.2",
+  "deliveryRevision": "2026-11-12",
   "build": {
-    "sourceCommit": "1b8ae0029d85bbf0b49dc5684b63832f70f5b518",
+    "sourceCommit": "543ddbe3666be854d59329da19e57478487dd59b",
     "sourceDirty": false,
-    "sourceSha256": "39c16782cb69b1c5eab70afb5e2b84a52c30d00a262446b4a4b7c3c900a616bc",
-    "builtAt": "2026-11-11T12:24:45.510Z",
+    "sourceSha256": "85ce61d7e037050dff52a02b9287f862b7cd6c3a2a52daa65002480782e2e011",
+    "builtAt": "2026-11-12T23:42:17.689Z",
     "inputsManifest": {
       "path": "/build-inputs.json",
-      "sha256": "6062fedcd724eba68b6264c0e03ee39c510c3f179b6f65f52d6c4a63a687e33d",
-      "files": 307
+      "sha256": "5097ad5f6d5795cfb0045dee53737a87e9450acfc788b84a049b55d4df49eb39",
+      "files": 310
     },
     "artifacts": [
       {
