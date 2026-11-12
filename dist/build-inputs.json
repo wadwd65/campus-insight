@@ -1,6 +1,6 @@
 {
   "algorithm": "campus-source-v1",
-  "sourceSha256": "85ce61d7e037050dff52a02b9287f862b7cd6c3a2a52daa65002480782e2e011",
+  "sourceSha256": "6b3cd5d21ad3ba6898cda8ced4dd45010075242e6eee29af40dcf44212f7eb0a",
   "files": [
     {
       "path": "index.html",
@@ -429,8 +429,8 @@
     },
     {
       "path": "scripts/compose-campus-ambient.py",
-      "bytes": 3308,
-      "sha256": "08586e706693e52d33c20adfca077767151452090daba1fd995d6b44c385b1c1"
+      "bytes": 3307,
+      "sha256": "2ccdc5db14f78d0763bcae4ca2dd8dc8ab8985a301d69dde209fdb60697a29f1"
     },
     {
       "path": "scripts/compose-campus-playlist.py",
